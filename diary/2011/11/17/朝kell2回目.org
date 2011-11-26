@@ -1,0 +1,6 @@
+* 朝kell2回目
+[[http://learnyouahaskell.com/introduction#so-whats-haskell][So what's Haskell?]] のあたりをやりました．
+
+時間が経ってから日記書いてるのでどの辺をどのくらいやったかあんまり覚えておりません．
+
+「君が a が 5 だと言ったから 5 にしたのに，その後で a はやっぱり別のものでしたてへぺろとするのは何なの．嘘つきなの？」と命令型言語に言いたい．
