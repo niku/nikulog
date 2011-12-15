@@ -1,0 +1,25 @@
+* 朝 kell 18 回目
+[[http://learnyouahaskell.com/syntax-in-functions#pattern-matching][Pattern matching]] のあたりをやりました．
+
+場合分けを綺麗に書けるのはいいですね．
+
+Ruby で階乗を再帰で書くとこんな感じですよね．
+#+BEGIN_EXAMPLE
+def factorical(n)
+  case n
+  when 0
+    1
+  else
+    factorical(n - 1)
+  end
+end
+#+END_EXAMPLE
+
+Haskell だとこういう風に書くみたいです．
+#+BEGIN_EXAMPLE
+factorial :: (Integral a) => a -> a
+factorial 0 = 1
+factorial n = n * factorial (n - 1)
+#+END_EXAMPLE
+
+これだと個人的には Haskell の方が読みやすいかな．Ruby の when 句の後に ; をつけて 1 行で記述できたっけかな？後で調べてみよう．
