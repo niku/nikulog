@@ -1,0 +1,18 @@
+* stackoverflow の日付表示を yyyy-mm-dd にする
+
+最近，開発関連の調べ物で [[http://stackoverflow.com/][stackoverflow.com]] を検索することが増えました．
+
+便利なのですけど
+
+- 月の表示が英字3文字
+- 時間の表示に年が含まれていない
+
+のが，僕にとって使いにくかったので，日付表示をわかりやすくする [[http://userscripts.org/scripts/show/149523][userscript]] を書きました．
+
+[[%E9%81%A9%E7%94%A8%E5%89%8D][before.png]]
+
+が
+
+[[%E9%81%A9%E7%94%A8%E5%BE%8C][after.png]]
+
+のようになります．べんり！
