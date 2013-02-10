@@ -1,8 +1,0 @@
-* 朝kell3回目
-[[http://learnyouahaskell.com/introduction#so-whats-haskell][So what's Haskell?]] のあたりをやりました．
-
-1. Haskell is *lazy*
-2. Haskell is *statically typed*
-3. Haskell is *elegant and concise*
-4. Haskell was made by some *really smart guys*
-を覚えました．4はいるのか…？

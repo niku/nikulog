@@ -1,4 +1,0 @@
-* nwiki0.0.4 リリース
-今日は 9 日ですので org-mode と git で日記やwikiを公開できるアプリ [[https://github.com/niku/nwiki][nwiki]] の v0.0.4 をリリースしました．
-
-今回は [[http://niku.name/articles/]] のように記事を一覧で眺められるようにしました．

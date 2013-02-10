@@ -1,4 +1,0 @@
-* 朝kell1回目
-毎朝 [[https://twitter.com/#!/quicy][quicy]] さんと haskell を [[http://learnyouahaskell.com/][Learn You a Haskell for Great Good!]] で勉強することになりました．
-[[http://learnyouahaskell.com/introduction#about-this-tutorial][
-About this tutorial]] あたりを読みました．作者も haskell をちゃんとできるようになるまでに 2 回あきらめたことがあったのだな．
