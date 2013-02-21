@@ -1,0 +1,54 @@
+* helm でコンサドーレ札幌 2013 シーズン選手背番号を探す
+一般的なコンサドーレサポーターならば、選手のポジションと背番号は全て暗記していると聞きました。
+
+しかし、僕は初心者なので、なかなか覚えきれていないので、選手のポジションと背番号をさがすのに便利なツールを用意しました。helm-consadole-uniform-number-2013 です。以下をコピペしてください。
+
+#+BEGIN_EXAMPLE
+(defvar helm-consadole-uniform-number-2013-source
+  '((name . "consadole sapporo uniform number 2013")
+    (candidates . (("1  GK 曵地 裕哉")
+                   ("16 GK イ ホスン")
+                   ("21 GK 阿波加 俊太")
+                   ("30 GK 杉山 哲")
+                   ("2  DF 日高 拓磨")
+                   ("3  DF パウロン")
+                   ("5  DF チョ ソンジン")
+                   ("6  DF 前 貴之")
+                   ("23 DF 奈良 竜樹")
+                   ("25 DF 櫛引 一紀")
+                   ("26 DF 小山内 貴哉")
+                   ("27 DF 松本 怜大")
+                   ("29 DF 永坂 勇人")
+                   ("4  MF 河合 竜二")
+                   ("8  MF 砂川 誠")
+                   ("10 MF 宮澤 裕樹")
+                   ("15 MF 古田 寛幸")
+                   ("17 MF 岡本 賢明")
+                   ("18 MF 深井 一希")
+                   ("20 MF 上里 一将")
+                   ("24 MF 荒野 拓馬")
+                   ("28 MF 神田 夢実")
+                   ("31 MF 堀米 悠斗")
+                   ("32 MF 中原 彰吾")
+                   ("7  FW 榊 翔太")
+                   ("9  FW 横野 純貴")
+                   ("11 FW 前田 俊介")
+                   ("13 FW 内村 圭宏")
+                   ("14 FW 上原 慎也")
+                   ("19 FW テレ")
+                   ("22 FW 三上 陽輔")))
+    (action . message)))
+
+(defun helm-consadole-uniform-number-2013 ()
+  (interactive)
+  (helm-other-buffer '(helm-consadole-uniform-number-2013-source) "*helm consadole uniform number 2013*"))
+#+END_EXAMPLE
+
+実行すると以下のようになります。
+
+[[helm-consadole-uniform-number-2013-sample.png]]
+
+** 参考
+ - [[http://blog.64p.org/entry/2013/02/21/121830]]
+ - [[http://mattn.kaoriya.net/software/vim/20130221123856.htm]]
+ - [[http://d.hatena.ne.jp/syohex/20130221/1361423585]]
