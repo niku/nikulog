@@ -1,0 +1,15 @@
+* JavaScript 道場に参加した
+
+何やら面白そうだったので [[https://github.com/sapporojs/jsdojo][JavaScript 道場]]に参加しました．
+
+午前中はクライアント，サーバーそれぞれの JavaScript 師範によるトークを聞いて，午後は手を動かしてお題を実装しました．
+
+今まで意識していなかったけど，同期プログラミングで式を区切って次の式を書くということは，非同期プログラミングで言うところの onfinish を期待しているということがわかりました．
+
+サーバーサイド node.js(express) + クライアントサイド jQuery の連携で[[https://github.com/niku/sapporo-js-dojo-2013-02-13-prototype][プロトタイプ]]を作って，まがりなりにも動作させられたことで，今後 node.js でのプログラミングへの心理的障壁はグッと下がりましたね．
+
+ただし，今回はプロトタイプということで割り切ってテストを全然書かなかったので，プロダクションコードを作る際はテストの記述でしばらく悩みそうです．
+
+今後も JavaScript の刀を磨いておいて，いざ必要な場合にスパッと切れるようにしておこうと思います．
+
+ペアになってくれた [[https://twitter.com/hachiilcane][@hachiilcane]]，場を用意してくださった [[https://twitter.com/tricknotes][@tricknotes]]，師範の [[https://twitter.com/bad_at_math][@bad_at_math]]，[[https://twitter.com/hokaccha][@hokaccha]]，スタッフのみなさん，参加者のみなさんありがとうございました．
