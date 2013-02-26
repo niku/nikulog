@@ -1,0 +1,30 @@
+* 今日何があったか書けない
+
+日記をつけようと思ったのだけど，今日何をやったのか，全然思い出せないなあ．箇条書きにしてみよう．
+
+** サーバーに Samba を導入しようとしている
+
+ユーザ認証をうまくできない．ユーザは作られているみたい．
+
+** 周りの Ruby 環境を 2.0 にしている
+
+*** Passenger との組み合わせがうまくいかない
+Ruby2.0 + Passenger が，今のところうまくインストールできないみたい．
+
+[[https://github.com/FooBarWidget/passenger/pull/71][passenger-install-apache2-module doesn't work on ruby 2.0]] この修正が取り込まれたバージョンがリリースされたらインストールできるようになるのだろう．
+
+*** Array#bsearch そのうち使おう
+ソートされた配列を二分探索してくれる Array#bsearch
+
+- るびまでの説明 :: [[http://jp.rubyist.net/magazine/?0041-200Special-note#l14]]
+- るりまでの説明 :: [[http://doc.ruby-lang.org/ja/2.0.0/method/Array/i/bsearch.html]]
+
+** 吉原宏太がコンサドーレスタッフになった
+[[http://www.consadole-sapporo.jp/news/2013/02/014097.html][吉原宏太氏コンサドーレ札幌スタッフに就任のお知らせ]]
+
+#+begin_src
+17年の現役生活を終えて、プロとしてスタートした札幌に戻ってきました。
+第２の人生も札幌でスタートできる事を幸せに思っています。
+#+end_src
+
+というコメントがぐっとくる．
