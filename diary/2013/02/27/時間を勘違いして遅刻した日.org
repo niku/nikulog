@@ -1,0 +1,70 @@
+* 時間を勘違いして遅刻した日
+** emacs の置換で改行を含めるには
+
+[[http://d.hatena.ne.jp/n9d/20080215/1203043005][emacsでの置換の際に改行を使うには]] の通り，C-q C-j でよかった．
+linux 上で C-q C-m していて，ならないなあと悩んでいた．
+
+- C-q C-j :: LF
+- C-q C-m :: CR
+
+に該当するのか．
+
+** TOML の記法が Samba の conf 記法に似ていると思った
+
+- toml :: [[https://github.com/mojombo/toml]]
+- sambaのconf :: [[http://www.samba.org/samba/docs/man/Samba-Guide/secure.html#id2560202]]
+
+似ているといってもセクションを [] で区切るところ，要素を a=b で宣言するところか．
+
+smb.conf
+#+begin_src
+[homes]
+comment = Home Directories
+valid users = %S
+read only = No
+browseable = No
+[printers]
+comment = SMB Print Spool
+path = /var/spool/samba
+guest ok = Yes
+printable = Yes
+use client driver = Yes
+default devmode = Yes
+browseable = No
+[netlogon]
+comment = Network Logon Service
+...
+#+end_src
+
+toml
+#+begin_src
+title = "TOML Example"
+
+[owner]
+name = "Tom Preston-Werner"
+organization = "GitHub"
+bio = "GitHub Cofounder & CEO\nLikes tater tots and beer."
+dob = 1979-05-27T07:32:00Z # First class dates? Why not?
+
+[database]
+server = "192.168.1.1"
+ports = [ 8001, 8001, 8002 ]
+connection_max = 5000
+enabled = true
+...
+#+end_src
+
+TOML をパースする parslet がもう出ているみたい．
+- [[http://zerowidth.com/2013/02/24/parsing-toml-in-ruby-with-parslet.html][Parsing TOML in Ruby with Parslet]]
+- [[https://github.com/aniero/toml-parslet][aniero / toml-parslet]]
+
+** 調子悪い
+
+お昼前か急に体調が悪くなってきて，昼ごはんを食べたら少し回復した．今せめぎあい中．
+
+よくなってきた．
+
+** 「Aに合わせる」というコミットメッセージ
+
+: according to A
+でいいのかな．
