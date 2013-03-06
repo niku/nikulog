@@ -1,0 +1,27 @@
+* インストーラーでインストールした vagrant から vagrant プラグイン sahara を利用する
+
+[[http://www.vagrant][vagrant]] は gem でインストールすることもできます．vagrant のプラグイン [[https://github.com/jedi4ever/sahara][sahara]] は gem 形式で提供されています．vagrant を gem でインストールしている人は，sahara を使う場合にも gem install sahara でインストールすれば．
+
+: vagrant sandbox on
+
+というコマンドが使えるようになります．
+
+windows で vagrant を使おうとした場合，windows 上で Ruby を使う人は gem でインストールすればいいですが，そうではない人は msi 形式の windows インストーラーで vagrant をインストールすることになります．その vagrant にどうやって sahara プラグインを入れれば良いかわかりませんね．
+
+実は vagrant には vagrant gem というコマンドがあり，それを利用すると gem 形式の vagrant のプラグインをインストールできます．
+
+#+BEGIN_EXAMPLE
+$ vagrant sandbox
+Usage: vagrant [-v] [-h] command [<args>]
+...
+$ vagrant gem install sahara
+$ vagrant sandbox
+Usage: vagrant sandbox <command> [<args>]
+
+Available subcommands:
+     commit
+     off
+     on
+     rollback
+     status
+#+END_EXAMPLE
