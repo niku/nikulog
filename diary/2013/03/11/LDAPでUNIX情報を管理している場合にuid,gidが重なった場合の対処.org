@@ -1,0 +1,52 @@
+* LDAP で UNIX 情報を管理している場合に uid,gid が重なった場合の対処
+
+** 症状
+LDAP にユーザー foo，グループ foo を追加したのに，以下のように
+
+#+BEGIN_EXAMPLE
+sudo mkdir -p /home/foo
+sudo chown foo:foo /home/foo
+ls -l /home | grep foo
+drwxr-xr-x  3 bar            bar             4096  3月 11 11:04 foo
+#+END_EXAMPLE
+
+オーナーとグループが bar になってしまった．
+
+** 確認すること
+
+LDAP で設定した id と，UNIX で設定している id が重なっていないか．
+
+LDAP で設定している id と UNIX で設定している id を合わせて見るには
+: getent passwd
+で確認できる．もし見づらい場合は
+: getent passwd | awk 'BEGIN{ FS= ":" }{ print $1 " " $3 " " $4 }' | sort -nk 3
+とすると uid 順に " 名前 uid gid "  という形式で見られる．
+
+getent で出力した情報に番号の重複がある場合，上記の症状が発生する．
+
+** 対処方法
+
+id の重複がなくなれば問題が解決するので
+
+1. UNIX で設定している id を変更する
+2. LDAP で設定している id を変更する
+
+のどちらかを行う．どちらを実行しても既存のファイル / デイレクトリの id は変わってくれないようなので，既存部分は手で直さないといけないようだ．
+
+今回，LDAP に紐づいている id で作成したファイル / ディレクトリはまだないので id を変更するだけですむ．そこで 2 を選択した．
+
+現在，UNIX で設定している id は
+: cat /etc/passwd
+で確認できる．もし見づらい場合は
+: cat /etc/passwd | awk 'BEGIN{ FS= ":" }{ print $1 " " $3 " " $4 }' | sort -nk 3
+とすると uid 順に " 名前 uid gid "  という形式で見られる．
+
+つまりここに載っている id 以外を LDAP で指定すれば，id の重複が解消できる．
+
+LDAP で User,Group の設定を直してから getent すると番号の重複がなくなる．以下のコマンドで問題が解決していることを確認した．
+
+#+BEGIN_EXAMPLE
+sudo chown foo:foo /home/foo
+ls -l /home | grep foo
+drwxr-xr-x  3 foo            foo             4096  3月 11 11:04 foo
+#+END_EXAMPLE
