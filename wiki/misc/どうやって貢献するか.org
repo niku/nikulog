@@ -1,0 +1,11 @@
+* どうやって貢献するか
+
+( これは http://wiki.opscode.com/display/chef/How+to+Contribute の非公式日本語訳です )
+
+** Opscode のオープンソースプロジェクトに貢献してくれてありがとう！
+
+*** 1 回だけやること
+1. [[http://tickets.opscode.com/][オープンソースチケット追跡システム]]に登録する
+   - wiki上でのアカウントになります
+   - あなたの CLA とこのアカウントの E メールアドレスを照合します
+2. [[https://secure.echosign.com/public/hostedForm?formid%3DPJIF5694K6L][コントリビュータ·ライセンス契約]]を埋めて下さい．もし，あなたの貢献が会社を代表して行うものなら，[[https://secure.echosign.com/public/hostedForm?formid=PIE6C7AX856][企業コントリビュータ·ライセンス契約]]にサインするべきです．
