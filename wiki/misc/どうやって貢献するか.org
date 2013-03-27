@@ -7,5 +7,5 @@
 *** 1 回だけやること
 1. [[http://tickets.opscode.com/][オープンソースチケット追跡システム]]に登録する
    - wiki上でのアカウントになります
-   - あなたの CLA とこのアカウントの E メールアドレスを照合します
+   - あなたの CLA(訳註 :Contributor License Agreement) の E メールアドレスと，このアカウントの E メールアドレスを照合します
 2. [[https://secure.echosign.com/public/hostedForm?formid%3DPJIF5694K6L][コントリビュータ·ライセンス契約]]を埋めて下さい．もし，あなたの貢献が会社を代表して行うものなら，[[https://secure.echosign.com/public/hostedForm?formid=PIE6C7AX856][企業コントリビュータ·ライセンス契約]]にサインするべきです．
