@@ -10,3 +10,5 @@
    - あなたの CLA(訳註 :Contributor License Agreement) の E メールアドレスと，このアカウントの E メールアドレスを照合します
 2. [[https://secure.echosign.com/public/hostedForm?formid%3DPJIF5694K6L][コントリビュータ·ライセンス契約]]を埋めて下さい．もし，あなたの貢献が会社を代表して行うものなら，[[https://secure.echosign.com/public/hostedForm?formid=PIE6C7AX856][企業コントリビュータ·ライセンス契約]]にサインするべきです．
    - フォームに記入して，電子署名して下さい．この手続と提出は [[http://www.echosign.com/][Echosign]] を通して行われます．だいたい 3-5 分かかります．
+   - 私たちがそれを受け取ったら，あなたへメールでコピーをお送りします．そして私たちは処理を進め，あなたへ「ようこそ」メールをお送りします．
+   - [[http://wiki.opscode.com/display/chef/Approved%2BContributors][承認された貢献者一覧]]に名前が載り，[[http://tickets.opscode.com/][チケット追跡システム]]のアカウントが開発者へとアップグレードされ，チケットの状態を修正したり変更できるようになります．
