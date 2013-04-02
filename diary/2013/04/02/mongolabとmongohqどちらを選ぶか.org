@@ -1,0 +1,29 @@
+* mongolab と mongohq どちらを選ぶか
+
+heroku で mongodb を使おうとした場合，heroku のアドオンで [[https://addons.heroku.com/mongolab][mongolab]] と [[https://addons.heroku.com/mongohq][mongohq]] という 2 つがあります．
+
+フリープランで使える容量は 496MB と 512MB とそれほど差がないし，どちらを選んだらいいでしょう？
+
+2013 年 4 月 2 日時点では mongodb のバージョンに違いがあるようです．
+
+#+BEGIN_EXAMPLE
+/Users/niku% mongo ds031747.mongolab.com:31747/heroku_appxxxx -u xxxx -p xxxx
+MongoDB shell version: 2.4.0
+connecting to: ds031747.mongolab.com:31747/heroku_appxxxx
+Error while trying to show server startup warnings: need to login
+> db.version()
+2.2.4-rc0
+>
+bye
+/Users/niku% mongo linus.mongohq.com:10065/appxxxx -u xxxx -p xxxx
+MongoDB shell version: 2.4.0
+connecting to: linus.mongohq.com:10065/appxxxx
+> db.version()
+2.4.1
+>
+bye
+#+END_EXAMPLE
+
+mongolab が 2.2.4-rc0，mongohq が 2.4.1 のようですね．
+
+お使いのローカル環境に合わせて選択するのが良いのではないでしょうか．
