@@ -20,3 +20,6 @@
 4. 私たちは，あなたがした変更をテストし，確かめ，マージします．その後チケットを閉じます．
 
 ワークフローをもっと詳しく知りたいですか？それなら[[http://wiki.opscode.com/display/chef/Code%2BReview][コードレビュー]]のページを参照してください．
+
+*** 私達は Github のプルリクエストをお待ちしています
+一度 [[https://secure.echosign.com/public/hostedForm?formid=PJIF5694K6L][CLA]] を提出し - そしてプルリクエストを[[http://tickets.opscode.com/][チケット]]に関連付けたら - [[http://wiki.opscode.com/display/chef/How%2Bto%2BContribute#HowtoContribute-HowtoContribute-WhyisyoursoftwareApacheLicensed%253F][Apache のライセンス]]を満たすために提出した資料はプロジェクトをまたがって提供されます．結果として，あなたの成功とコミュニティへの貢献の感謝が生まれます．
