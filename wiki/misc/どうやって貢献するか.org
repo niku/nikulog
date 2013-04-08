@@ -23,3 +23,16 @@
 
 *** 私達は Github のプルリクエストをお待ちしています
 一度 [[https://secure.echosign.com/public/hostedForm?formid=PJIF5694K6L][CLA]] を提出し - そしてプルリクエストを[[http://tickets.opscode.com/][チケット]]に関連付けたら - [[http://wiki.opscode.com/display/chef/How%2Bto%2BContribute#HowtoContribute-HowtoContribute-WhyisyoursoftwareApacheLicensed%253F][Apache のライセンス]]を満たすために提出した資料はプロジェクトをまたがって提供されます．結果として，あなたの成功とコミュニティへの貢献の感謝が生まれます．
+
+** Opscode がスポンサーになっているオープンソースプロジェクト
+
+| Project         | Ticket System                                     | Github                                    |
+| Chef            | [[http://tickets.opscode.com/browse/CHEF]]            | [[http://github.com/opscode/chef]]            |
+| Ohai            | [[http://tickets.opscode.com/browse/OHAI]]            | [[http://github.com/opscode/ohai]]            |
+| Cookbooks       | [[http://tickets.opscode.com/browse/COOK]]            | [[http://github.com/opscode-cookbooks]]       |
+| Knife-EC2       | [[http://tickets.opscode.com/browse/KNIFE_EC2]]       | [[http://github.com/opscode/knife-ec2]]       |
+| Knife-Rackspace | [[http://tickets.opscode.com/browse/KNIFE_RACKSPACE]] | [[http://github.com/opscode/knife-rackspace]] |
+| Knife-Windows   | [[http://tickets.opscode.com/browse/KNIFE_WINDOWS]]   | [[http://github.com/opscode/knife-windows]]   |
+| Knife-OpenStack | [[http://tickets.opscode.com/browse/KNIFE_OPENSTACK]] | [[http://github.com/opscode/knife-openstack]] |
+
+他に mixlib ライブラリなどの小さなプロジェクトがあります．Chef が依存しているオープソースプロジェクトのスポンサーになっています．
