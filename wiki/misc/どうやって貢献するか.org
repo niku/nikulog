@@ -36,3 +36,15 @@
 | Knife-OpenStack | [[http://tickets.opscode.com/browse/KNIFE_OPENSTACK]] | [[http://github.com/opscode/knife-openstack]] |
 
 他に mixlib ライブラリなどの小さなプロジェクトがあります．Chef が依存しているオープソースプロジェクトのスポンサーになっています．
+
+** FAQ
+
+*** ライセンスと著作権
+
+**** なぜあなたのソフトは Apache ライセンスなのですか？
+
+Opscode は Apache ライセンス version2 を使っています．なぜならそれはユーザーの自由と私たちの望むものを同じレベルで提供するからです．Apache ライセンス FAQ を元にすると ...
+
+***** あなたは以下のことができます
+- 全体か一部か，個人か企業内部，あるいは商用利用にかかわらず，Opscode ソフトウェアを無料でダウンロード，使うこと
+- あなたが作ったパッケージあるいはディストリビューションの中で Opscode ソフトウェアを使うこと
