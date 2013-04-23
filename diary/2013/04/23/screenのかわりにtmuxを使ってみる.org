@@ -1,0 +1,22 @@
+* screen のかわりに tmux を使ってみる
+
+特に理由もなく [[http://www.gnu.org/software/screen/][screen]] から [[http://tmux.sourceforge.net/][tmux]] にのりかえてみた．
+
+以下は osx + homebrew でどう使うかの備忘録．
+
+参考にしたサイト
+
+- tmux の構成要素，キーバインドなどの概要がわかる ::  [[http://gihyo.jp/admin/serial/01/ubuntu-recipe/0127][第127回　ターミナルマルチプレクサ tmuxを使ってみよう]]
+- tmux 上で pbcopy/pbpaste がうまく動作しないことへの対処方法がわかる :: [[http://yonchu.hatenablog.com/entry/20120514/1337026014][Macのtmuxでクリップボードを使用、あとtmuxの自動起動とか - よんちゅBlog]]
+
+** インストール
+
+: brew install tmux
+
+** 起動
+
+: tmux
+
+tmux セッションが既にあって，それに接続したい場合は
+
+: tmux attach
