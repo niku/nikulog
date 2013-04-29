@@ -1,0 +1,65 @@
+* なるほどUnixプロセス ー Rubyで学ぶUnixの基礎                         :book:
+
+[[http://tatsu-zine.com/books/naruhounix][なるほどUnixプロセス ー Rubyで学ぶUnixの基礎]]
+
+** モチベーション
+
+[[http://rubyweekly.com/][ruby weekly]] や [[http://pragprog.com/][The Pragmatic Bookshelf]] でたまに見かけてどういう本なのか気になっていた．
+
+[[http://rurema.clear-code.com/2.0.0/method/Process/m/daemon.html][Process.daemon]] がないころ(1.8 のころ)，バックグラウンドで動作するプログラムを作ろうとして，失敗していた．
+ググった所，fork を 2 回するといいらしい，とか書いてあったのでそのようにして動作させたものの，いずれちゃんとした意味を知りたいなあと思っていた．
+
+日本語訳者が角谷さんと島田さんだった
+
+** わかるようになった
+
+: Errno::EMFILE: Too many open files
+というエラーが出たとき，何が起きていて，どういう対処法があるか．
+
+Ruby プログラム実行中に
+: $ ps aux
+とした時の表示を
+: niku            57441   0.0  0.1  2457972   6428 s002  S+   10:34PM   0:00.10 ruby -e sleep
+から
+: niku            57497   0.0  0.1  2466164   6712 s002  S+   10:35PM   0:00.10 naruhodo-
+に変えるやりかた．
+
+COW( コピー・オン・ライト ) とは何か
+
+Ruby Enterprise Edition がなぜできたか
+
+Ruby2.0.0 以前は COW をサポートしていなかった理由
+
+[[http://rurema.clear-code.com/2.0.0/method/Kernel/m/fork.html][fork]] と [[http://rurema.clear-code.com/2.0.0/method/Kernel/m/exec.html][exec]] の使い方
+
+kill 9 の意味
+
+[[http://rurema.clear-code.com/2.0.0/method/IO/s/pipe.html][IO.pipe]] や [[http://rurema.clear-code.com/2.0.0/library/socket.html][Socket]] と [[http://rurema.clear-code.com/2.0.0/method/Kernel/m/fork.html][fork]] を組み合わせたときのプログラムの動き
+
+Apache prefork の意味
+
+[[http://rurema.clear-code.com/2.0.0/library/webrick.html][るりまの webrick の例]]に書いてある
+: trap("INT") { srv.shutdown }
+の意味
+
+モチベーションの所に書いた，バックグラウンドで動作するプログラムに必要な手順と，その手順一つ一つの意味．
+
+** 感想
+
+難しい話なのかと思いきや，サクサク読める．僕の場合，読むだけなら 1-2 時間くらいだった．
+
+サクサク読める程度の薄い内容かというと，そうではなかった．話題が飛ぶことなく，章毎に小さいステップをわかりやすく進めてくれる．読み終わって振り返ってみると，読んでいる途中に感じる手応え以上に色々学んだなあという感じ．
+
+原著の章立てが上手なのと，日本語訳が上手で日本語として引っかかるところが無かったせいかもしれない．
+
+「作ったプログラムだってプロセス上で動いているんだから，プログラマなら知っておくべき」とか「調べれば全部わかる」というのはその通りなんだけど，
+「今はたまたま困っていないこと，だけど有用であろうこと」に割ける僕のリソースはあまり多くないので，
+ある人たちには既知で，ちゃんと調べればわかること．というのを上手にまとめ直して再構成してくれるこの形式，そしてそれを日本語で読めるのは本当にありがたい．
+
+この本のシリーズが今 [[http://www.jstorimer.com/books][3 部作]]になっているみたい
+1. Working With Unix Processes
+2. Working With TCP Sockets
+3. Working With Ruby Threads
+残りの 2 冊も翻訳されると嬉しいなあ．
+
+「Working With Unix Processes の売れ行きが良ければ続編も……」としまださんが言っていたので，みんな買おう！
