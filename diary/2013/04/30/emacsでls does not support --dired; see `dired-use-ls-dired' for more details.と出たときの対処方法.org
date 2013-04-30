@@ -1,0 +1,20 @@
+* emacsでls does not support --dired; see `dired-use-ls-dired' for more details.と出たときの対処方法
+
+OSX の emacs で dired を開いた時
+: ls does not support --dired; see `dired-use-ls-dired' for more details.
+というのが messages に出るようになっていました．
+
+: (describe-variable 'dired-use-ls-dired)
+するとわかるのですが，ls に --dired オプションがあれば，emacs の dired でそれを使うみたいですね．
+
+OSX の ls は --dired オプションがないようなので，brew で coreutills(GNU Core Utilities) をインストールして利用することにしました．
+
+brew でインストールする coreutills は g という prefix がついていて ls が gls になるのが面倒でしたが，
+: $ brew info coreutils
+の内容の通り，
+: /usr/local/opt/coreutils/libexec/gnubin
+を PATH の最初に追記することで解決しました．
+
+その後 ~/.emacs.d/init.el あたりに
+: (setq dired-use-ls-dired t)
+と書くと問題が解決できます．
