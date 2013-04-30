@@ -1,0 +1,14 @@
+* ember.jsやってみる
+
+かねてより [[https://twitter.com/tricknotes][@tricknotes]] 師匠が「ember いいですよ！」と言っており，
+たまたま [[http://qiita.com/advent-calendar/2012/emberjs][Ember.js Advent Calendar 2012]] を眺めていた所，結構良さそうだったので．はじめてみます．
+
+日本語だとまとまった情報がほとんどないので，その助けになれば幸いです．
+が，今のところ API の変更が大きいらしく，[[https://github.com/kmdsbng/emberjs_multiplier_sample/pull/1/files][1.0.0-pre2 から 1.0.0-rc.3 への変更でも動作しないことがある]]ので，ここに書いてあることも基本的に信用できないかもしれません．
+
+** 最初の 30 分でやること
+
+: git clone git://github.com/emberjs/ember.js.git
+する．使わないかもしれないけど，現状，わからなくなったらソースを眺める感じらしい．
+
+[[http://emberjs.com/guides][Ember.js Guides]] にある動画を眺める．英語がわからなくても大丈夫，画面眺めていれば大体感じがわかる．
