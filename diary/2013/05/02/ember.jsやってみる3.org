@@ -1,0 +1,162 @@
+* ember.jsやってみる3
+
+まだなにもやってみていないが気にしてはいけない．あわてない．今日は concepts の中の [[http://emberjs.com/guides/concepts/naming-conventions/][naming conventions]] から読むよ．
+
+** [[http://emberjs.com/guides/concepts/core-concepts/][Concepts]]
+
+*** [[http://emberjs.com/guides/concepts/naming-conventions/][Naming Conventions]]
+
+Ember.js は規約を利用して，ボイラープレートなしにオブジェクトを作れるようにしている．あなたは規約にのっとった名前でルーター，コントローラー，テンプレートを使いたくなるだろう．
+
+たいていの場合，名前は推察できる程度に簡単だけど，このガイドラインに全てまとまっている(くらいシンプル)．
+
+*** The Application
+
+アプリケーションが起動したら，Ember は以下のオブジェクトを見る
+
+- =App.ApplicationRoute=
+- =App.ApplicationController=
+- the =application= template
+
+Ember.js はメインのテンプレートとして =application= を描画する．
+もし =App.ApplicationController= が用意されているなら，テンプレートのコントローラーとして =App.ApplicationController= のインスタンスをセットする．
+つまりテンプレートは自身のプロパティをコントローラから取得する．
+
+もし =App.ApplicationRoute= が用意されているなら，Ember.js は最初にルーターのフックを呼び出し，その後テンプレートを描画する．
+( ルーターのフック `the rooter's hook` のところに 1 語ずつ 3 つのリンク [[http://emberjs.com/guides/routing/specifying-a-routes-model][1,]] [[http://emberjs.com/guides/routing/setting-up-a-controller][2,]] [[http://emberjs.com/guides/routing/rendering-a-template][3]] が貼ってあるのは意図がわからなかった )
+
+(ルーターとコントローラー，テンプレートを使った簡単な例)
+
+Ember.js アプリケーションでは，コントローラーを常に *classes* として記述し，フレームワークはそれらをインスタンス化してテンプレートに提供する．
+
+これでコントローラをとても簡単にテストできるようになり，また，コントローラー毎に 1 つのインスタンスをアプリケーション全体で共有することを確実にする．
+
+*** Simple Routes
+
+ルートそれぞれは，自身と同じ名前のコントローラーとテンプレートを持つ．
+
+(簡単なルーターの例)
+
+もしユーザーが =/faviorates= にアクセスしたら，Ember は以下のオブジェクトを見る
+
+- =App.FavoritesRoute=
+- =App.FavoritesController=
+- the =favorites= template
+
+Ember.js はアプリケーションテンプレート内の ={{outlet}}= 部分に favorites テンプレートを描画する．
+そのテンプレートのコントローラーとして =App.FavoritesController= のインスタンスをセットする．
+
+もし =App.FavoritesRoute= が用意されているなら，フレームワークはそれをテンプレート描画前に呼び出す．
+そう，これは繰り返しになっている．
+
+=App.FavoritesRoute= のようなルートの場合，たぶん，テンプレートにどのモデルが必要か記述するフックをコントローラーに書くだろう．
+
+( フックの例 )
+
+この例では，私たちは =FavoritesController= を提供していない．なので，モデルは単に配列となる．
+( 何もコントローラを準備していない場合 ) Ember.js は，モデルとして単純な配列を返すコントローラ =Ember.ArrayController= のインスタンスを自動的に提供する．
+
+
+=ArrayController= はモデル自身のように扱うことができる．これには大きく 2 つの利点がある
+
+- ビューに変更を知らせることなく，コントローラのモデルを入れ替えられる．
+- モデル層に属さなくても，計算が必要なプロパティやビュー特有の状態を提供できる．これによりビュー，コントローラ，モデルの間で関心事を綺麗に分離できる．( 理由がよくわからなかった )
+
+テンプレートはコントローラーの要素事に繰り返せる．
+
+( テンプレートで each を使う例 )
+
+*** Dynamic Segments
+
+もしルートがダイナミックセグメントを使うなら，ルートのモデルは，ユーザーが提供するセグメントの値を元にする．
+
+以下のルート定義を考えてみよう
+
+( ルート定義 )
+
+このケースではルートの名前は =post= になる．そこで Ember.js は以下のオブジェクトを見る
+
+- =App.PostRoute=
+- =App.PostController=
+- the =post= template
+
+ルートハンドラーの =model= フックは，動的な =:post_id= パラメーターをモデルに変換する．
+ =serialize= フックはモデルオブジェクトをこのルートの URL パラメーターに変換しなおす．( 例えば，モデルオブジェクトのためのリンクを生成したとき )
+
+( ルートの =model= フックと =serialize= フックの例 )
+
+このパターンはとても一般的なため，これがルートハンドラーのデフォルトになっている．
+
+- もしダイナミックセグメントが =_id= で終わっているなら，デフォルトの =model= フックは，最初の部分をアプリケーションの名前空間上でのモデルクラスに変換する．( =post= は =App.Post= になる )その後，モデルクラスの =find= をダイナミックセグメントの値を引数にして呼び出す．
+- デフォルトの =serialize= フックは，モデルオブジェクトの =id= プロパティからダイナミックセグメントに戻す．
+
+*** Route, Controller and Template Defaults
+
+もし =post= ルートのためのルートハンドラ (=App.PostRoute=) が書かれていなければ，Ember.js は =App.PostController= のインスタンスで =post= テンプレートを描画する．
+
+もしコントローラ (=App.PostController=) が書かれていなければ，Ember はルートの =model= フックの返り値を元に自動的に作成する．モデルが配列なら， =ArrayController= ，そうでなければ =ObjectController= になる．
+
+もし =post= テンプレートが書かれていなければ，Ember.js は何も描画しない!
+
+*** Nesting
+
+リソースの中でルートをネストできる．
+
+( ネストしたルートの例 )
+
+*リソース* はルート，コントローラー，テンプレートの初めの名前になる． =post= がネストしていても，ルートは =App.PostRoute= ，コントローラは =App.PostController= ，テンプレートは =post= になる．
+
+リソースの中で *ルート* をネストした場合，ルートの名前はリソースの名前の後に =.= で区切って追加したものになる．
+
+ルーターの中のルート定義の命名規約は以下のようになっている
+
+| Route Name      | Controller               | Route               | Template        |
+|-----------------+--------------------------+---------------------+-----------------|
+| posts           | PostsController          | PostsRoute          | posts           |
+| posts.favorites | PostsFavoritesController | PostsFavoritesRoute | posts/favorites |
+| post            | PostController           | PostRoute           | post            |
+
+
+経験則ではリソースは名詞，ルートは形容詞 (=favorites=) か動詞 (=edit=) になる．
+ネストは馬鹿みたいに長い名前を付けないことを確実にするが，一般的な形容詞や動詞が衝突することを避ける．
+( 長い名前には無力だけど〜という意味だろうか？よくわからなかった )
+
+*** The Index Route
+
+全ての ( トップレベルも含めた ) レベルのネストで，Ember.js は自動的に =index= と名付けられる =/= パスのルートを提供する．
+
+例えば，このような簡単なルーターを書くと
+
+( 簡単なルーターの例 )
+
+以下と同義である
+
+( 明示的に index を書いた，簡単なルーターの例 )
+
+もしユーザーが =/= にアクセスすると，Ember.js は以下のオブジェクトを見る
+
+- =App.IndexRoute=
+- =App.IndexController=
+- the =index= template
+
+=index= テンプレートは =application= テンプレートの ={{outlet}}= の部分に描画される．
+もしユーザが =/favorites= にアクセスしたら，Ember.js は =index= テンプレートを =favorites= テンプレートに入れ換える．
+
+以下のようなネストしたルーターの場合
+
+( ネストしたルーターの例 )
+
+以下と同義である
+
+( 明示的に index を書いた，ネストしたルーターの例 )
+
+もしユーザーが =/posts= にアクセスすると，現在のルートは =posts.index= になる．Ember.js は以下の名前のオブジェクトを見る
+
+- =App.PostsIndexRoute=
+- =App.PostsIndexController=
+- The =posts/index= template
+
+最初に， =posts= テンプレートは =application= テンプレートの ={{outlet}}= の部分に描画される．
+次に， =posts/index= テンプレートが =posts= テンプレートの ={{outlet}}= の部分に描画される．
+
+もしユーザが =/posts/favorites= にアクセスしたら，Ember.js は =posts= テンプレート の中の ={{outlet}}= を =posts/favorites= テンプレートに入れ換える．
