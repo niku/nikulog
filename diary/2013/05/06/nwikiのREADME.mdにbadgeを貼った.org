@@ -1,0 +1,7 @@
+* nwikiのREADME.mdにbadgeを貼った
+
+[[http://www.hsbt.org/diary/20130318.html#p01][github.com の readme.md に貼ると格好いいbadge]] を参考に追加した．
+
+[[https://github.com/niku/nwiki][nwiki]]
+
+かっこいい．
