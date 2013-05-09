@@ -1,0 +1,15 @@
+* 標準出力のdiffを取る
+
+diff を普通に使うと，ファイルの比較になってしまうので，bash(zsh) 系では
+: diff <(command A) <(command B)
+とやるといいようだ．
+
+今回はリポジトリ A と B の git の config を比較したかったので
+: cd my-git-repository
+: diff <(git config -l) <(git --git-dir=../my-other-git-repository/.git config -l)
+とした．
+
+- 参考
+  - [[http://qiita.com/items/55d5eced2fb3e6625d74][標準入力同士の diff]]
+
+参考サイトには，bash の場合のみならず， bash 以外の posix shell でのやり方も書いてあった．
