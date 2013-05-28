@@ -1,0 +1,25 @@
+* Ubuntuでaptitude updateに失敗したときの対処
+
+#+BEGIN_EXAMPLE
+$ aptitude update
+#+END_EXAMPLE
+すると
+
+#+BEGIN_EXAMPLE
+W: http://ppa.launchpad.net/git-core/ppa/ubuntu/dists/precise/main/source/Sources の取得に失敗しました  416  Requested Range Not Satisfiable
+
+W: copy:/var/lib/apt/lists/partial/ppa.launchpad.net_git-core_ppa_ubuntu_dists_precise_main_binary-amd64_Packages の取得に失敗しました  ハッシュサムが適合しません
+
+E: Some index files failed to download. They have been ignored, or old ones used instead.
+#+END_EXAMPLE
+というエラーが出るようになった．
+
+#+BEGIN_EXAMPLE
+$ sudo rm /var/lib/apt/lists/partial/ppa.launchpad.net_git-core_ppa_ubuntu_dists_precise_main_binary-amd64_Packages
+#+END_EXAMPLE
+としてから
+
+#+BEGIN_EXAMPLE
+$ aptitude update
+#+END_EXAMPLE
+すると解消した．
