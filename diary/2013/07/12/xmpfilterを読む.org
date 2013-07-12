@@ -1,0 +1,49 @@
+* xmpfilterを読む
+
+[[http://d.hatena.ne.jp/keyword/xmpfilter][xmpfilter]] の存在を知ってからずっと不思議で，いつかは読んでやろうと思っていた．
+5 年くらい前はあまりのわからなさっぷりに投げだしたのだけど，今なら読めるかもしれないので挑戦してみる．
+
+読めたら [[https://github.com/niku/ympfilter][ympfilter]] という形で再実装してみる．
+
+** xmpfilter コマンドを実行
+
+#+BEGIN_SRC
+$ xmpfilter [ファイル名]
+#+END_SRC
+
+を実行すると [[https://github.com/tnoda/rcodetools/blob/master/bin/xmpfilter][bin/xmpfilter]] が呼ばれる．
+
+** bin/xmpfilter
+
+最終的には[[https://github.com/tnoda/rcodetools/blob/master/bin/xmpfilter#L85][一番下の行]]にある
+
+#+BEGIN_SRC ruby
+puts klass.run(targetcode, options)
+#+END_SRC
+
+が呼ばれる．
+
+何もオプションを指定しなければ，klass は XMPFilter，targetcode はARGF.read，options は DEFAULT_OPTIONS になる．
+ARGF.read は「引数をファイル名として扱い，そのファイルを読み込む」なので，
+
+#+BEGIN_SRC ruby
+puts XMPFilter.run('コマンド引数で指定したファイルの内容', DEFAULT_OPTIONS)
+#+END_SRC
+
+ということになる．
+
+** lib/rcodetools/xmpfilter
+
+XMPFilter.run は [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb][lib/rcodetools/xmpfilter.rb]] の中の [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L49-L51][self.run]] で定義されていて
+
+#+BEGIN_SRC ruby
+new(opts).annotate(code)
+#+END_SRC
+
+という1行のコードである．
+
+つまり，デフォルトオプションを指定して初期化したのち，
+#+BEGIN_SRC ruby
+XMPFilter#annotate('引数で指定したファイルの内容')
+#+END_SRC
+を実行する．
