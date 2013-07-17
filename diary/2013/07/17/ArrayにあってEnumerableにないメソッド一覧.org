@@ -1,0 +1,91 @@
+* ArrayにあってEnumerableにないメソッド一覧
+Ruby で配列のようなものを持ったクラスを作りたいときに「Array を継承して作ると良いかな」と考えることが何度かあった．
+しかし実際には今までArrayを継承してクラスを作ったことがない．
+なぜなら，検討してみるとEnumerableのmixinで十分だったからだ．
+
+「Arrayにはあって，Enumerableにないメソッド」というのがArrayにだけできることになる．
+どういったものが該当するのか調べてみよう．
+
+Module や Class のインスタンスメソッド一覧を取得するには，[[http://doc.ruby-lang.org/ja/2.0.0/method/Module/i/instance_methods.html][Module#instance_methods]] を使う．
+ちなみに，今回は関係ないが Object のメソッド一覧を取得する場合には，[[http://doc.ruby-lang.org/ja/2.0.0/method/Object/i/methods.html][Object#methods]] を使う．
+配列同士の差分を見るには，[[http://doc.ruby-lang.org/ja/2.0.0/class/Array.html#I_--2D][Array#-]] を使う．
+
+#+BEGIN_SRC ruby
+diff = Array.public_instance_methods(false) - Enumerable.public_instance_methods(false)
+diff.sort.each {|method| puts method }
+# >> &
+# >> *
+# >> +
+# >> -
+# >> <<
+# >> <=>
+# >> ==
+# >> []
+# >> []=
+# >> assoc
+# >> at
+# >> bsearch
+# >> clear
+# >> collect!
+# >> combination
+# >> compact
+# >> compact!
+# >> concat
+# >> delete
+# >> delete_at
+# >> delete_if
+# >> each
+# >> each_index
+# >> empty?
+# >> eql?
+# >> fetch
+# >> fill
+# >> flatten
+# >> flatten!
+# >> frozen?
+# >> hash
+# >> index
+# >> insert
+# >> inspect
+# >> join
+# >> keep_if
+# >> last
+# >> length
+# >> map!
+# >> pack
+# >> permutation
+# >> pop
+# >> product
+# >> push
+# >> rassoc
+# >> reject!
+# >> repeated_combination
+# >> repeated_permutation
+# >> replace
+# >> reverse
+# >> reverse!
+# >> rindex
+# >> rotate
+# >> rotate!
+# >> sample
+# >> select!
+# >> shift
+# >> shuffle
+# >> shuffle!
+# >> size
+# >> slice
+# >> slice!
+# >> sort!
+# >> sort_by!
+# >> to_ary
+# >> to_s
+# >> transpose
+# >> uniq
+# >> uniq!
+# >> unshift
+# >> values_at
+# >> |
+#+END_SRC
+
+こうしてみるとよく使いそうなのはそんなに無さそうなことがわかる．
+map, inject, reverse, min, max などは Enumerable のメソッドなのだった．
