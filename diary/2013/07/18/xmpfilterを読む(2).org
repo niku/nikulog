@@ -1,0 +1,57 @@
+* xmpfilterを読む(2)
+
+** [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L130][Xmpfilter#annotate(code)]]
+
+Xmpfilter#annotate(code) のコードを見て「ヒッ」となるがあわててはいけない．まずは大まかに掴んでみよう．
+
+さしあたっては変数や知っていることから雰囲気をつかむのでかまわない．間違っていてもいい．どうせあとでじっくり読むのだから．
+
+*** [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L131-L134][xmpfilter.rb#L131-L134]]
+
+ここはコードに前処理をしているみたい．
+idx += 1 というあたりから察するにインデックス毎に値を管理するのだろう．
+
+#+BEGIN_SRC ruby
+idx = 0
+code = code.gsub(/ # !>.*/, '')
+newcode = code.gsub(SINGLE_LINE_RE){ prepare_line($1, idx += 1) }
+newcode.gsub!(MULTI_LINE_RE){ prepare_line($1, idx += 1, true)}
+#+END_SRC
+
+*** [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L135][xmpfilter.rb#L135]]
+
+実行するために，前処理したコードを書き出している．
+
+#+BEGIN_SRC ruby
+File.open(@dump, "w"){|f| f.puts newcode} if @dump
+#+END_SRC
+
+*** [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L136-L158][xmpfilter.rb#L136-L158]]
+
+メソッドや引数を参考にする限りでは，前処理したコードを実行，標準出力/標準エラー出力経由で値を取得しているのかな．
+
+#+BEGIN_SRC ruby
+execute(newcode) do |stdout, stderr|
+  output = stderr.readlines
+  runtime_data = extract_data(output)
+  idx = 0
+  annotated = code.gsub(SINGLE_LINE_RE) { |l|
+    expr = $1
+    if /^\s*#/ =~ l
+      l
+    else
+      annotated_line(l, expr, runtime_data, idx += 1)
+    end
+  }
+  annotated.gsub!(/ # !>.*/, '')
+  annotated.gsub!(/# (>>|~>)[^\n]*\n/m, "");
+  annotated.gsub!(MULTI_LINE_RE) { |l|
+    annotated_multi_line(l, $1, $3, runtime_data, idx += 1)
+  }
+  ret = final_decoration(annotated, output)
+  if @output_stdout and (s = stdout.read) != ""
+    ret << s.inject(""){|s,line| s + "# >> #{line}".chomp + "\n" }
+  end
+  ret
+end
+#+END_SRC
