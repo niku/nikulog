@@ -1,0 +1,58 @@
+* xmpfilterを読む(4)
+
+Xmpfilter#prepare_line の続き，multi_line ではない場合を追っている．
+
+** [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L171-L203][Xmpfilter#prepare_line(expr, idx, multi_line=false)]]
+
+*** [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L180-L181][xmpfilter.rb#L180-L181]]
+
+#+BEGIN_SRC ruby
+pp = ''
+result = "#{v}.inspect"
+#+END_SRC
+
+: VAR = "_xmp_#{Time.new.to_i}_#{Process.pid}_#{rand(1000000)}"
+: v = "#{VAR}"
+なので
+: result = "#{v}.inspect"
+は
+: result = "_xmp_1374454986_5139_492504.inspect"
+というような文字列になるみたい．
+
+*** [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L183-L200][xmpfilter.rb#L183-L200]]
+
+重そうなのが出てきてしまった．
+冷静にみていこう．
+
+#+BEGIN_SRC ruby
+oneline_ize(<<-EOF).chomp
+#{pp}
+#{v} = (#{expr})
+$stderr.puts("#{MARKER}[#{idx}] => " + #{v}.class.to_s + " " + #{result}) || begin
+  $stderr.puts local_variables
+  local_variables.each{|#{blocal}|
+    #{blocal2} = eval(#{blocal})
+    if #{v} == #{blocal2} && #{blocal} != %{expr}.strip
+      $stderr.puts("#{MARKER}[#{idx}] ==> " + #{blocal})
+    elsif [#{blocal2}] == #{v}
+      $stderr.puts("#{MARKER}[#{idx}] ==> [" + #{blocal} + "]")
+  end
+  }
+  nil
+  rescue Exception
+  nil
+end || #{v}
+EOF
+#+END_SRC
+
+online_ize は [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L364-L366][xmpfilter.rb#L364-L366]] にある．以下のように文字列の改行を';'に置換して，1行にまとめる処理をしている．名前通り．
+最後の chomp は online_ize でついた最後の改行を削除している．
+つまりこれらは処理には直接関係ない．
+
+#+BEGIN_SRC ruby
+def oneline_ize(code)
+  "((" + code.gsub(/\r?\n|\r/, ';') + "));#{@postfix}\n"
+end
+#+END_SRC
+
+残りは明日以降に追っていこう．
