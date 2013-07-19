@@ -1,0 +1,28 @@
+* xmpfilterを読む(3)
+
+前回は全体はどんな流れになっているかを眺めた．
+今回は全体を眺める際に飛ばした，メソッド呼び出しについて眺めてみよう．
+
+** [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L171-L203][Xmpfilter#prepare_line(expr, idx, multi_line=false)]]
+
+[[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L131-L134][xmpfilter.rb#L131-L134]] で使っている prepare_line について眺めてみると……ぎゃっ！
+prepare_line という名前から想像するより処理がたくさん書いてある．
+
+multi_line じゃない方の処理から眺めてみる．
+
+*** [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L172-L175][xmpfilter.rb#L172-L175]]
+
+#+BEGIN_SRC ruby
+v = "#{VAR}"
+blocal = "__#{VAR}"
+blocal2 = "___#{VAR}"
+lastmatch = "____#{VAR}"
+#+END_SRC
+
+ここは単純に変数を代入しているだけだ．VAR は [[https://github.com/tnoda/rcodetools/blob/master/lib/rcodetools/xmpfilter.rb#L22][22 行目]]で
+
+#+BEGIN_SRC ruby
+VAR = "_xmp_#{Time.new.to_i}_#{Process.pid}_#{rand(1000000)}"
+#+END_SRC
+
+とあるので，プロセスでも，時間でも重ならない一意な値が欲しいのだろう．今だったら [[http://doc.ruby-lang.org/ja/2.0.0/method/SecureRandom/s/uuid.html][SecureRandom.uuid]] を使えばいいのかもしれない．
