@@ -1,0 +1,53 @@
+* sortコマンドで単位付きの数値を整列させる
+
+キロ(K)，メガ(M)，ギガ(G)の単位付きで表示されるデータを，順番に表示したい場合は sort -h を使うといいです．
+
+#+BEGIN_EXAMPLE
+PRECISE64 /home/niku% du -h --max-depth 1
+444K    ./org
+82M     ./.sbt
+2.1G    ./.rbenv
+48K     ./.subversion
+1.6M    ./.emacs.d.new
+12K     ./.heroku
+9.6M    ./nikulog
+72K     ./.git
+20K     ./.gnupg
+2.6G    ./projects
+24M     ./.npm
+42M     ./other_home
+3.2M    ./tmp
+636M    ./.ivy2
+4.0K    ./.cache
+12K     ./.w3m
+28K     ./.ssh
+25M     ./.gem
+5.5G    .
+#+END_EXAMPLE
+
+というディレクトリを容量の少ない順に並べるときは sort -h を追加して
+
+#+BEGIN_EXAMPLE
+PRECISE64 /home/niku% du -h --max-depth 1 | sort -h
+4.0K    ./.cache
+12K     ./.heroku
+12K     ./.w3m
+20K     ./.gnupg
+28K     ./.ssh
+48K     ./.subversion
+72K     ./.git
+444K    ./org
+1.6M    ./.emacs.d.new
+3.2M    ./tmp
+9.6M    ./nikulog
+24M     ./.npm
+25M     ./.gem
+42M     ./other_home
+82M     ./.sbt
+636M    ./.ivy2
+2.1G    ./.rbenv
+2.6G    ./projects
+5.5G    .
+#+END_EXAMPLE
+
+とできます．
