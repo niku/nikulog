@@ -1,0 +1,18 @@
+* ディレクトリを作るときにモードも一緒に指定するmkdir -m
+
+[[https://github.com/jedi4ever/veewee/blob/master/templates/Debian-7.1.0-amd64-netboot/vagrant.sh#L9][veewee]] を眺めていたら
+: mkdir -pm 700 /home/vagrant/.ssh
+という記述があった．
+
+mkdir -p はわかるものの，mkdir -m は何か知らなかった．
+
+man mkdir すると
+: -m, --mode=MODE
+:        set file mode (as in chmod), not a=rwx - umask
+と書いてあるので
+
+: mkdir -p /home/vagrant/.ssh
+: chmod 700 /home/vagrant/.ssh
+をいっぺんにやってくれるもののようだ．
+
+また便利なものを知ってしまった．
