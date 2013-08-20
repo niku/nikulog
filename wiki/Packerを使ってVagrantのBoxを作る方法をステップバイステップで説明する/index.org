@@ -1,0 +1,86 @@
+* Packerを使ってVagrantのBoxを作る方法をステップバイステップで説明する
+
+Packer を使って Vagrant の Box を OS インストールから作成できたので，ステップバイステップで説明する．
+
+コードは github の [[https://github.com/niku/my-packer-and-vagrant-example/][niku/my-packer-and-vagrant-example]] にある．
+
+
+** 読むと手に入るもの
+
+: packer build wheezy64.json
+と実行するだけで
+「chef-solo が実行可能な Vagrant 用 Box を OS インストールから全自動で作成してくれる環境」
+の作り方．
+
+問題にあたったときに，どういうところを参考にしたらよいか，がわかる．(ように書きたいと考えている)
+
+** 読んでも手に入らないもの
+
+1. VirtualBox/Vagrant/Packer のインストール方法
+2. Vagrant Box 作成のベストプラクティス
+
+2 については [[https://github.com/jedi4ever/veewee/tree/master/templates][veewee/templates]] 以下を見るのがよい．今回もかなり参考にさせてもらった．
+
+** 必要なソフト
+
+- [[https://www.virtualbox.org/][VirtualBox]]
+- [[http://www.vagrantup.com/][Vagrant]]
+- [[http://www.vagrantup.com/][Packer]]
+
+ホスト OS は windows7 である．
+
+今回は VirtualBox4.2.16 / Vagrant1.2.7 / Packer 0.2.3 で行なった．
+
+Packer は現在 (2013/08/20) 最新版が不安定なことがあるので，最新版で試してみて，うまくいかなければ 0.2.3 へダウングレードしてみるとよい．
+
+僕が 0.3.x 系を試したときにはいくつか不安定な挙動をした．0.2.3 ではそのようなことはおきなかった．
+
+** 0. テンプレート解析に失敗する
+
+以降のステップは全て my-packer-and-vagrant-template ディレクトリで作業している．
+
+#+BEGIN_SRC
+$ packer build wheezy64.json
+Failed to parse template: open wheezy.json: no such file or directory
+#+END_SRC
+
+まだ何も用意していないので当然エラーになる．
+
+最小限のテンプレートを用意する．
+
+[[http://www.packer.io/docs/templates/introduction.html][TEMPLATES]] には builders が必須 (required)，[[http://www.packer.io/docs/builders/virtualbox.html][VirtualBox Builder]] には
+- iso_checksum_type
+- iso_checksum
+- iso_url
+- ssh_username
+が必須 (required) と書いてあるので，準備する．
+
+[[https://github.com/niku/my-packer-and-vagrant-example/commit/7171bf7417fb8464fa2aab8044a351a05eef6d3d][7171bf7417fb8464fa2aab8044a351a05eef6d3d]] のようになる．
+
+** 1. ブートメニューで止まる
+
+: $ packer build wheezy64.json
+
+すると，Debian の ISO がダウンロードされて
+
+[[01-stop-at-boot-menu.png]]
+
+のようにブート画面が起動する．しかしそこからは何も進まない．
+
+大抵の OS には，ファイルを用意しておくと自動的にインストールを進めてくれるような機能が備わっており，
+Packer ではそれを利用して OS の自動インストールを進められるようになっている．
+
+その機能を利用するためには，最初に Boot Command というのものを入力しなければならないが，すぐに理解するのは難しい．
+そこで [[https://github.com/jedi4ever/veewee/tree/master/templates][veewee のテンプレート]] を流用させてもらうことにする．リンク先を見てわかるように主要な OS のテンプレートは揃っている．
+
+[[https://github.com/jedi4ever/veewee/blob/master/templates/Debian-7.1.0-amd64-netboot/definition.rb][veewee の definition.rb]] を開くと，:boot_cmd_sequence という項目がある．その部分をコピーして
+
+1. JSON として利用するために '( シングルクォート ) を "( ダブルクォート ) に変更
+2. Packer のキーシュミレートにあわせて <Abc> を <abc> のように変更
+3. Packer の変数にあわせて %IP% を {{ .HTTPIP }} のように変更
+
+の 3 つを行った．
+
+Packer の Boot Command の詳細は [[http://www.packer.io/docs/builders/virtualbox.html][VirtualBox Builder]] に記述がある．
+
+[[https://github.com/niku/my-packer-and-vagrant-example/commit/965428a5ced59ace6ce772d8caee42cd86f34a11][965428a5ced59ace6ce772d8caee42cd86f34a11]] のようになる．
