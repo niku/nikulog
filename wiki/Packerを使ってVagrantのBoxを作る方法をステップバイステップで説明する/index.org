@@ -84,3 +84,25 @@ Packer ではそれを利用して OS の自動インストールを進められ
 Packer の Boot Command の詳細は [[http://www.packer.io/docs/builders/virtualbox.html][VirtualBox Builder]] に記述がある．
 
 [[https://github.com/niku/my-packer-and-vagrant-example/commit/965428a5ced59ace6ce772d8caee42cd86f34a11][965428a5ced59ace6ce772d8caee42cd86f34a11]] のようになる．
+
+** 2. ブートコマンド入力中に止まる
+
+前回と同じように
+
+: $ packer build wheezy64.json -force
+
+すると，ブート画面が起動する．(force は，[[http://www.packer.io/docs/command-line/build.html][作りかけのディレクトリを強制的に上書きするオプション]])
+
+10 秒くらい待つと画面が切り換わって，文字を入力しはじめるが，図のような状態で止まってしまう．
+
+[[02-stop-at-boot-command.png]]
+
+i が入力されておらず install ではなく nstall になってしまっているせいである．
+
+Boot Command はキー入力をエミュレートしているので「画面が切り換わったら」という処理には対応していない．(画面を見ずにキーを入力しているのと同じ)
+
+そこで，ブート画面起動 -> 10 秒くらい待つ -> Esc を押す -> install を入力するのあいだにウェイト処理を入れ，ブート画面起動 -> 10 秒くらい待つ -> Esc を押す -> 1 秒待つ -> install とする．
+
+キー入力のウェイト制御は [[http://www.packer.io/docs/builders/virtualbox.html][Boot Command の <wait>]] で行う．今回の自分の環境では起こらなかったが，もしブート画面が起動する前にキー入力が始まってしまう場合は [[http://www.packer.io/docs/builders/virtualbox.html][boot_wait]] の時間を伸ばしてみるとよい．
+
+差分は [[https://github.com/niku/my-packer-and-vagrant-example/commit/6a29e4df31e804c93672ad8e5ea37ca4f0852884][6a29e4df31e804c93672ad8e5ea37ca4f0852884]] のようになる．
