@@ -106,3 +106,28 @@ Boot Command はキー入力をエミュレートしているので「画面が�
 キー入力のウェイト制御は [[http://www.packer.io/docs/builders/virtualbox.html][Boot Command の <wait>]] で行う．今回の自分の環境では起こらなかったが，もしブート画面が起動する前にキー入力が始まってしまう場合は [[http://www.packer.io/docs/builders/virtualbox.html][boot_wait]] の時間を伸ばしてみるとよい．
 
 差分は [[https://github.com/niku/my-packer-and-vagrant-example/commit/6a29e4df31e804c93672ad8e5ea37ca4f0852884][6a29e4df31e804c93672ad8e5ea37ca4f0852884]] のようになる．
+
+** 3. コンフィグファイルがダウンロードできなくて止まる
+
+: $ packer build wheezy64.json -force
+
+すると，ブート画面が起動して，ブートコマンドが入力され，エラー画面になる．
+
+[[03-fail-at-download-debconf-preconfiguration-file.png]]
+
+OS のインストールをする際，いくつか設定が必要である．OS を自動的にインストールするためには，それらの設定を自動で行う必要がある．各 OS には，たいてい自動インストール用の設定を取得する方法が用意されている．
+
+Packer では自動インストールが簡単にできるように，いくつかの仕組みを用意している．
+
+Debian, Ubuntu, CentOS などではネットワーク越しに自動インストールの設定が取得できるようになっている．
+Packer は HTTP サーバーになる機能をもっていて，[[http://www.packer.io/docs/builders/virtualbox.html][http_directory]] を指定すれば，その下にあるファイルを HTTP サーバー越しに取得できる．
+
+Windows ではフロッピーディスクから自動インストールの設定が取得できるようになっている．
+Packer はフロッピーディスクをエミュレートする機能をもっていて，[[http://www.packer.io/docs/builders/virtualbox.html][floppy_files]] を指定すれば，そのファイルをフロッピードライブ越しに取得できる．
+
+今回は Debian をインストールしているので http_directory を指定して，そこに自動インストールの設定を置いた．
+設定ファイルの書き方やサンプルは各 OS のマニュアルに用意されているはずなので，そこから探す．
+今回の場合だと[[http://www.debian.org/releases/stable/amd64/apbs04.html.ja][事前設定ファイルの内容 (wheezy 用)]] というページを参考に [[http://www.debian.org/releases/wheezy/example-preseed.txt]] から取得してきた．
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/0405ae17533c3eb2a959f4223594a7c99f0c3ed5][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/0405ae17533c3eb2a959f4223594a7c99f0c3ed5][前回からの差分]]
