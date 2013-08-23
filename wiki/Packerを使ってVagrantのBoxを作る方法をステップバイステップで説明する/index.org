@@ -131,3 +131,27 @@ Packer はフロッピーディスクをエミュレートする機能をもっ�
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/0405ae17533c3eb2a959f4223594a7c99f0c3ed5][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/0405ae17533c3eb2a959f4223594a7c99f0c3ed5][前回からの差分]]
+
+** 4. ルートパスワード入力待ちで止まる
+
+: $ packer build wheezy64.json -force
+
+すると，ブート画面が起動して，ブートコマンドが入力され，しばらく待つとルートパスワード入力画面になって止まる．
+
+[[04-stop-at-input-root-password.png]]
+
+ここからは[[http://www.debian.org/releases/stable/amd64/apbs04.html.ja][事前設定ファイルの内容の説明]]，事前設定ファイルに書いてあるコメント，グーグル，勘の 4 つを駆使して作業を進める．
+ここには正解ルートがスラスラと書いてあるので，全然悩まなかったようにみえるだろうが，実際には多少悩みながら行きつ戻りつ作業していた．
+もしうまくいかなくても，コマンド一つで再チャレンジできるので，気楽に変更してみるとよい．
+
+画面の内容を見ると，root password の入力が必要らしい．事前設定ファイルの説明を password で検索すると，B.4.5 にアカウント設定というのがあるので，これだろう．
+
+今回は，Debian でよくある root でログインしない（かわりに各ユーザーの sudo 権限で操作する）という方式にしようと思うので
+
+: #d-i passwd/root-login boolean false
+を
+: d-i passwd/root-login boolean false
+とコメントアウトする．
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/858351d5dc0403e306dc0d6b600a6b9a21bd3069][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/858351d5dc0403e306dc0d6b600a6b9a21bd3069][前回からの差分]]
