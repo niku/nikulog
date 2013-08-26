@@ -155,3 +155,20 @@ Packer はフロッピーディスクをエミュレートする機能をもっ�
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/858351d5dc0403e306dc0d6b600a6b9a21bd3069][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/858351d5dc0403e306dc0d6b600a6b9a21bd3069][前回からの差分]]
+
+** 5. ユーザー名 ( フルネーム ) 入力待ちで止まる
+
+: $ packer build wheezy64.json -force
+
+すると，ブート画面が起動して，ブートコマンドが入力され，しばらく待つとユーザー名 ( フルネーム ) 入力画面になって止まる．
+
+[[05-stop-at-input-user-full-name.png]]
+
+"4. ルートパスワード入力待ちで止まる" と同様に，事前設定ファイルの説明 B.4.5 をみて
+
+: #d-i passwd/user-fullname string Debian User
+を
+: d-i passwd/user-fullname string Vagrant User
+とコメントアウトする．
+
+後述するように [[http://docs-v1.vagrantup.com/v1/docs/base_boxes.html][Vagrant が期待する初期値 ( Convention over Configration を参照のこと )]] はある．しかしフルネームは特に決まっていないようなので，適当に名付けてよい．
