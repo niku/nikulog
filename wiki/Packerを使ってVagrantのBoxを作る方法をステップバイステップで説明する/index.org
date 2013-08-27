@@ -209,3 +209,21 @@ Packer はフロッピーディスクをエミュレートする機能をもっ�
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/3d97b15dc57ab27b0f1f2553b768f25fb979599b][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/3d97b15dc57ab27b0f1f2553b768f25fb979599b][前回からの差分]]
+
+** 8. 再パスワード入力待ちで止まる
+
+: $ packer build wheezy64.json -force
+
+すると，ブート画面が起動して，ブートコマンドが入力され，しばらく待つと再パスワード入力画面になって止まる．
+
+[[08-stop-at-input-password-verify.png]]
+
+当然 "7. パスワード入力待ちで止まる" と同じものを設定しないとエラーになる ( はず．試してはいない…… ) ので vagrant と入力する．
+
+: #d-i passwd/user-password-again password insecure
+を
+: d-i passwd/user-password-again password vagrant
+にする．
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/18f78b2779d85b8b3c063a360e093203610abc88][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/18f78b2779d85b8b3c063a360e093203610abc88][前回からの差分]]
