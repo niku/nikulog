@@ -190,3 +190,22 @@ Packer はフロッピーディスクをエミュレートする機能をもっ�
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/ac93354afa53fe3df9c44574f7723e0da10024ad][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/ac93354afa53fe3df9c44574f7723e0da10024ad][前回からの差分]]
+
+
+** 7. パスワード入力待ちで止まる
+
+: $ packer build wheezy64.json -force
+
+すると，ブート画面が起動して，ブートコマンドが入力され，しばらく待つとパスワード入力画面になって止まる．
+
+[[07-stop-at-input-password.png]]
+
+[[http://docs-v1.vagrantup.com/v1/docs/base_boxes.html][Vagrant では初期パスワードに指定がある ( Convention over Configration を参照のこと )]] ので，それに従い vagrant と名付けることにする．
+
+: #d-i passwd/user-password password insecure
+を
+: d-i passwd/user-password password vagrant
+にする．
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/3d97b15dc57ab27b0f1f2553b768f25fb979599b][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/3d97b15dc57ab27b0f1f2553b768f25fb979599b][前回からの差分]]
