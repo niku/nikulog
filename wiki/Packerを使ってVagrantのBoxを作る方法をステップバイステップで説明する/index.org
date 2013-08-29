@@ -270,3 +270,24 @@ Packer はフロッピーディスクをエミュレートする機能をもっ�
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/b10d3e8564776fc71fe3550cf7fc39de69f48cea][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/b10d3e8564776fc71fe3550cf7fc39de69f48cea][前回からの差分]]
+
+** 11. ブートローダーをインストールするかの選択待ちで止まる
+
+: $ packer build wheezy64.json -force
+
+すると，ブート画面が起動して，ブートコマンドが入力され，しばらく待つとブートローダーをインストールするかの選択待ちで止まる．
+
+[[11-stop-at-choose-install-grub-boot-loader.png]]
+
+ここでブートローダーを入れないを選択するのは，他の OS が既にインストールされており，共存させる場合である．今回は新規にまっさらな状態から作っているので，ブートローダーは必ずインストールする．
+
+[[http://www.debian.org/releases/stable/amd64/apbs04.html.ja][B.4. 事前設定ファイルの内容 (wheezy 用) - B.4.11. ブートローダのインストール]] を参考に
+: d-i grub-installer/only_debian boolean true
+を追記した．
+
+( 取得した初期設定ファイルにはこの記述がなかった．なぜだろう？ )
+
+だんだんサクサク進めていけている気がする．
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/af3635cc6dc799d6f247f5d75abfbb5def8bcc3a][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/af3635cc6dc799d6f247f5d75abfbb5def8bcc3a][前回からの差分]]
