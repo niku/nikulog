@@ -251,3 +251,22 @@ Packer はフロッピーディスクをエミュレートする機能をもっ�
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/e33b1caa6f4801d1d8ce7b491a75cda019393b4e][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/e33b1caa6f4801d1d8ce7b491a75cda019393b4e][前回からの差分]]
+
+** 10. インストールするソフトウェアタスクの選択待ちで止まる
+
+: $ packer build wheezy64.json -force
+
+すると，ブート画面が起動して，ブートコマンドが入力され，しばらく待つとインストールするソフトウェアタスクの選択待ちで止まる．
+
+[[10-stop-at-choose-software-to-install.png]]
+
+今回はミニマルを目指して，何も含めないで進めることにしているので．[[http://www.debian.org/releases/stable/amd64/apbs04.html.ja][B.4. 事前設定ファイルの内容 (wheezy 用) - B.4.10. パッケージ選択]] を参考にして，
+: #tasksel tasksel/first multiselect standard, web-server
+を
+: tasksel tasksel/first multiselect
+へ変更した．「何も含めない」という指定の方法は空欄でよいようだ．
+
+( あらためて参考文献を読むと「standard タスクは常に含めるのをお勧めします」と書いてあったので，standardくらいは含めておいてもよかったなと，今は思っている )
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/b10d3e8564776fc71fe3550cf7fc39de69f48cea][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/b10d3e8564776fc71fe3550cf7fc39de69f48cea][前回からの差分]]
