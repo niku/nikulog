@@ -1,0 +1,13 @@
+* Packer0.3.5でchef-soloが実行できるようになった
+
+[[https://groups.google.com/d/msg/packer-tool/Y8XtijSFnKM/cvJkxL5cuaEJ][Packer v0.3.5 Released]]
+
+Packer さん成長速くてびっくりする．今回の大きな変更は [[https://github.com/mitchellh/packer/blob/v0.3.5/CHANGELOG.md#035-august-28-2013][provisioner が chef-solo に対応した]]ことだ．
+
+これにより，今まで初期化作業を shell で書いていたものの一部/全部を chef-solo で書けるようになった．
+運用時も chef を利用するのであれば，recipe が共通化できるのは便利かもしれない．
+
+provisioner として chef-solo を利用する場合の書き方は [[http://www.packer.io/docs/provisioners/chef-solo.html][Chef Solo Provisioner]] にある．
+コードとドキュメントが合わせて成長していて素敵．
+
+他にDevelopers.IOの記事「[[http://dev.classmethod.jp/server-side/chef/use_chef-solo-provisioner_to_make_ami_by_packer/][PackerでChef適用済みAMIをサクッと作成する(chef-solo provisionerの活用)]]」も参考になるかもしれない．
