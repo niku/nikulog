@@ -291,3 +291,75 @@ Packer はフロッピーディスクをエミュレートする機能をもっ�
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/af3635cc6dc799d6f247f5d75abfbb5def8bcc3a][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/af3635cc6dc799d6f247f5d75abfbb5def8bcc3a][前回からの差分]]
+
+** 12. ログインコンソールで止まる
+
+"11. ブートローダーをインストールするかの選択待ちで止まる" が終わると，Packer による仮想 OS の作成がひとまず正常に完了する．やった！ヒュー！
+
+さて，次に Packer によって作成した仮想 OS を Vagrant で起動できるようにしたい．
+そこで[[https://github.com/niku/my-packer-and-vagrant-example/commit/0b523797f441af224cac57d148c02894e0694747][このように]] Packer 設定ファイルの [[http://www.packer.io/docs/post-processors/vagrant.html][post-process に vagrant を指定]]する．
+
+その状態で
+: $ packer build wheezy64.json -force
+するとコンソール画面は以下のようになって止まる．
+
+#+BEGIN_EXAMPLE
+$ packer build wheezy64.json --force
+virtualbox output will be in this color.
+
+==> virtualbox: Downloading VirtualBox guest additions. Progress will be shown periodically.
+==> virtualbox: Copying or downloading ISO. Progress will be reported periodically.
+    virtualbox: Download progress: 0%
+==> virtualbox: Starting HTTP server on port 8081
+==> virtualbox: Creating virtual machine...
+==> virtualbox: Creating hard drive...
+==> virtualbox: Creating forwarded port mapping for SSH (host port 3213)
+==> virtualbox: Starting the virtual machine...
+==> virtualbox: Waiting 10s for boot...
+==> virtualbox: Typing the boot command...
+==> virtualbox: Waiting for SSH to become available...
+#+END_EXAMPLE
+
+その際 VirtualBox が起動しており，ログイン画面が出たままになる．
+
+[[12-stop-at-login-console.png]]
+
+待っても何もおきない．
+
+この問題解決のヒントは，コンソール画面の最後の文章に書いてある．
+コンソール画面では VirturlBox で起動した OS へ SSH で接続できるようになるのを待っている．
+つまり，VirtualBox で起動した OS では SSH 接続を受け入れられる準備をしておかなければならない．
+
+SSH 接続を受け入れるには，ssh のサーバー機能を動かしておく．Debian では openssh-server というものがそれに対応するので
+
+: #d-i pkgsel/include string openssh-server build-essential
+を
+: d-i pkgsel/include string openssh-server
+のように変更して，OS インストール時に openssh-server もインストールするよう変更する．
+
+ここまでやって，再度
+: $ packer build wheezy64.json -force
+してもコンソール画面は同じところで止まる．
+
+実は SSH でログインするには
+1. ログインしたい側 ssh クライアント機能
+2. ログイン受け入れ側 ssh サーバー機能
+3. ログイン受け入れ側ユーザー名
+4. ログイン受け入れ側パスワード or 公開鍵
+が必要なのだ．
+
+今の状態を整理すると 1 は vagrant に組込まれている．
+2 は先程用意した (openssh-server) ．
+3 は設定ファイルに書いてある [[https://github.com/niku/my-packer-and-vagrant-example/blob/cb007d5ae2518d29371a95c7bbb71c2f835a2c40/wheezy64.json#L7][ssh_username]] を利用する．
+しかし 4 については何も用意していない．
+そのために SSH ログインができない状態になっている．
+
+そこでパスワードを
+: "ssh_password": "vagrant",
+のように設定ファイルに記載してやる．
+
+今までにくらべて，いくつかの変更をしないと直面している問題が解決しなかったので，やや長くなってしまった．
+落ちついて読みなおすと，3 箇所しか変更していないので，つまっても何度か試してみてほしい．
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/8681df8359226525572cef78f4a226e71c24f380][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/8681df8359226525572cef78f4a226e71c24f380][前回からの差分]]
