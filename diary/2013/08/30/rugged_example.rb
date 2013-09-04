@@ -53,7 +53,7 @@ tree.each_tree { |entry| p entry[:name] }
 # "diary"
 # "wiki"
 
-# waker 指定
+# walker 指定
 walker = tree.walk(:postorder)
 loop do
   p walker.next
