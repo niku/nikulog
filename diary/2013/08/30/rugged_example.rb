@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 require 'rugged'
 
-repo = Rugged::Repository.new('/home/niku/nikulog/.git')
+repo = Rugged::Repository.new(File.expand_path('~/nikulog/.git'))
 # リポジトリが空かなー
 p repo.empty?                   # => false
 
@@ -276,3 +276,59 @@ end
 # ["wiki/reviews/", {:name=>"なるほどUnixプロセス ー Rubyで学ぶUnixの基礎.org", :oid=>"848a3f640edb1160a5f7313b3c4e3bb482265710", :filemode=>33188, :type=>:blob}]
 # ["wiki/", {:name=>"reviews", :oid=>"0ceed8042f865edc538f356a82b488d4360c3ec7", :filemode=>16384, :type=>:tree}]
 # ["", {:name=>"wiki", :oid=>"648f95adbdb1b9a251fd51b764265e53d008532d", :filemode=>16384, :type=>:tree}]
+
+# walker はこっちだった
+p '**************** walker ****************'
+walker = Rugged::Walker.new(repo)
+p walker                        # => #<Rugged::Walker:0x007fdc34011658 @owner=#<Rugged::Repository:70291858658680 {path: "/Users/niku/nikulog/.git/"}>>
+p walker.public_methods(false)  # => [:push, :each, :walk, :hide, :reset, :sorting]
+
+walker.sorting(Rugged::SORT_DATE)
+walker.push(repo.head.target)   # スタート地点を設定しないといけないみたい．
+
+p walker.walk.to_a.first(5)
+# =>
+# [#<Rugged::Commit:70098581298300 {message: "typo を直した\n", tree: #<Rugged::Tree:70098581295680 {oid: fb249ef5d04c2f33a3dc283f826cc7f3ef854efd}>
+#   <"diary" 706bc2dbba1da81cbb54bdb95cbd00a69b8b6ed2>
+#   <"wiki" a58544b9efa912bee560c878d2005b714ffabfe2>
+# , parents: ["1ca328b3b6681181973b962aecc964364a04a9ae"]}>, #<Rugged::Commit:70098581298220 {message: "追記 - Running Lean を読んでわからなかったこと\n", tree: #<Rugged::Tree:70098581295260 {oid: d7cdc29d59179692ffc5ad91d82fbcdeb53773ff}>
+#   <"diary" 66e8d1690e12fb47979587133b92bcccc04c7a2e>
+#   <"wiki" a58544b9efa912bee560c878d2005b714ffabfe2>
+# , parents: ["1bffe88ed17da61b42f61b0895bdbb3f7e4f6e12"]}>, #<Rugged::Commit:70098581298200 {message: "Running Lean を読んでわからなかったこと\n", tree: #<Rugged::Tree:70098581294760 {oid: 25877064f5c5c774f39328376a3dcc055aafc11c}>
+#   <"diary" 8c92f9b9f89d146a12c5444eae78f703f73cccbe>
+#   <"wiki" a58544b9efa912bee560c878d2005b714ffabfe2>
+# , parents: ["b1ee161aab3c4450acdc91cf165dbef32b166ea3"]}>, #<Rugged::Commit:70098581298180 {message: "仲間と自分でやっている仕事を卑下しないほうがいい\n", tree: #<Rugged::Tree:70098581294300 {oid: a1fe4904cd54577b2b5781fd95cb397eb228a98d}>
+#   <"diary" a55c1266e888ae94b4890670d0008b6b617fb7e3>
+#   <"wiki" a58544b9efa912bee560c878d2005b714ffabfe2>
+# , parents: ["23db33e04d866170d8bdac69f86335444252755f"]}>, #<Rugged::Commit:70098581298160 {message: "packer build が成功するコマンドログを追記\n", tree: #<Rugged::Tree:70098581293780 {oid: 7b320bc9089dc4c073feb1276b905fa0baa40220}>
+#   <"diary" 1868fc422d29ce6d82d6bde0c2dc8a4a64c6a5c6>
+#   <"wiki" a58544b9efa912bee560c878d2005b714ffabfe2>
+# , parents: ["1c1dedf9fe262c5bfde599cc298dedd2ae52e2f6"]}>]
+
+walker.push(repo.head.target)   # 歩いたらスタート地点は再設定しないといけないみたい．
+
+last_commit = walker.walk.to_a.first
+p last_commit
+# =>
+# #<Rugged::Commit:70293788400840 {message: "typo を直した\n", tree: #<Rugged::Tree:70293788396680 {oid: 95ebfe1759a8d2513c888a6756685931515b309c}>
+#   <"diary" b691f1bb36739882f91d251a06e4a89aefaaefe5>
+#   <"wiki" a58544b9efa912bee560c878d2005b714ffabfe2>
+# , parents: ["dde82bc2b261016030a083b4f251c07659132ae9"]}>
+
+# commit でできること
+p last_commit.public_methods(false) # => [:message, :epoch_time, :committer, :author, :tree, :tree_id, :tree_oid, :parents, :parent_ids, :parent_oids, :inspect, :diff, :diff_workdir, :time, :to_hash, :modify]
+
+# そのコミットで変わったところ
+diff = last_commit.diff(last_commit.parents.first)
+p diff
+# =>
+# #<Rugged::Diff:0x007fe5a9915640 @owner=#<Rugged::Tree:70312184556380 {oid: fb249ef5d04c2f33a3dc283f826cc7f3ef854efd}>
+#   <"diary" 706bc2dbba1da81cbb54bdb95cbd00a69b8b6ed2>
+#   <"wiki" a58544b9efa912bee560c878d2005b714ffabfe2>
+# >
+
+# diff でできること
+p diff.public_methods(false) # => [:patch, :write_patch, :find_similar!, :merge!, :size, :each_patch, :each_delta, :each, :patches, :deltas]
+
+p diff.patches # => [#<Rugged::Diff::Patch:70269700432760>]
+p diff.deltas  # => [#<Rugged::Diff::Delta:70269700432420 {old_file: {:oid=>"6a7cbbea1d7c37d65b6303802c3a39936819a779", :path=>"diary/2013/08/30/rugged_example.rb", :size=>33137, :flags=>6, :mode=>33188}, new_file: {:oid=>"0e9500143c50c0c92318325a3fc7258d2ea10da4", :path=>"diary/2013/08/30/rugged_example.rb", :size=>33136, :flags=>6, :mode=>33188}, similarity: 0, status: :modified>]
