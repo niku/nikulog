@@ -332,3 +332,17 @@ p diff.public_methods(false) # => [:patch, :write_patch, :find_similar!, :merge!
 
 p diff.patches # => [#<Rugged::Diff::Patch:70269700432760>]
 p diff.deltas  # => [#<Rugged::Diff::Delta:70269700432420 {old_file: {:oid=>"6a7cbbea1d7c37d65b6303802c3a39936819a779", :path=>"diary/2013/08/30/rugged_example.rb", :size=>33137, :flags=>6, :mode=>33188}, new_file: {:oid=>"0e9500143c50c0c92318325a3fc7258d2ea10da4", :path=>"diary/2013/08/30/rugged_example.rb", :size=>33136, :flags=>6, :mode=>33188}, similarity: 0, status: :modified>]
+
+# 差分
+delta = diff.deltas.first
+p delta                         # => #<Rugged::Diff::Delta:70263005913420 {old_file: {:oid=>"a8e39fed50bc291d56538fa6f6cf8efb07d18aea", :path=>"diary/2013/09/06/self.inspect.org", :size=>1443, :flags=>6, :mode=>33188}, new_file: {:oid=>"669355611fb8dceecbadede3ed239e04f6ce721d", :path=>"diary/2013/09/06/self.inspect.org", :size=>506, :flags=>6, :mode=>33188}, similarity: 0, status: :modified>
+p delta.public_methods(false)   # => [:owner, :diff, :old_file, :new_file, :similarity, :status, :binary, :binary?, :added?, :deleted?, :modified?, :renamed?, :copied?, :ignored?, :untracked?, :typechange?, :inspect]
+
+new_file = delta.new_file
+p new_file                      # => {:oid=>"669355611fb8dceecbadede3ed239e04f6ce721d", :path=>"diary/2013/09/06/self.inspect.org", :size=>506, :flags=>6, :mode=>33188}
+
+# blob
+blob = repo.lookup(new_file[:oid])
+p blob                               # => #<Rugged::Blob:0x007f936d047128 @owner=#<Rugged::Repository:70135570530960 {path: "/Users/niku/nikulog/.git/"}>>
+p blob.public_methods(false)         # => [:size, :content, :text, :sloc, :binary?, :diff]
+p blob.text                          # => "* self.inspect\n\nどういう状態になったら楽しいの？どうなりたいの？という問いに明確に答えられなかった．\n\nそもそも自分でも整理ついていないのだ．\n\nその場に身を置いてみると「これじゃないなあ」とは感じるので，\n「どれ」というのはあるんだと思う．\n\nこれかなーと思うものはあるので，ひとまずやってみよう．\n\n生活を維持しつつ，ピンとくるものを探すの難しいね．\n"
