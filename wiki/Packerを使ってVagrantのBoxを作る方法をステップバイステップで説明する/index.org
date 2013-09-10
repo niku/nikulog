@@ -370,8 +370,8 @@ SSH 接続を受け入れるには，ssh のサーバー機能を動かしてお
 $ packer build wheezy64.json --force
 virtualbox output will be in this color.
 
-==> virtualbox: Downloading VirtualBox guest additions. Progress will be shown p                                                                                                                                         eriodically.
-==> virtualbox: Copying or downloading ISO. Progress will be reported periodical                                                                                                                                         ly.
+==> virtualbox: Downloading VirtualBox guest additions. Progress will be shown periodically.
+==> virtualbox: Copying or downloading ISO. Progress will be reported periodically.
 ==> virtualbox: Starting HTTP server on port 8081
 ==> virtualbox: Creating virtual machine...
 ==> virtualbox: Creating hard drive...
