@@ -426,3 +426,47 @@ vagrant init と実行して初期設定しなければならない．
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/33b0b42f4018cc49594a5522a8f54f7ec79af4cc][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/33b0b42f4018cc49594a5522a8f54f7ec79af4cc][前回からの差分]]
+
+** 14. vagrant up に失敗する(2)
+
+Vagrantfile を生成したので再度 vagrant up する．
+
+#+BEGIN_SRC
+$ vagrant up
+Bringing machine 'default' up with 'virtualbox' provider...
+There are errors in the configuration of this machine. Please fix
+the following errors and try again:
+
+vm:
+* The box 'base' could not be found.
+#+END_SRC
+
+今度は「'base' という名前の box が見つけられない」というエラーになる．
+
+vagrant は box を利用する．その際，どの box を利用するかは Vagrantfile の中に書いてある．
+
+今は
+: config.vm.box = "base"
+となっている．
+
+そこで vagrant は base という box を探すが，見つけられない．
+なので「'base' という名前の box が見つけられない」というエラーになる．
+
+これを解決するには vagrant に対して「base という名前でこの box ファイルを利用しますよー」と教えてやればいい．
+
+そのコマンドは
+: vagrant box add [box名] [boxファイル名]
+となる．
+
+実行してみる
+
+#+BEGIN_SRC
+$ vagrant box add base packer_virtualbox_virtualbox.box
+Downloading or copying the box...
+Extracting box...
+Successfully added box 'base' with provider 'virtualbox'!
+#+END_SRC
+
+うまくいったようだ．
+
+今回はソースコードには何も手を加えていない．
