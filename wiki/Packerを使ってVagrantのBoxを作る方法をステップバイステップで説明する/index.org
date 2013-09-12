@@ -470,3 +470,38 @@ Successfully added box 'base' with provider 'virtualbox'!
 うまくいったようだ．
 
 今回はソースコードには何も手を加えていない．
+
+** 15. vagrant で起動した仮想環境に SSH で接続できなくて失敗する
+
+vagrant up すると，virtural box が GUI 起動して，ログイン画面が表示される．が，その後何もおきない．
+
+数分待っていると GUI も終了し，コンソールもエラーで終わる．
+
+コンソールのメッセージは以下のようになる
+
+#+BEGIN_SRC
+$ vagrant up
+Bringing machine 'default' up with 'virtualbox' provider...
+[default] Importing base box 'base'...
+[default] Matching MAC address for NAT networking...
+[default] Setting the name of the VM...
+[default] Clearing any previously set forwarded ports...
+[default] Fixed port collision for 22 => 2222. Now on port 2200.
+[default] Creating shared folders metadata...
+[default] Clearing any previously set network interfaces...
+[default] Preparing network interfaces based on configuration...
+[default] Forwarding ports...
+[default] -- 22 => 2200 (adapter 1)
+[default] Booting VM...
+[default] Waiting for VM to boot. This can take a few minutes.
+[default] Failed to connect to VM!
+Failed to connect to VM via SSH. Please verify the VM successfully booted
+by looking at the VirtualBox GUI.
+#+END_SRC
+
+vagrant を起動した環境 ( 以下「ホスト環境」と呼ぶ ) と，vagrant で起動された仮想環境 ( 以下「VM環境」と呼ぶ ) の間は SSH で接続する．
+
+: Failed to connect to VM via SSH. Please verify the VM successfully booted
+というメッセージからもわかるとおり，この SSH 接続がうまくできていない．
+
+SSH 接続がうまくできていない原因はいくつかある．以下 16 - 18 の手順で一つずつ解消していこう．
