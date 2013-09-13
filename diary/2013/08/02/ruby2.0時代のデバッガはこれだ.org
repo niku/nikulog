@@ -1,8 +1,11 @@
 * ruby2.0時代のデバッガはこれだ
 
-結論から言うと
-: gem install debugger
-でインストールできる [[https://github.com/cldwalker/debugger][debugger]] が ( まだ完全ではないものの )2.0 に対応している．
+[[https://github.com/cldwalker/debugger][debugger]] と [[https://github.com/deivid-rodriguez/byebug][byebug]] が課題はありつつも 2.0 に対応している．僕はしばらく byebug を使ってみることにする．
+
+- byebug は 2.0 以降で用意されたデバッグ用の C API を使っているので 2.0 以降にしか対応していない．
+- debugger は 1.8/1.9 の資産を残しつつ 2.0 の対応を進めている．[[https://github.com/cldwalker/debugger/issues/47][2.0 対応状況]]
+
+byebug に書いてある [[https://github.com/deivid-rodriguez/byebug#whats-different-from-debugger][Whats's different from debugger]] も参考にしてもらいたい．
 
 こんな経緯になっている気がする．間違っていたらどうか教えてほしい．今読んでいる記事は [[https://github.com/niku/nikulog/blob/master/diary/2013/08/02/ruby2.0%E6%99%82%E4%BB%A3%E3%81%AE%E3%83%87%E3%83%90%E3%83%83%E3%82%AC%E3%81%AF%E3%81%93%E3%82%8C%E3%81%A0.org][git のリポジトリから生成している]]ので，プルリクエストを送ってくれてもいい．
 
@@ -10,7 +13,6 @@
 - ruby1.9 で動かなくなってしまったので [[http://rubygems.org/gems/ruby-debug19][ruby-debug19]] ができた
 - ruby2.0 で動かなくなってしまったので [[http://rubygems.org/gems/debugger2][debugger2]] ができた
 - debugger は [[https://github.com/cldwalker/debugger/issues/69][debugger2 を参考に]] [[https://github.com/cldwalker/debugger/issues/47][ruby2.0 に対応しつつある]]
+- byebug は Ruby2.0 で用意された C API を利用して，新しく作られた
 
 debugger 自体の立ち位置がよくわからないなあ．github には "port of ruby-debug that works on 1.9.2 and 1.9.3" と書いてある．ruby-debug19 とはどういったご関係だったのだろう．
-
-ともかく debugger で大丈夫だ．
