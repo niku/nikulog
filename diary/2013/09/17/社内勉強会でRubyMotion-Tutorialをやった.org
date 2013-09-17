@@ -1,0 +1,7 @@
+* 社内勉強会でRubyMotion-Tutorialをやった
+
+30 分の枠をもらったので rubymotion の紹介を兼ねて，[[http://tutorial.rubymotion.jp/][RubyMotion Tutorial]] をやった．
+
+ものすごく飛ばして（説明をすっとばして），コピペプログラミングだと [[http://tutorial.rubymotion.jp/4-containers/][Containers]] の途中くらいまでできた．
+
+そのペースから考えると，チュートリアルは 3 時間くらいかけてやると，急がなくても終わらせられるのかもしれない．
