@@ -7,7 +7,7 @@
 - [[http://www.amazon.co.jp/dp/4861007194][Design Rule Index]] を読む
   - 安全率
   - フィードバックループ
-- Timelapse （微速度撮影）の撮り方
+- [[https://speakerdeck.com/dara/timelapse-introduction][たのしい Timelapse]] （微速度撮影）
 
 の 2 点だった．
 
