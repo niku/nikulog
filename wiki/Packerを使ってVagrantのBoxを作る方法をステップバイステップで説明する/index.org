@@ -504,4 +504,35 @@ vagrant を起動した環境 ( 以下「ホスト環境」と呼ぶ ) と，vag
 : Failed to connect to VM via SSH. Please verify the VM successfully booted
 というメッセージからもわかるとおり，この SSH 接続がうまくできていない．
 
-SSH 接続がうまくできていない原因はいくつかある．以下 16 - 18 の手順で一つずつ解消していこう．
+SSH 接続がうまくできていない原因は大きくわけると以下の 2 つになる．
+
+1. 仮想環境が SSH 接続を受けつけるようになっていない
+2. vagrant が仮想環境に入るための鍵穴 ( 公開鍵 ) を仮想環境に用意していない
+
+そこで 2 を解決するために以下のようなシェルスクリプト (vagrant.sh) を追加し，vagrant が仮想環境に入るための鍵穴 ( 公開鍵 ) を取得するようにした．
+( 1 は後程解決させる )
+#+BEGIN_SRC
+# Install vagrant keys
+mkdir -pm 700 /home/vagrant/.ssh
+curl -Lo /home/vagrant/.ssh/authorized_keys \
+  'https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub'
+chmod 0600 /home/vagrant/.ssh/authorized_keys
+chown -R vagrant:vagrant /home/vagrant/.ssh
+#+END_SRC
+
+そして，そのシェルスクリプトを packer が仮想環境構築時に実行するよう設定ファイル (wheezy64.json) に追記した．
+#+BEGIN_SRC
+"provisioners": [{
+  "type": "shell",
+  "scripts": [
+    "vagrant.sh"
+  ]
+}],
+#+END_SRC
+ここらへんややこしいが，ついてこれているだろうか．
+
+このスクリプトが正しく動作すれば，SSH 接続の問題は解消するのだが，現状だとうまく動作しない．
+以下 16 - 18 の手順で解消していこう．
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/a59d6dc27a09866623ec320b42befc0662a81418][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/compare/33b0b42f4018cc49594a5522a8f54f7ec79af4cc...a59d6dc27a09866623ec320b42befc0662a81418][前回からの差分]]
