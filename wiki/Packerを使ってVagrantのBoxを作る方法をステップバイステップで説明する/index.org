@@ -595,3 +595,131 @@ preseed.cfg の
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/66c401233a18c6aee0583610dc582f2db35cf475][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/66c401233a18c6aee0583610dc582f2db35cf475][前回からの差分]]
+
+** 17. provisioning で行なった仮想環境の変更が保存されない
+
+コマンドを実行してみると，着々と進むので「うまくいったかな」と思ってしまう．
+しかし後述するように，実はうまくいってない．
+
+#+BEGIN_SRC
+$ packer build wheezy64.json --force
+virtualbox output will be in this color.
+
+==> virtualbox: Downloading VirtualBox guest additions. Progress will be shown periodically.
+==> virtualbox: Copying or downloading ISO. Progress will be reported periodically.
+==> virtualbox: Starting HTTP server on port 8081
+==> virtualbox: Creating virtual machine...
+==> virtualbox: Creating hard drive...
+==> virtualbox: Creating forwarded port mapping for SSH (host port 3213)
+==> virtualbox: Starting the virtual machine...
+==> virtualbox: Waiting 10s for boot...
+==> virtualbox: Typing the boot command...
+==> virtualbox: Waiting for SSH to become available...
+==> virtualbox: Connected to SSH!
+==> virtualbox: Uploading VirtualBox version info (4.2.16)
+==> virtualbox: Uploading VirtualBox guest additions ISO...
+==> virtualbox: Provisioning with shell script: vagrant.sh
+    virtualbox: % Total    % Received % Xferd  Average Speed   Time    Time      Time  Current
+    virtualbox: Dload  Upload   Total   Spent    Left  Speed
+    virtualbox: 0     0    0     0    0     0      0      0 --:--:-- --:--:-- -- 100   409  100   409    0     0    607      0 --:--:-- --:--:-- --:--:--   791
+==> virtualbox: Halting the virtual machine...
+==> virtualbox: Preparing to export machine...
+    virtualbox: Deleting forwarded port mapping for SSH (host port 3213)
+==> virtualbox: Exporting virtual machine...
+==> virtualbox: Unregistering and deleting virtual machine...
+==> virtualbox: Running post-processor: vagrant
+==> virtualbox (vagrant): Creating Vagrant box for 'virtualbox' provider
+    virtualbox (vagrant): Copying: output-virtualbox\packer-disk1.vmdk
+    virtualbox (vagrant): Copying: output-virtualbox\packer.ovf
+    virtualbox (vagrant): Renaming the OVF to box.ovf...
+    virtualbox (vagrant): Compressing box...
+Build 'virtualbox' finished.
+
+==> Builds finished. The artifacts of successful builds are:
+--> virtualbox: 'virtualbox' provider box: packer_virtualbox_virtualbox.box
+
+$ vagrant box add base packer_virtualbox_virtualbox.box
+Downloading or copying the box...
+Extracting box...
+Successfully added box 'base' with provider 'virtualbox'!
+
+$ vagrant up
+Bringing machine 'default' up with 'virtualbox' provider...
+[default] Importing base box 'base'...
+[default] Matching MAC address for NAT networking...
+[default] Setting the name of the VM...
+[default] Clearing any previously set forwarded ports...
+[default] Fixed port collision for 22 => 2222. Now on port 2200.
+[default] Creating shared folders metadata...
+[default] Clearing any previously set network interfaces...
+[default] Preparing network interfaces based on configuration...
+[default] Forwarding ports...
+[default] -- 22 => 2200 (adapter 1)
+[default] Booting VM...
+[default] Waiting for VM to boot. This can take a few minutes.
+[default] Failed to connect to VM!
+Failed to connect to VM via SSH. Please verify the VM successfully booted
+by looking at the VirtualBox GUI.
+
+$ ssh vagrant@localhost -p 2200
+The authenticity of host '[localhost]:2200 ([127.0.0.1]:2200)' can't be established.
+RSA key fingerprint is 07:c3:14:6c:e2:e9:84:0b:5e:69:57:a5:e0:0b:6f:9b.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '[localhost]:2200' (RSA) to the list of known hosts.
+vagrant@localhost's password:
+Linux packer-virtualbox 3.2.0-4-amd64 #1 SMP Debian 3.2.46-1 x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+vagrant@packer-virtualbox:~$ ls -ltra
+total 20
+-rw-r--r-- 1 vagrant vagrant  675 Aug 19 02:49 .profile
+-rw-r--r-- 1 vagrant vagrant  220 Aug 19 02:49 .bash_logout
+drwxr-xr-x 3 root    root    4096 Aug 19 02:49 ..
+drwxr-xr-x 2 vagrant vagrant 4096 Aug 19 02:49 .
+-rw-r--r-- 1 vagrant vagrant 3392 Aug 19 02:49 .bashrc
+#+END_SRC
+
+わかるだろうか．
+provisioning 中に curl でダウンロードしたはずの .ssh/authorized_keys が，
+改めて仮想環境を立ち上げてみると存在していない．
+
+ここは本当に原因を掴むのに苦労した．皆にはこんな思いをして欲しくないので大きく 3 回書いておく．
+
+
+ *provisioning終了時のshutdownをgracefulに行わないと仮想環境にデータが残らない*
+
+ *provisioning終了時のshutdownをgracefulに行わないと仮想環境にデータが残らない*
+
+ *provisioning終了時のshutdownをgracefulに行わないと仮想環境にデータが残らない*
+
+普段皆さんが PC を使い終って電源を切る時にどうするだろうか？
+各 OS に用意されているシャットダウンボタンをクリックしたり，コマンドラインから shutdown を実行するだろう．
+そうすると，OS は電源を切る準備をして，変更途中のものはディスクに書き込んで永続化した後，自ら電源を切る．
+
+Packer も provisioning 終了時に一度仮想環境の電源を切る．その時にどうやって電源を切るか．
+Packer は何も設定されていないと「マシンの電源を切る」相当のことを仮想環境に対して行う．
+つまり，OS は変更途中のものをディスクに書き込んで永続化する時間がない．
+
+そのため，再度仮想環境を立ち上げたときに，変更が保存されていないのだ．
+
+詳しくは [[http://www.packer.io/docs/builders/virtualbox.html][VirtualBox Builder]] の shutdown_command を参照してもらいたい．
+: By default this is an empty string, which tells Packer to just forcefully shut down the machine.
+「デフォルトでは空文字になっている，つまり Packer は単にむりやりマシンを切る」と書いてある．
+
+そうしないためには，その前の文に従えばいい．
+: The command to use to gracefully shut down the machine once all the provisioning is done.
+「全てのプロビジョニングが終わったときにちゃんと (graceful に ) シャットダウンするコマンド」を設定すると書いてある．
+
+つまり，ここにシャットダウンコマンドを書けば，無理矢理 ” ではない ” 方法でシャットダウンしてくれる．
+
+そこで wheezy64.json へ
+: "shutdown_command": "sudo shutdown -h now"
+というコマンドを追加する．
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/3db48d01158af5c96e43be31088867eb84c90773][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/3db48d01158af5c96e43be31088867eb84c90773][前回からの差分]]
