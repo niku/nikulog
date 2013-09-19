@@ -536,3 +536,62 @@ chown -R vagrant:vagrant /home/vagrant/.ssh
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/a59d6dc27a09866623ec320b42befc0662a81418][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/compare/33b0b42f4018cc49594a5522a8f54f7ec79af4cc...a59d6dc27a09866623ec320b42befc0662a81418][前回からの差分]]
+
+** 16. curl コマンドがなくて失敗する
+
+先程までは vagrant コマンドを実行していたが，再度 Packer のビルドからやり直してゆく．
+
+#+BEGIN_SRC
+$ ../packer/packer.exe build --force wheezy64.json
+virtualbox output will be in this color.
+
+==> virtualbox: Downloading VirtualBox guest additions. Progress will be shown periodically.
+==> virtualbox: Copying or downloading ISO. Progress will be reported periodically.
+==> virtualbox: Starting HTTP server on port 8081
+==> virtualbox: Creating virtual machine...
+==> virtualbox: Creating hard drive...
+==> virtualbox: Creating forwarded port mapping for SSH (host port 3213)
+==> virtualbox: Starting the virtual machine...
+==> virtualbox: Waiting 10s for boot...
+==> virtualbox: Typing the boot command...
+==> virtualbox: Waiting for SSH to become available...
+==> virtualbox: Connected to SSH!
+==> virtualbox: Uploading VirtualBox version info (4.2.16)
+==> virtualbox: Uploading VirtualBox guest additions ISO...
+==> virtualbox: Provisioning with shell script: vagrant.sh
+    virtualbox: /tmp/script.sh: line 3: curl: command not found
+    virtualbox: chmod: cannot access `/home/vagrant/.ssh/authorized_keys': No such file or directory
+==> virtualbox: Halting the virtual machine...
+==> virtualbox: Preparing to export machine...
+    virtualbox: Deleting forwarded port mapping for SSH (host port 3213)
+==> virtualbox: Exporting virtual machine...
+==> virtualbox: Unregistering and deleting virtual machine...
+==> virtualbox: Running post-processor: vagrant
+==> virtualbox (vagrant): Creating Vagrant box for 'virtualbox' provider
+    virtualbox (vagrant): Copying: output-virtualbox\packer-disk1.vmdk
+    virtualbox (vagrant): Copying: output-virtualbox\packer.ovf
+    virtualbox (vagrant): Renaming the OVF to box.ovf...
+    virtualbox (vagrant): Compressing box...
+Build 'virtualbox' finished.
+
+==> Builds finished. The artifacts of successful builds are:
+--> virtualbox: 'virtualbox' provider box: packer_virtualbox_virtualbox.box
+#+END_SRC
+
+: virtualbox: /tmp/script.sh: line 3: curl: command not found
+となっているのがわかるだろうか．「curl コマンドがない」と言われている．
+
+確かにインストールしていないので，ない．そこでインストールする．
+
+curl のインストールはパッケージ (apt) 経由で行うのが簡単だ．
+パッケージ経由のインストールは以前 3 - 11 の手順でも利用していた preseed.cfg 経由で行なえる．
+今回はこれを使う．
+
+preseed.cfg の
+: d-i pkgsel/include string openssh-server
+を
+: d-i pkgsel/include string openssh-server curl
+とすることで，curl パッケージがインストールされ，curl コマンドが利用できるようになる．
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/66c401233a18c6aee0583610dc582f2db35cf475][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/66c401233a18c6aee0583610dc582f2db35cf475][前回からの差分]]
