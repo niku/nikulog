@@ -723,3 +723,124 @@ Packer は何も設定されていないと「マシンの電源を切る」相�
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/3db48d01158af5c96e43be31088867eb84c90773][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/3db48d01158af5c96e43be31088867eb84c90773][前回からの差分]]
+
+** 18 sudo コマンド実行時に password の入力を求められる画面で止まる
+
+再度 packer build を実行してみる
+
+#+BEGIN_SRC
+$ packer build --force wheezy64.json
+virtualbox output will be in this color.
+
+==> virtualbox: Downloading VirtualBox guest additions. Progress will be shown periodically.
+==> virtualbox: Copying or downloading ISO. Progress will be reported periodically.
+==> virtualbox: Starting HTTP server on port 8081
+==> virtualbox: Creating virtual machine...
+==> virtualbox: Creating hard drive...
+==> virtualbox: Creating forwarded port mapping for SSH (host port 3213)
+==> virtualbox: Starting the virtual machine...
+==> virtualbox: Waiting 10s for boot...
+==> virtualbox: Typing the boot command...
+==> virtualbox: Waiting for SSH to become available...
+==> virtualbox: Connected to SSH!
+==> virtualbox: Uploading VirtualBox version info (4.2.16)
+==> virtualbox: Uploading VirtualBox guest additions ISO...
+==> virtualbox: Provisioning with shell script: vagrant.sh
+    virtualbox: % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+    virtualbox: Dload  Upload   Total   Spent    Left  Speed
+100   409  100   409    0     0    651      0 --:--:-- --:--:-- --:--:--   853--:--:--     0
+==> virtualbox: Gracefully halting virtual machine...
+    virtualbox:
+    virtualbox: We trust you have received the usual lecture from the local System
+    virtualbox: Administrator. It usually boils down to these three things:
+    virtualbox:
+    virtualbox: #1) Respect the privacy of others.
+    virtualbox: #2) Think before you type.
+    virtualbox: #3) With great power comes great responsibility.
+    virtualbox:
+#+END_SRC
+
+すると，メッセージが出てきて止まってしまう．
+
+これは sudo コマンドを実行するときに出てくるメッセージで，
+ここでログインしているユーザー，今回だと vagrant のパスワードを入力すると，sudo の後につなげたコマンドが管理者権限で実行される．
+
+管理者権限とは何か．
+そもそも linux は複数の異なるユーザーが同時にログインして作業することを前提にしている．
+その前提に立ってみると，電源を切ったり，再起動したり，システムの構成を変更することは，他のユーザーへの影響がとても大きい．
+( 自分が作業中なのに他のユーザーに電源を切られたら……おそろしい >< )
+
+そこで，そういったことをする場合には通常のユーザーではなく，管理者権限を持つユーザーという立場で作業することが求められる．
+sudo は「sudo 以降のコマンドを管理者権限として実行したいですよー」という宣言になる．
+今回は「すぐに電源を切る =shutdown -h now= 」ということを，管理者権限で行ないたいと宣言している．
+
+今回だと
+: sudo shutdown -h now
+の実行時に出ているので，vagrant のパスワードを入力できれば，管理者権限で
+: shutdown -h now
+が実行され，仮想環境の電源が切られる．
+
+自動実行中にパスワード入力待ちで止まってしまうのは困るので，止まらないようにするには 2 つの方法がある．
+
+1. =echo 'password' | sudo -S shutdown -h now=  のように sudo 実行時に vagrant のパスワードを与えるようにする． see [[http://stackoverflow.com/questions/233217/pass-password-to-su-sudo-ssh][pass password to su/sudo/ssh]]
+2. そもそも vagrant の sudo 実行時にパスワードを確認しない
+
+今回は vagrant ユーザーの操作を無条件で信じる，つまり vagrant ユーザーが sudo したものは全て許可するので 2 ですすめる．
+
+Debian の場合 sudo の設定は =/etc/sudoers= に書くか， =/etc/sudoers.d/= 以下にファイルを置くとよい．
+今回は sudores.d 以下に vagrant というファイルを用意して，その中に vagrant の sudo 条件を記述するようにした．
+
+sudores.d 以下に有効な設定ファイルを置く場合は
+1. 権限が root であること
+2. root 権限の人のみが読み込めること
+という制約があるので，注意する．それに対応したのが以下のようなスクリプトになる．
+
+#+BEGIN_SRC
+# Set up sudo
+echo 'vagrant ALL=NOPASSWD:ALL' > vagrant
+echo 'vagrant' | sudo -S chmod 440 vagrant
+echo 'vagrant' | sudo -S chown root:root vagrant
+echo 'vagrant' | sudo -S mv vagrant /etc/sudoers.d/
+#+END_SRC
+
+これを base.sh として保存する．
+
+また，そのスクリプトを実行するように =wheezy64.json= へ追記する．
+
+#+BEGIN_SRC
+"provisioners": [{
+  "type": "shell",
+  "scripts": [
+    "base.sh",
+    "vagrant.sh"
+  ]
+}],
+#+END_SRC
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/591b8e5b9ddaf878c983177a1d796dba3de7af06][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/591b8e5b9ddaf878c983177a1d796dba3de7af06][前回からの差分]]
+
+ここまでやると
+: packer build --force wheezy64.json
+というコマンドで，仮想環境構築ができ，その仮想環境に vagrant が SSH で接続できるようになる．
+
+つまり「15. vagrant で起動した仮想環境に SSH で接続できなくて失敗する」からの課題は一通り解決し，
+「Packer で仮想環境を構築する」という部分は達成できたことになる．
+
+ウォオォォォォ！
+
+（各自ひととおり自分なりに喜びを表わしてもらいたい）
+
+……ふぅ．
+
+さて，次に「packer で環境構築した仮想環境で chef-solo を実行する」というステップに入ろう．
+vagrant から chef-solo を実行するには Vagrantfile に [[http://docs.vagrantup.com/v2/provisioning/chef_solo.html][Chef Solo Provisioner]] を記述すればよい．
+そこで Vagrantfile に以下のコードを追記する．
+
+#+BEGIN_SRC
+config.vm.provision :chef_solo do |chef|
+end
+#+END_SRC
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/7814591e503b626b798b669cc4d12796dbbaf455][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/7814591e503b626b798b669cc4d12796dbbaf455][前回からの差分]]
