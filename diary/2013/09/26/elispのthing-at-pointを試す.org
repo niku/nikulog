@@ -1,0 +1,52 @@
+* elispのthing-at-pointを試す
+
+まずは
+: (describe-function 'thing-at-point)
+で情報を眺めるのが一番よい．
+
+#+BEGIN_QUOTE
+Return the THING at point.
+THING should be a symbol specifying a type of syntactic entity.
+Possibilities include `symbol', `list', `sexp', `defun',
+`filename', `url', `email', `word', `sentence', `whitespace',
+`line', `number', and `page'.
+#+END_QUOTE
+
+と書いてあるので
+- symbol
+- list
+- sexp
+- defun
+- filename
+- url
+- email
+- word
+- sentence
+- whitespace
+- line
+- number
+- page
+を指定すると，カーソル上にあるそれっぽい文字列を取得してくれるようだ．
+
+#+BEGIN_SRC
+(defun message-thing-at-point (thing)
+  "thing-at-point で取得できた値を表示する"
+  (interactive "Sthing:")
+  (message "%s" (thing-at-point thing)))
+#+END_SRC
+という関数を作成して
+
+: abc def ghi
+:      ^ ここにカーソルがある
+状態で =M-x message-thing-at-point= して，word と入力すると =def= が表示される．
+
+: ~/foo/bar/file.org
+:  ^ ここにカーソルがある
+状態で =M-x message-thing-at-point= して，filename と入力すると =~/foo/bar/file.org= が表示される．
+
+: 
+: ^ ここにカーソルがある
+状態で =M-x message-thing-at-point= して，filename と入力すると何も表示されない．
+
+もしここがわかりにくければ以下のサイトも参考にしてみるとよい
+- [[http://d.hatena.ne.jp/tomoya/20101213/1292166026][カーソル位置の情報で遊ぼう]]
