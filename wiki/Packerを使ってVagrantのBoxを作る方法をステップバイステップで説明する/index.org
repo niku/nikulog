@@ -844,3 +844,77 @@ end
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/7814591e503b626b798b669cc4d12796dbbaf455][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/7814591e503b626b798b669cc4d12796dbbaf455][前回からの差分]]
+
+** 19. chef がないというエラーが出て止まる
+
+前回までで packer の処理はうまくいったようなので，次に vagrant を実行してみる．
+
+#+BEGIN_SRC
+$ vagrant up
+Bringing machine 'default' up with 'virtualbox' provider...
+[default] Setting the name of the VM...
+[default] Clearing any previously set forwarded ports...
+[default] The cookbook path 'c:/Users/niku/my-packer-and-vagrant-example                                                                                                                                         /cookbooks' doesn't exist. Ignoring...
+[default] Fixed port collision for 22 => 2222. Now on port 2200.
+[default] Creating shared folders metadata...
+[default] Clearing any previously set network interfaces...
+[default] Preparing network interfaces based on configuration...
+[default] Forwarding ports...
+[default] -- 22 => 2200 (adapter 1)
+[default] Booting VM...
+[default] Waiting for VM to boot. This can take a few minutes.
+[default] VM booted and ready for use!
+[default] The guest additions on this VM do not match the installed version of
+VirtualBox! In most cases this is fine, but in rare cases it can
+cause things such as shared folders to not work properly. If you see
+shared folder errors, please update the guest additions within the
+virtual machine and reload your VM.
+
+Guest Additions Version: 4.1.18
+VirtualBox Version: 4.2
+[default] Mounting shared folders...
+[default] -- /vagrant
+[default] Running provisioner: chef_solo...
+The chef binary (either `chef-solo` or `chef-client`) was not found on
+the VM and is required for chef provisioning. Please verify that chef
+is installed and that the binary is available on the PATH.
+#+END_SRC
+
+chef_solo を実行しようとしたのだが，chef binary が見つからないと言われている．
+
+あっ，はい．まだインストールしていませんでした……
+
+もう一度 packer の処理に戻って，chef のインストールを仮想環境構築に組込む．
+
+chef のインストール方法は公式サイトの [[http://www.opscode.com/chef/install/][Install Chef]] をみるとよい．
+
+今回は
+- クライアントなので Chef Client タブを選択
+- Debian なので [Select an Operating System] から Debian を選択
+- Wheezy(7) なので [Select a Version] から 7 を選択
+- 64 ビットなので [Select an Architecture] から x86_64 を選択
+した．
+
+そうすると画面右側に  Quick Install Instructions というのが表れて，
+簡単にインストールするためのコマンド
+: curl -L https://www.opscode.com/chef/install.sh | sudo bash
+が書いてあるので，このコマンドを利用する．
+
+chef.sh という名前で以下のコードを保存して
+#+BEGIN_SRC
+# install Omnibus Chef Client
+curl -L https://www.opscode.com/chef/install.sh | sudo bash
+#+END_SRC
+
+packer 実行時に仮想環境内から起動するよう wheezy64.json に追記する
+#+BEGIN_SRC
+     "type": "shell",
+     "scripts": [
+       "base.sh",
+       "chef.sh",
+       "vagrant.sh"
+     ]
+#+END_SRC
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/680035140cd6ee2d171bac1095c4b8144eb11ca6][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/680035140cd6ee2d171bac1095c4b8144eb11ca6][前回からの差分]]
