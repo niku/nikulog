@@ -918,3 +918,83 @@ packer 実行時に仮想環境内から起動するよう wheezy64.json に追�
 
 - [[https://github.com/niku/my-packer-and-vagrant-example/tree/680035140cd6ee2d171bac1095c4b8144eb11ca6][ここまでの状態]]
 - [[https://github.com/niku/my-packer-and-vagrant-example/commit/680035140cd6ee2d171bac1095c4b8144eb11ca6][前回からの差分]]
+
+** 20. cookbook がないというエラーが出て止まる
+
+まず前回修正した内容を有効化するために packer を実行する．
+: packer build --force wheezy64.json
+
+packer は正常終了するので，次に vagrant を起動する．
+#+BEGIN_SRC
+$ vagrant up
+Bringing machine 'default' up with 'virtualbox' provider...
+[default] Importing base box 'base'...
+[default] Matching MAC address for NAT networking...
+[default] Setting the name of the VM...
+[default] Clearing any previously set forwarded ports...
+[default] The cookbook path 'c:/Users/niku/my-packer-and-vagrant-example/cookbooks' doesn't exist. Ignoring...
+[default] Fixed port collision for 22 => 2222. Now on port 2200.
+[default] Creating shared folders metadata...
+[default] Clearing any previously set network interfaces...
+[default] Preparing network interfaces based on configuration...
+[default] Forwarding ports...
+[default] -- 22 => 2200 (adapter 1)
+[default] Booting VM...
+[default] Waiting for VM to boot. This can take a few minutes.
+[default] VM booted and ready for use!
+[default] The guest additions on this VM do not match the installed version of
+VirtualBox! In most cases this is fine, but in rare cases it can
+cause things such as shared folders to not work properly. If you see
+shared folder errors, please update the guest additions within the
+virtual machine and reload your VM.
+
+Guest Additions Version: 4.1.18
+VirtualBox Version: 4.2
+[default] Mounting shared folders...
+[default] -- /vagrant
+[default] Running provisioner: chef_solo...
+Generating chef JSON and uploading...
+[default] Warning: Chef solo run list is empty. This may not be what you want.
+Running chef-solo...
+stdin: is not a tty
+[2013-08-19T22:03:26-04:00] INFO: Forking chef instance to converge...
+[2013-08-19T22:03:26-04:00] INFO: *** Chef 11.6.0 ***
+[2013-08-19T22:03:27-04:00] INFO: Run List is []
+[2013-08-19T22:03:27-04:00] INFO: Run List expands to []
+[2013-08-19T22:03:27-04:00] INFO: Starting Chef Run for packer-virtualbox.vagrantup.com
+[2013-08-19T22:03:27-04:00] INFO: Running start handlers
+[2013-08-19T22:03:27-04:00] INFO: Start handlers complete.
+[2013-08-19T22:03:27-04:00] FATAL: No cookbook found in ["/tmp/vagrant-chef-1/cookbooks/cookbooks"], make sure cookbook_path is set correctly.
+[2013-08-19T22:03:27-04:00] ERROR: Running exception handlers
+[2013-08-19T22:03:27-04:00] ERROR: Exception handlers complete
+[2013-08-19T22:03:27-04:00] FATAL: Stacktrace dumped to /var/chef/cache/chef-stacktrace.out
+[2013-08-19T22:03:27-04:00] FATAL: Chef::Exceptions::ChildConvergeError: Chef run process exited unsuccessfully (exit code 1)
+Chef never successfully completed! Any errors should be visible in the
+output above. Please fix your recipes so that they properly complete.
+#+END_SRC
+
+ご覧の通り，うまくいっていない．
+: No cookbook found in ["/tmp/vagrant-chef-1/cookbooks/cookbooks"], make sure cookbook_path is set correctly.
+クックブックが見当らないと言われている．
+
+確かに，まだクックブックを登録していない．そこで登録する．
+
+クックブックは何でもよい．ここでは例として，今後もよく使うであろう [[https://github.com/opscode-cookbooks/build-essential][build-essential]] を入れてみる．
+
+まず，クックブックを置くパスがないので用意する．これは 1 度だけ行えばよい．
+: mkdir -p chef-recipes/cookbooks
+
+次にそのパスへ移動する．
+: cd chef-recipes/cookbooks
+
+そしてクックブックを用意する．
+: git clone https://github.com/opscode-cookbooks/build-essential.git
+
+上の3つを行ない，再度 =vagrant up= すると，無事に vagrant が起動する．
+すなわち「packer から vagrant の chef-solo provision 対応の仮想環境を，コマンド一つで作成でき」たことになる．
+
+- [[https://github.com/niku/my-packer-and-vagrant-example/tree/5926522f675701be9e61e2e9a3104339f25826db][ここまでの状態]]
+- [[https://github.com/niku/my-packer-and-vagrant-example/commit/5926522f675701be9e61e2e9a3104339f25826db][前回からの差分]]
+
+ふー．この記事はこれでおしまい．
+1 ヶ月半くらいかけてチマチマ書いて，ちょうど 1000 行にわたる記事になった．読んでくれた人もおつかれさまでした．
