@@ -1,6 +1,6 @@
-* Packerを使ってVagrantのBoxを作る方法をステップバイステップで説明する
+* Packerを使ってVagrantのBoxを作る方法を一つずつ説明する
 
-Packer を使って Vagrant の Box を OS インストールから作成できたので，ステップバイステップで説明する．
+Packer を使って Vagrant の Box を OS インストールから作成できたので，一つずつ説明する．
 
 コードは github の [[https://github.com/niku/my-packer-and-vagrant-example/][niku/my-packer-and-vagrant-example]] にある．
 
