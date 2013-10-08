@@ -33,7 +33,7 @@ __END__
   <input type="text" id="input">
   <p>result:</p><span id="result"></span>
   <p>local cookie:</p><span id="local-cookie"</span>
-  <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+  <script src="//code.jquery.com/jquery-2.0.3.min.js"></script>
   <script>
 $(function() {
   $('#input').keyup(function() {
@@ -55,7 +55,9 @@ $(function() {
 
 そのフォームに値を入力すると，サーバーが受け取った cookie と JavaScript が知っている cookie を表示することができる．
 
-https じゃない環境で試すと
+[[https://github.com/niku/cookie_attributes][heroku に上げてみた]]．
+
+[[http://glacial-brushlands-4114.herokuapp.com/][http アクセス]]で試すと
 
 #+BEGIN_SRC
 result:
@@ -66,6 +68,18 @@ none=none
 #+END_SRC
 
 という感じになる．
+
+[[https://glacial-brushlands-4114.herokuapp.com/][https アクセス]]で試すと
+
+#+BEGIN_SRC
+result:
+params: abc, cookies: {"none"=>"none", "http-only"=>"http-only", "secure"=>"secure", "both"=>"both"}
+
+local cookie:
+none=none; secure=secure
+#+END_SRC
+
+と secure 属性のものが読めるようになる．
 
 何も設定していない項目は読めるのは当然だけど，
 =http-only= は =document.cookie= からは読めないのに，

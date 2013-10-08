@@ -26,7 +26,7 @@ __END__
   <input type="text" id="input">
   <p>result:</p><span id="result"></span>
   <p>local cookie:</p><span id="local-cookie"</span>
-  <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+  <script src="//code.jquery.com/jquery-2.0.3.min.js"></script>
   <script>
 $(function() {
   $('#input').keyup(function() {
