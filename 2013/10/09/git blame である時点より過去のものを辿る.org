@@ -1,0 +1,49 @@
+* git blame である時点より過去のものを辿る
+
+ソースコード上に「何故この変更をしたのだろう」というものがあるとき，
+その変更を加えたときのコミットメッセージを見るために =git blame= を使うことがある．
+
+そうすると，以下のように行毎にどのコミットで変更したかのログが出る．
+（一番左がコミットの SHA 値を表している）
+
+#+BEGIN_SRC
+PRECISE64 /home/niku/projects/nwiki% git blame -- lib/nwiki/frontend/app.rb
+1cf2c9c5 (niku 2013-05-06 02:49:54 +0900  1) # -*- coding: utf-8 -*-
+61e3bd07 (niku 2013-07-10 06:48:32 +0900  2) require_relative 'app/top'
+6eac2226 (niku 2013-07-10 06:50:49 +0900  3) require_relative 'app/feed'
+e1cc5096 (niku 2013-07-10 06:52:35 +0900  4) require_relative 'app/html'
+6228d19f (niku 2012-07-08 22:50:12 +0900  5)
+5cafe821 (niku 2012-07-08 14:19:14 +0900  6) module Nwiki
+5cafe821 (niku 2012-07-08 14:19:14 +0900  7)   module Frontend
+5cafe821 (niku 2012-07-08 14:19:14 +0900  8)     class App
+5cafe821 (niku 2012-07-08 14:19:14 +0900  9)       def initialize git_repo_path
+20fe339c (niku 2013-01-10 00:17:56 +0900 10)         @builder = Rack::Builder.new {
+b6459b66 (niku 2013-05-06 02:34:15 +0900 11)           map '/' do
+0c9dd9b3 (niku 2013-05-06 02:53:15 +0900 12)             run Top.new git_repo_path
+b6459b66 (niku 2013-05-06 02:34:15 +0900 13)           end
+2182c972 (niku 2013-01-25 00:23:52 +0900 14)           map '/articles.xml' do
+5b15854f (niku 2013-02-10 15:29:25 +0900 15)             run Feed.new git_repo_path, articles_path: '/articles'
+2182c972 (niku 2013-01-25 00:23:52 +0900 16)           end
+2687bf4b (niku 2013-01-10 00:18:36 +0900 17)           map '/articles' do
+2687bf4b (niku 2013-01-10 00:18:36 +0900 18)             run Html.new git_repo_path
+2687bf4b (niku 2013-01-10 00:18:36 +0900 19)           end
+20fe339c (niku 2013-01-10 00:17:56 +0900 20)         }
+feef26bd (niku 2013-01-10 00:07:00 +0900 21)       end
+feef26bd (niku 2013-01-10 00:07:00 +0900 22)
+feef26bd (niku 2013-01-10 00:07:00 +0900 23)       def call env
+20fe339c (niku 2013-01-10 00:17:56 +0900 24)         @builder.call env
+feef26bd (niku 2013-01-10 00:07:00 +0900 25)       end
+feef26bd (niku 2013-01-10 00:07:00 +0900 26)     end
+5cafe821 (niku 2012-07-08 14:19:14 +0900 27)   end
+5cafe821 (niku 2012-07-08 14:19:14 +0900 28) end
+#+END_SRC
+
+そのコミットメッセージに意図が書いてあったりチケット番号が書いてあればよいが，それより前のコミットをたどりたいことがある．
+
+例えば，対象の行が配列の最後の行だったが，行の追加に伴い，カンマが追加されていた場合，
+その変更は興味の対象ではなく，それより前の変更を調べたくなるだろう．
+
+例えば 0c9dd9b3 より前の変更を調べたい場合なら =git blame 0c9dd9b3~ -- lib/nwiki/frontend/app.rb= とすると，
+「指定した SHA より前の blame」をみることができる．
+
+=0c9dd9b3~= は「0c9dd9b3の一つ前のコミット」という意味である．
