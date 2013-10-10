@@ -1,0 +1,20 @@
+* magit-blame-modeが凄い
+
+最近コードの変更の理由を探るのに git blame を使う機会が多い．
+
+今まではコマンドラインから =git blame= と打って，普通に眺めていた．
+
+普段は emacs + magit で git 操作している．
+ふと思いたって blame で探してみると magit-blame-mode というものがあることがわかった．
+
+コマンドを実行してみるととても便利そうで驚いたので共有したい．
+
+まず，git 管理しているソースコードを開く．
+
+[[before-magit-blame.png]]
+
+=M-x magit-blame-mode= する．
+
+[[after-magit-blame.png]]
+
+説明が不要なわかりやすさだ．素晴しい．
