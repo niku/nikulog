@@ -1,0 +1,75 @@
+* elixirのgetting-startedやってみる(1)
+
+erlang vm の上に ruby 風の構文を載せた [[http://elixir-lang.org/][elixir]] という言語がある．
+さらっと読んでみたところ楽しそうなので試してみる．
+
+親切に [[http://elixir-lang.org/getting_started/1.html][getting started]] があるのでそれに沿ってすすめてみよう．
+
+** 1 Introduction
+
+elixir をどうやってインストールするか，
+どうやってインタラクティブシェルを使うか，
+基本的なデータ形式や演算子についてから始めていく．
+
+後の章ではマクロ，プロトコル，その他の elixir の特徴といった，一歩進んだ題材について話す．
+
+elixir の動作を眺めてみるなら，
+最初は Dave Thomas の [[http://www.youtube.com/watch?v=hht9s6nAAx8][9 分間のビデオ]]を観るといい．
+次に，elixir の紹介についての [[http://www.youtube.com/watch?v=a-off4Vznjs][30 分のビデオ]]を観るといい．
+
+エリクサーは開発中なので，
+エラーメッセージが表示されて，
+どうやって続けたらよいかわからなければ
+ぜひ issue tracker で知らせてほしい．
+
+わかりやすいエラーメッセージを表示することは
+エリクサーで目指している特徴の一つである．
+
+** 1.1 インストール
+
+エリクサーを動かすためには，一つだけ条件がある．
+Erlang の R16B 以降がインストールされていること．
+
+Erlang をインストールしたら =erl= と打つとバージョンが確認できる．
+
+Erlang が入れば，次は Elixir を入れる．方法はいくつかある．
+
+1. パッケージソフト経由
+2. ソースからコンパイル
+3. ビルド済パッケージ
+
+** 1.2 インタラクティブモード
+
+=iex= と打つとインタラクティブモードが起動する．
+
+** 1.3 基本的なタイプ
+- integer
+- float
+- atom / symbol
+- tuple
+- list
+- bitstring
+
+Elixir は UTF-8 文字列をサポートしている．
+
+#+BEGIN_SRC
+iex(1)> "日本語"
+"日本語"
+#+END_SRC
+
+="hello"= と ='hello'= は違う．
+="hello"= は String だが ='hello'= は Char のリスト ( 違いは次の章でわかるらしい )
+
+** 1.4 演算子
+
+- +
+- -
+- *
+- /
+- ++
+- --
+
+文字連結は =<>= を使う．
+
+- and, or, not は boolean しか受けつけない
+- &&, ||, ! は Ruby と同じ(false か nil なら false，それ以外は true)
