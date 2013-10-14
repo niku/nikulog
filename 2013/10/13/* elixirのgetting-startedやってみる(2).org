@@ -114,3 +114,45 @@ iex> Enum.at [1,2,3], 0
 iex> List.flatten [1,[2],3]
 [1,2,3]
 #+END_SRC
+
+*** 2.2 キーワードリスト
+
+Elixir はキーワードのリストを作るための特別な構文を用意している．
+
+#+BEGIN_SRC
+iex> [a: 1, b: 2]
+[a: 1, b: 2]
+#+END_SRC
+
+キーワードリストは，2 要素で，最初の要素が atom であるタプル，のリストでしかない．
+
+#+BEGIN_SRC
+iex> [head | tail] = [a: 1, b: 2]
+[a: 1, b: 2]
+iex> head
+{ :a, 1 }
+#+END_SRC
+
+=Keyword= というモジュールは，キーワードリストを操作するための便利な関数をいくつか用意している．
+そこでは要素の重複を無視して扱ったり，あるいは無視せず扱ったりできる．
+
+#+BEGIN_SRC
+iex> keywords = [foo: 1, bar: 2, foo: 3]
+iex> Keyword.get keywords, :foo
+1
+iex> Keyword.get_values keywords, :foo
+[1,3]
+#+END_SRC
+
+キーワードリストは関数へ引数として渡すことがとても多いので，
+関数へ最後の引数として渡す場合には =[]= を省略できる．
+例えば以下の例は全て正しくて，同じ内容である．
+
+#+BEGIN_SRC
+iex> if(2 + 2 == 4, [do: "OK"])
+"OK"
+iex> if(2 + 2 == 4, do: "OK")
+"OK"
+iex> if 2 + 2 == 4, do: "OK"
+"OK"
+#+END_SRC
