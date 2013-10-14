@@ -156,3 +156,79 @@ iex> if(2 + 2 == 4, do: "OK")
 iex> if 2 + 2 == 4, do: "OK"
 "OK"
 #+END_SRC
+
+
+*** 2.3 String（バイナリ）とChar の列（リスト）
+
+Elixir において，ダブルクォートされた値とシングルクォートされた値は，異なる．
+
+#+BEGIN_SRC
+iex> "hello" == 'hello'
+false
+iex> is_binary "hello"
+true
+iex> is_list 'hello'
+true
+#+END_SRC
+
+ダブルクォートされた値は *string* であり，バイナリで表現される．
+シングルクォートされた値は *char list* であり，リストで表現される．
+
+事実，ダブルクォートされた値とシングルクォートされた値の両方とも，
+単にバイナリとリストの短い表現でしかない．
+
+Elixir では =?a= は =a= の ASCII 値を表す．そこで以下のようにも書ける．
+
+#+BEGIN_SRC
+iex> is_integer ?a
+true
+iex> <<?a, ?b, ?c>>
+"abc"
+iex> [?a, ?b, ?c]
+'abc'
+#+END_SRC
+
+このようなケースでは Elixir はバイナリ内の全ての文字が印刷可能なことを調べて，クォートでくくった表現を返す．
+しかし印刷可能でない文字が含まれていると，違った表し方をされる．
+
+#+BEGIN_SRC
+iex> <<?a, ?b, ?c, 1>>
+<<97,98,99,1>>
+
+iex> [?a, ?b, ?c, 1]
+[97,98,99,1]
+#+END_SRC
+
+Elixir では，明示的に char のリストを反復する場合
+( たまに Elixir から Erlang のコードへのインターフェースで用いる )
+以外ではダブルクォートでくくられた文字列の方が好ましい．
+リストとしてもバイナリとしてもパターンマッチングはできる．
+
+#+BEGIN_SRC
+iex> <<a, b, c>> = "foo"
+"foo"
+iex> a
+102
+#+END_SRC
+
+つまり，バイナリの tail をパターンマッチさせることもできる．
+はじめの 1 バイトを抽出して，残りのバイナリを取得できる．
+
+#+BEGIN_SRC
+iex> <<f :: integer, rest :: binary>> = "foo"
+"foo"
+iex> f
+102
+iex> rest
+"oo"
+#+END+SRC
+
+上記の例では，バイナリの各セグメントにタグをつけた．
+最初のセグメントは整数型 ( デフォルト ) で，文字 "f" の ASCII コードを取得する．
+残りのバイト "oo" はバイナリとして rest に割り当てられる．
+
+Elixir でのバイナリ/ビット文字列構文はとてもパワフルで，
+バイト，ビット，UTF8コードポイントなどでマッチさせることができる．
+詳し知りたければ [[http://elixir-lang.org/docs/master/Kernel.SpecialForms.html#%3C%3C%3E%3E/1][Elixir docs]] でみることができる．
+
+次は Unicode について進めていこう．
