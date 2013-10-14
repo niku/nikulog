@@ -1,6 +1,8 @@
 * elixirのgetting-startedやってみる(2)
 
 つづき．
+0.10.3 の getting-started を元に書いている．
+適当に自分が理解できる程度に訳しているので全く信用してはいけない．
 
 ** [[http://elixir-lang.org/getting_started/2.html][2 Diving in]]
 
