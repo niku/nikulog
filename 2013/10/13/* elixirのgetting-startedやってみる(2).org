@@ -1,0 +1,114 @@
+* elixirのgetting-startedやってみる(2)
+
+つづき．
+
+** [[http://elixir-lang.org/getting_started/2.html][2 Diving in]]
+
+基本的な型についてもうちょっと詳しくつっこんでみる．
+あとは制御フローと無名関数について話す．
+
+*** 2.1 リストとタプル
+
+#+BEGIN_SRC
+iex> is_list [1,2,3]
+true
+iex> is_tuple {1,2,3}
+true
+#+END_SRC
+
+どうやってメモリに保持されるかが違う．
+
+リストは linked list で実装されている．
+つまり，ある要素を調べると，次の要素への参照先が書いてある．
+
+対して，タプルは連続したメモリを確保して保持されている．
+
+これはつまり，タプルは要素へのアクセスが速い．
+しかし，タプルのあるデータを更新するときは，それ以外の要素のメモリを全てコピーするので高くつく．
+
+タプルの要素は elem と set_elem で取得/更新できる
+
+#+BEGIN_SRC
+iex > elem { :a, :b, :c }, 0
+:a
+iex > set_elem { :a, :b, :c }, 0 :d
+{:d, :b, :c}
+#+END_SRC
+
+タプルの要素の更新は遅いので，要素を追加/削除するときはリストを使う．
+リストはリンクされている．つまり，最初の要素にアクセスするのは手数が少ない．
+N 番目の要素にアクセスするには N-1 個のノードを通らなければならない．
+
+リストの先頭は以下のように取得できる
+
+#+BEGIN_SRC
+# 先頭と，リストの残りに合致させる
+iex> [head | tail] = [1,2,3]
+[1,2,3]
+iex> head
+1
+iex> tail
+[2,3]
+
+# 先頭と，リストの残りを元に戻す
+iex> [head | tail]
+[1,2,3]
+iex> length [head | tail]
+3
+#+END_SRC
+
+上の例のように先頭の値は =head= ，残りのリストは =tail= で取得できている．
+これは *パターンマッチング* と呼ばれている．
+
+タプルでもパターンマッチングできる
+
+#+BEGIN_SRC
+iex> { a, b, c } = { :hello, "world", 42 }
+{ :hello, "world", 42 }
+iex> a
+:hello
+iex> b
+"world"
+#+END_SRC
+
+パターンマッチングは両辺が揃わないとエラーになる．
+
+例えば，異なるサイズのタプルをパターンマッチさせたとき
+
+#+BEGIN_SRC
+iex> { a, b, c } = { :hello, "world" }
+** (MatchError) no match of right hand side value: {:hello,"world"}
+#+END_SRC
+
+異なる型をパターンマッチさせたとき
+
+#+BEGIN_SRC
+iex> { a, b, c } = [:hello, "world", '!']
+** (MatchError) no match of right hand side value: [:hello,"world",'!']
+#+END_SRC
+
+最も興味深いのは，特定の値にマッチさせることができる．
+次の例は，右側がタプルで，キーとして =:ok= という atom から始まるものだけを受けつけるということを，左側の部分で指定している．
+
+#+BEGIN_SRC
+iex> { :ok, result } = { :ok, 13 }
+{:ok,13}
+iex> result
+13
+
+iex> { :ok, result } = { :error, :oops }
+** (MatchError) no match of right hand side value: {:error,:oops}
+#+END_SRC
+
+パターンマッチングを使うと，データ型，例えばリストやタプルを簡単に解体できるようになる．
+これは Elixir で再帰を扱うときの重要な要素のうちの一つとなる．後の章で紹介する．
+
+ともあれ，そこにたどりつくまで反復処理をすることが待てないというのなら，
+=Enum= モジュールや =List= モジュールでリストのヘルパーを提供していることを知らせておく．
+
+#+BEGIN_SRC
+iex> Enum.at [1,2,3], 0
+1
+iex> List.flatten [1,[2],3]
+[1,2,3]
+#+END_SRC
