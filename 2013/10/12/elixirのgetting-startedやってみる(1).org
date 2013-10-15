@@ -57,8 +57,8 @@ iex(1)> "日本語"
 "日本語"
 #+END_SRC
 
-="hello"= と ='hello'= は違う．
-="hello"= は String だが ='hello'= は Char のリスト ( 違いは次の章でわかるらしい )
+"hello" と'hello' は違う．
+"hello" は String だが 'hello' は Char のリスト ( 違いは次の章でわかるらしい )
 
 ** 1.4 演算子
 
