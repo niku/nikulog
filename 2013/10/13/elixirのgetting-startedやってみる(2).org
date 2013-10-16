@@ -297,3 +297,70 @@ iex> rest
 一般的に，バイナリと文字列を Elixir で扱うのは簡単だろう．
 もしもっと生々しくバイナリをいじりたくなった場合は [[http://www.erlang.org/doc/man/binary.html][Erlang のバイナリモジュール]] を用いたり，
 文字列として扱いたいなら [[http://elixir-lang.org/docs/stable/String.html][Elixir の String モジュール]] を用いることができる．
+
+*** 2.5 ブロック
+
+たいてい，最初に学ぶ制御フローの一つは =if= 条件だ．
+Elixir では以下のように書ける．
+
+#+BEGIN_SRC
+iex> if true, do: 1 + 2
+3
+#+END_SRC
+
+=if= 式はブロック構文を使っても書ける．
+
+#+BEGIN_SRC
+iex> if true do
+...>   a = 1 + 2
+...>   a + 10
+...> end
+13
+#+END_SRC
+
+=do= / =end= ブロックは，式のまとまりを =do:= へ渡すための簡単な方法と考えることができる．
+以下も全く同じ内容を表す
+
+#+BEGIN_SRC
+iex> if true, do: (
+...>   a = 1 + 2
+...>   a + 10
+...> )
+13
+#+END_SRC
+
+ブロックに =else= 句を渡すこともできる
+
+#+BEGIN_SRC
+if false do
+  :this
+else
+  :that
+end
+#+END_SRC
+
+=do= / =end= は，常に最も遠い関数呼び出しにバインドされることに気をつけなければいけない．
+例えば次の式は
+
+#+BEGIN_SRC
+is_number if true do
+  1 + 2
+end
+#+END_SRC
+
+以下のように解析される
+
+#+BEGIN_SRC
+is_number(if true) do
+  1 + 2
+end
+#+END_SRC
+
+=is_number= のような，最も遠い関数呼び出しにバインドされることを求めていない場合．
+明示的に括弧を追加することでバインドのあいまいさを解消できる．
+
+#+BEGIN_SRC
+is_number(if true do
+  1 + 2
+end)
+#+END_SRC
