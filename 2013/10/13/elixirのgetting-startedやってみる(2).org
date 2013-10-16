@@ -1,4 +1,3 @@
-
 * elixirのgetting-startedやってみる(2)
 
 つづき．
@@ -233,3 +232,68 @@ Elixir でのバイナリ/ビット文字列構文はとてもパワフルで，
 詳し知りたければ [[http://elixir-lang.org/docs/master/Kernel.SpecialForms.html#%3C%3C%3E%3E/1][Elixir docs]] でみることができる．
 
 次は Unicode について進めていこう．
+
+*** 2.4 Unicode のサポート
+
+Elixir の string は，UTF-8 でエンコードされたバイナリになっている．
+例えば "é" という文字は 2 バイトの UTF-8 バイナリである．
+
+#+BEGIN_SRC
+iex> string = "é"
+"é"
+iex> size(string)
+2
+#+END_SRC
+
+文字列を簡単に操作するために，Elixir は =String= モジュールを提供している．
+
+#+BEGIN_SRC
+# バイト数を返す
+iex> size "héllò"
+7
+
+# 人間が読んだときの文字数を返す
+iex> String.length "héllò"
+5
+#+END_SRC
+
+メモ: Elixir では =size= は事前に値が計算されているものを取得するときに使う． =length= は値を取得するのに処理が必要なときに使う．
+
+"héllò" の一文字ずつは Unicode codepoint となっている． =String.codepoints= は String をコードポイント毎の文字に分割する．
+
+#+BEGIN_SRC
+iex> String.codepoints "héllò"
+["h", "é", "l", "l", "ó"]
+#+END_SRC
+
+Unicode 標準は各文字に対して整数を割り当てる．Elixir はその整数を元に文字を取得したり挿入したりできる．
+
+#+BEGIN_SRC
+# コードポイントを求める
+iex> ?h
+104
+iex> ?é
+233
+
+# 16進数の値でコードポイントを挿入する
+iex> "h\xE9ll\xF2"
+"héllò"
+#+END_SRC
+
+UTF-8 はパターンマッチングとうまく動作する．
+以下の例では，文字列の最初の UTF-8 コードポイントを抽出して，残りを =rest= に割り当てる．
+
+#+BEGIN_SRC
+iex> << eacute :: utf8, rest :: binary >> = "épa"
+"épa"
+iex> eacute
+233
+iex> << eacute :: utf8 >>
+"é"
+iex> rest
+"pa"
+#+END_SRC
+
+一般的に，バイナリと文字列を Elixir で扱うのは簡単だろう．
+もしもっと生々しくバイナリをいじりたくなった場合は [[http://www.erlang.org/doc/man/binary.html][Erlang のバイナリモジュール]] を用いたり，
+文字列として扱いたいなら [[http://elixir-lang.org/docs/stable/String.html][Elixir の String モジュール]] を用いることができる．
