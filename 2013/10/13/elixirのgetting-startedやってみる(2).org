@@ -364,3 +364,65 @@ is_number(if true do
   1 + 2
 end)
 #+END_SRC
+
+*** 2.6 フロー制御構造
+
+このセクションでは Elixir の主なフロー制御について詳しくみていく．
+
+**** 2.6.1 パターンマッチング再び
+
+この章の最初のチャプターでいくつかのパターンマッチンングの例をみた．
+
+#+BEGIN_SRC
+iex> [h | t] = [1,2,3]
+[1, 2, 3]
+iex> h
+1
+iex> t
+[2, 3]
+#+END_SRC
+
+Elixir では，Java, Ruby, Python などと異なり = は代入演算子ではない．
+= は正確に言うと，左辺と右辺がマッチすることをチェックする，マッチ演算子である．
+
+Elixir の多くの制御構造は，異なる句をマッチさせるというパターンマッチングの持っている能力に大きく頼っている．
+いくつかのケースでは，変数の値にマッチさせたくない場合がある．
+その場合は =^= 演算子を使って参照専用にもできる．
+
+#+BEGIN_SRC
+iex> x = 1
+1
+iex> ^x = 1
+1
+iex> ^x = 2
+** (MatchError) no match of right hand side value: 2
+iex> x = 2
+2
+#+END_SRC
+
+Elixir では，使わない値をマッチさせる場合 =_= で表すのが一般的である．
+例えば，リストの先頭にだけ興味がある場合，残りの部分にはアンダースコアを割り当てる．
+
+#+BEGIN_SRC
+iex> [h | _] = [1,2,3]
+[1, 2, 3]
+iex> h
+1
+#+END_SRC
+
+Elixir では，変数 =_= は特別で，どこからも絶対に読まれることがない．
+読もうとすると unbound variable error になる．
+
+#+BEGIN_SRC
+iex> _
+** (ErlangError) erlang error {:unbound_var, :_}
+#+END_SRC
+
+パターンマッチングは強力だが，使用方法には制限がある．
+例えばマッチの左側で関数呼び出しを行うことはできない．
+以下の例は無効である．
+
+#+BEGIN_SRC
+iex> length([1,[2],3]) = 3
+** (ErlangError) erlang error :illegal_pattern
+#+END_SRC
