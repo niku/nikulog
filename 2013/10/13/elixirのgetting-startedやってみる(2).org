@@ -426,3 +426,113 @@ iex> _
 iex> length([1,[2],3]) = 3
 ** (ErlangError) erlang error :illegal_pattern
 #+END_SRC
+
+**** 2.6.2 ケース
+
+=case= は，複数のパターンの中からいずれかがマッチするまでの比較に使える．
+
+#+BEGIN_SRC
+case { 1, 2, 3 } do
+  { 4, 5, 6 } ->
+    "This won't match"
+  { 1, x, 3 } ->
+    "This will match and assign x to 2"
+  _ ->
+    "This will match any value"
+end
+#+END_SRC
+
+= 演算子と同じように，match 句の中で割り当てられた変数は元の値を上書きされる．
+もし変数に対してパターンマッチしたい場合は =^= 演算子を使う必要がある．
+
+#+BEGIN_SRC
+x = 1
+case 10 do
+  ^x -> "Won't match"
+  _  -> "Will match"
+end
+#+END_SRC
+
+それぞれの match 句へ，期待している条件を書くこともできる．(ガード)
+
+#+BEGIN_SRC
+case { 1, 2, 3 } do
+  { 4, 5, 6 } ->
+    "This won't match"
+  { 1, x, 3 } when x > 0 ->
+    "This will match and assign x"
+  _ ->
+    "No match"
+end
+#+END_SRC
+
+上の例の場合，2 番目の句は x が正の場合にのみマッチする．
+Erlang VM ではガードに使える式を限定して許可している．
+
+- 比較演算子 ( ==, =!, ===, !==, >, <, <=, >= )
+- ブール演算子 ( =and=, =or= ) と否定演算子 ( =not=, =!= )
+- 算術演算子 ( =+=, =-=, =*=, =/= )
+- =<>= と =++= の左側がリテラルなもの
+- =in= 演算子
+- 以下の全ての型チェック機能 ( スラッシュで始まる番号は引数の数を表す )
+  - is_atom/1
+  - is_binary/1
+  - is_bitstring/1
+  - is_boolean/1
+  - is_float/1
+  - is_function/1
+  - is_function/2
+  - is_integer/1
+  - is_list/1
+  - is_number/1
+  - is_pid/1
+  - is_port/1
+  - is_record/1
+  - is_record/2
+  - is_reference/1
+  - is_tuple/1
+  - is_exception/1
+- と，これらの関数
+  - abs(Number)
+  - bit_size(Bitstring)
+  - byte_size(Bitstring)
+  - div(Number, Number)
+  - elem(Tuple, n)
+  - float(Term)
+  - hd(List)
+  - length(List)
+  - node()
+  - node(Pid|Ref|Port)
+  - rem(Number, Number)
+  - round(Number)
+  - self()
+  - size(Tuple|Bitstring)
+  - tl(List)
+  - trunc(Number)
+  - tuple_size(Tuple)
+
+複数の独立したガード句を同時に与えることもできる．
+例えば，タプルかリストの最初の要素が 0 であるかどうかチェックする関数について考えてみる．
+それは以下のように書ける
+
+#+BEGIN_SRC
+def first_is_zero?(tuple_or_list) when
+  elem(tuple_or_list, 1) == 0 or hd(tuple_or_list) == 0 do
+  true
+end
+#+END_SRC
+
+しかし，上記の例は常に失敗する．
+もし引数がリストなら， =elem= をリストに対して呼び出すとエラーになる．
+もし要素がタプルなら， =hd= をタプルに対して呼び出すとエラーになる．
+これを直すには，2 つの異なった句に書き換える．
+
+#+BEGIN_SRC
+def first_is_zero?(tuple_or_list)
+    when elem(tuple_or_list, 1) == 0
+    when hd(tuple_or_list) == 0 do
+  true
+end
+#+END_SRC
+
+こうすると，ガードの一つがエラーになっても，次のガードには影響しない．
