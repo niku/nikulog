@@ -672,3 +672,46 @@ end
 
 x #=> x が返るか，失敗した場合は nil が返る
 #+END_SRC
+
+**** 2.6.6 If と Unless
+
+上記 4 つの主な制御構造のほかに，日々の仕事の助けとなる制御構造がいくつかある．
+例えば =if= と =unless= だ．
+
+#+BEGIN_SRC
+iex> if true do
+iex>   "This works!"
+iex> end
+"This works!"
+
+iex> unless true do
+iex>   "This will never be seen"
+iex> end
+nil
+#+END_SRC
+
+=do/end= ブロックは，キーワード表記のショートカットであることを思いだしてもらいたい．
+だから以下のようにも書ける．
+
+#+BEGIN_SRC
+iex> if true, do: "This works!"
+"This works!"
+#+END_SRC
+
+あるいはさらに複雑な例を挙げると
+
+#+BEGIN_SRC
+# これは以下の例と同じ
+if false, do: 1 + 2, else: 10 + 3
+
+# 上と同じ
+if false do
+  1 + 2
+else
+  10 + 3
+end
+#+END_SRC
+
+エリクサーでは =false= と =nil= 以外の全ての値が =true= となる．
+つまり =if= への引数を明示的にブーリアンにしなくてもよい．
+もし複数の条件のうち，一つが true であることをチェックしたいなら， =cond= マクロを使うことができる．
