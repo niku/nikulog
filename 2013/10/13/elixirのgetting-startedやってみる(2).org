@@ -758,3 +758,28 @@ end
 これらの関数とフロー制御式は Elixir プログラムを書くために必要なものである．
 いくつかの場合 Erlang の関数を使う必要があるかもしれない．
 その方法を見てみよう．
+
+*** 2.8 Erlang の関数を呼びだす
+
+Elixir の資産の一つに Erlang のエコシステムとの統合が簡単なことが挙げられる．
+Erlang は OTP (Open Telecom Platform) と呼ばれるライブラリ群を出している．
+標準ライブラリに加え，OTP は堅牢，分散，フォールトトレラントな OTP アプリケーションをスーパーバイザと共に構築する機能を提供する．
+
+Erlang モジュールはアトム以外の何者でもないので，Elixir からそれらを呼び出すのはとても簡単だ．
+例えば[[http://www.erlang.org/doc/man/lists.html#flatten-1][モジュール lists の関数 flatten]] を呼んだり，[[http://www.erlang.org/doc/man/math.html][math モジュール]]と触れあったりしてみる．
+
+#+BEGIN_SRC
+iex> :lists.flatten [1,[2],3]
+[1,2,3]
+iex> :math.sin :math.pi
+1.2246467991473532e-16
+#+END_SRC
+
+Erlang の OTP はとても良く文章化されており，
+私達は後程 Mix の章で OTP アプリケーションの作り方について学ぶ．
+
+- [[http://www.erlang.org/doc/][OTP docs]]
+- [[http://www.erlang.org/doc/man/STDLIB_app.html][Standard library docs]]
+
+今はここまで．
+次の章では，他のアプリケーションから簡単に再利用できるようにするためのモジュールへのまとめ方を説明する．
