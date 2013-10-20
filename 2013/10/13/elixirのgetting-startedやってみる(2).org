@@ -745,3 +745,16 @@ cond do
     "This will always match (equivalent to else)"
 end
 #+END_SRC
+
+*** 2.7 組み込み関数
+
+エリクサーはたくさんの組み込み関数を現在のスコープから自動的に使えるようになっている．
+上で見たようなフロー制御式に加えて，
+タプルの中の値を読み書きするのに =elem= と =set_elem= ，
+バイナリとして指定されたデータ型を表現するのに =inspect= ，
+など色々ある．
+これらの関数は [[http://elixir-lang.org/docs/stable/Kernel.html][Kernel]] と [[http://elixir-lang.org/docs/stable/Kernel.SpecialForms.html][Kernel.SpecialForms]] にあり，デフォルトでインポートされている．
+
+これらの関数とフロー制御式は Elixir プログラムを書くために必要なものである．
+いくつかの場合 Erlang の関数を使う必要があるかもしれない．
+その方法を見てみよう．
