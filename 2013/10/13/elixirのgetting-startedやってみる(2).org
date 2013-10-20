@@ -608,3 +608,67 @@ Too late
 
 私達が新しいプロセスを生成するのに， =spawn= 関数へ他の関数を引数として渡して作ったことに注目したい．
 後のチャプターで，これらのプロセスについての詳細やメッセージ交換を異なるノード間で行う方法について話す．
+
+**** 2.6.5 Try
+
+=try= はスローされた値をキャッチするのに使う．
+例を見てみよう．
+
+#+BEGIN_SRC
+iex> try do
+...>   throw 13
+...> catch
+...>   number -> number
+...> end
+13
+#+END_SRC
+
+=try/catch= は，
+コードが複雑な出口戦略を持っており，
+スタックから値を戻すのに =throw= を使った方が簡単である．
+という，珍しい状況で役に立つ制御メカニズムだ．
+=try= も =catch= の中でガードを使え，
+=after= 節はキャッチしたかどうかにかかわらず実行される．
+
+#+BEGIN_SRC
+iex> try do
+...>   throw 13
+...> catch
+...>   nan when not is_number(nan) -> nan
+...> after
+...>   IO.puts "Didn't catch"
+...> end
+Didn't catch
+** throw 13
+    erl_eval:expr/3
+#+END_SRC
+
+スローされた値がキャッチされなかった場合，ソフトウェアが停止してしまうことに注意．
+このような理由から，
+Elixir はこの節は安全でないと考えており ( 成功するかもしれないし，失敗するかもしれないため )
+=try/catch/after= の中で定義された変数に，外側のスコープからアクセスはできない．
+
+#+BEGIN_SRC
+iex> try do
+...>   new_var = 1
+...> catch
+...>   value -> value
+...> end
+1
+iex> new_var
+** (UndefinedFunctionError) undefined function: IEx.Helpers.new_var/0
+#+END_SRC
+
+一般的なやり方としては =try= からの引数を全て明示的に返す
+
+#+BEGIN_SRC
+{ x, y } = try do
+  x = calculate_some_value()
+  y = some_other_value()
+  { x, y }
+catch
+  _ -> { nil, nil }
+end
+
+x #=> x が返るか，失敗した場合は nil が返る
+#+END_SRC
