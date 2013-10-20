@@ -715,3 +715,33 @@ end
 エリクサーでは =false= と =nil= 以外の全ての値が =true= となる．
 つまり =if= への引数を明示的にブーリアンにしなくてもよい．
 もし複数の条件のうち，一つが true であることをチェックしたいなら， =cond= マクロを使うことができる．
+
+**** 2.6.7 Cond
+
+複数の条件を同時にチェックしたいなら，
+入れ子になった =if= 構造のかわりに =cond= を使うことができる．
+
+#+BEGIN_SRC
+cond do
+  2 + 2 == 5 ->
+    "This will never match"
+  2 * 2 == 3 ->
+    "Nor this"
+  1 + 1 == 2 ->
+    "But this will"
+end
+#+END_SRC
+
+もしどの条件も true にならなかった場合，エラーが発生する．
+そのため，普通は常にマッチする =true= を最後の条件に書く．
+
+#+BEGIN_SRC
+cond do
+  2 + 2 == 5 ->
+    "This will never match"
+  2 * 2 == 3 ->
+    "Nor this"
+  true ->
+    "This will always match (equivalent to else)"
+end
+#+END_SRC
