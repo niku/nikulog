@@ -1,0 +1,27 @@
+* time で複数のコマンドの合計実行時間を知る
+
+コマンドの実行時間を測る time というコマンドがある．
+1 つのコマンドを測るには
+
+#+BEGIN_SRC
+$ time sleep 1
+sleep 1  0.00s user 0.00s system 0% cpu 1.004 total
+#+END_SRC
+
+とすればよい．さて，複数のコマンドの実行時間を測りたい場合はどうしたらよいだろう．
+
+#+BEGIN_SRC
+$ time sleep 1; sleep 1
+sleep 1  0.00s user 0.00s system 0% cpu 1.007 total
+#+END_SRC
+
+だと，うまくいっていない．
+
+こういう場合は括弧でくくるとよいようだ．
+
+#+BEGIN_SRC
+$ time (sleep 1;sleep 1)
+( sleep 1; sleep 1; )  0.00s user 0.00s system 0% cpu 2.007 total
+#+END_SRC
+
+- 参考 :: [[http://www.artonx.org/diary/20091114.html#p02][timeに複数のコマンドを与える]]
