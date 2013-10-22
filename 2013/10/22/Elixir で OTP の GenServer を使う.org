@@ -1,0 +1,33 @@
+* Elixir で OTP の GenServer を使う
+
+[[http://elixir-lang.org/getting_started/mix/2.html][Building OTP apps with Mix]] を参考にしている
+
+** GenServer
+
+GenServer には以下 6 つのコールバックが必要．
+
+- =init(args)= :: サーバーがスタートした後に実行される
+- =handle_call(msg, from, state)= :: call メッセージを扱うために実行される
+- =handle_cast(msg, state)= :: cast メッセージを扱うために実行される
+- =handle_info(msg, state)= :: その他，プロセスが普通に受信したメッセージを扱う
+- =terminate(reason, state)= :: サーバーが終了する際に呼ばれる．後処理に使える
+- =code_change(old_vsn, state, extra)= :: アプリケーションコードがアップグレードされた際に呼ばれる(hot code swap)
+
+: use GenServer.Behaviour
+するとデフォルトの振舞いは用意されるので，カスタマイズしたいものを定義する．
+
+=handle_call= と =handle_cast= は，同期的か非同期的かの違いがある．
+=handle_call= は同期的． =handle_cast= は非同期的．
+
+=handle_call= と =handle_cast= は 8 種類の値を返すことができる．
+
+- ={ :reply, reply, new_state }=
+- ={ :reply, reply, new_state, timeout }=
+- ={ :reply, reply, new_state, :hibernate }=
+- ={ :noreply, new_state }=
+- ={ :noreply, new_state, timeout }=
+- ={ :noreply, new_state, :hibernate }=
+- ={ :stop, reason, new_state }=
+- ={ :stop, reason, reply, new_state }=
+
+GenServer についてもっと詳しく知りたければ [[http://elixir-lang.org/docs/stable/GenServer.Behaviour.html][docs]] を参照すること．
