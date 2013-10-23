@@ -1,0 +1,24 @@
+* Elixir で OTP の SuperVisor を使う
+
+[[elixir-lang.org/getting_started/mix/2.html][Building OTP apps with Mix]] を参考にしている
+
+** SuperVisor
+
+Erlang や Elixir のどちらも「クラッシュさせよう！」という理念を持っていて，
+リソースは何かおかしいことが起こると利用できなくなる．
+なので，利用できなくなったときの復元や反応が重要になる．
+そこで，サーバーを監視してくれるスーパーバイザーというものがある．
+
+SuperVisor には =init(args)= の実装が必要．
+=init(args)= は SuperVisor の仕様を返さなければならない．
+SuperVisor の仕様を返すにあたり，ヘルパーとして =supervise/2= を使うと便利．
+
+SuperVisor は worker をスタートさせる際にデフォルトで =start_link= を実行するので，Server に =start_link= が必要になる．
+（XXX: ここ間違っているかも）
+
+SuperVisor が起動していれば，Server がクラッシュしても，自動的に再起動してくれる．
+デフォルトでは再起動を 5 秒間に 5 回試してくれて，それ以上頻繁にサーバーがクラッシュするようだと，スーパーバイザーは再起動をあきらめる．
+
+再起動のカスタマイズや，スーパーバイザーとサーバーの再起動方針などは， =supervise= 関数にオプションとして渡すことができる．
+
+SuperVisor についてもっと詳しく知りたければ [[http://elixir-lang.org/docs/stable/Supervisor.Behaviour.html][docs]] を参照すること．
