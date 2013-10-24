@@ -1,0 +1,78 @@
+* Elixir で OTP の Application を使う
+
+[[elixir-lang.org/getting_started/mix/2.html][Building OTP apps with Mix]] を参考にしている．
+
+今回は 2.3 Who supervises the supervisor? らへん．
+
+** SuperVisor (管理者) を管理するのは誰？
+
+SuperVisor を作ったけど，誰が管理する？
+OTP は Application のコンセプトを持っている．
+Application はユニットとしてスタートしたりストップでき，よく SuperVisor とリンクしている．
+
+Mix はコンパイル毎に自動的に =.app= というファイルを作成する．
+内容は =mix.es= ファイルの中にある関数 =application= を元にしている．
+
+=.app= ファイルは *application specification* ( アプリケーション仕様 ) と呼ばれていて，
+アプリケーションの依存性や，定義したモジュール，登録した名前などなどを含めなければならない．
+これらの情報のうちいくつかは，最初に Mix が自動的に埋めてくれるが，追加は手で行わなければならない．
+
+今回のケースでは application は supervisort を持っていて，さらに =:stacker= という名前でサーバーに登録する．
+登録した名前を全てアプリケーション仕様に追加することは，コンフリクトを回避するために役に立つ．
+もし 2 つのアプリケーションで同じ名前を登録したら，すぐにコンフリクトを発見できる．
+だから =mix.exs= ファイルを開いて =application= 関数の所に
+
+#+BEGIN_SRC
+def application do
+  [ registered: [:stacker],
+    mod: { Stacker, [:hello] } ]
+end
+#+END_SRC
+
+と書こう．
+
+キーと値の内容は以下の通り
+
+- =:resistered= :: アプリケーションで登録した全ての名前を書く．
+- =:mod:= :: アプリケーションが起動してすぐに呼び出す対象と引数を書く．上記の場合だと *application module callback* は =Stacker= モジュールで，引数にデフォルトのスタック =[:hello]= を受けとる．
+
+*application module callback* は，必ずこのアプリケーションに関連づけられている supervisor の =pid= を返さなくてはならない．
+
+以上を踏まえて =lib/stacker.ex= ファイルを開いて，以下のように追加する．
+
+#+BEGIN_SRC
+defmodule Stacker do
+  use Application.Behaviour
+
+  def start(_type, stack) do
+    Stacker.Supervisor.start_link(stack)
+  end
+end
+#+END_SRC
+
+=Application.Behaviour= は
+
+- =start(type, args)=
+- =stop(state)=
+
+の 2 つのコールバックを期待する．今は終わるときのことを特に決めていないので =start/2= だけ実装する．
+
+上記のようにアプリケーションの振舞いを追加した後，再び =iex -S mix= する．
+するとスーパーバイザー（と，サーバー）が自動的に起動する．
+
+#+BEGIN_SRC
+iex> :gen_server.call(:stacker, :pop)
+:hello
+#+END_SRC
+
+今までと違って，iex の 1 行目からサーバーが起動している．
+
+ところで =start/2= のコールバックで =type= を引数に受ける（今回は使わなかった）．
+これは SuperVisor や application がクラッシュした時に VM はどう振る舞うべきかをコントロールするのに使う．
+
+=Application.Behaviour= についてもっと知りたければ[[http://elixir-lang.org/docs/stable/Application.Behaviour.html][ドキュメント]]を参照のこと．
+
+最後になるが， =mix new= は =--sup= オプションをサポートしている．
+このオプションを使うと，今までやってきた，スーパーバイザーの生成やアプリケーションのコールバックなどを自動で作ってくれる．
+
+(ええっ！)
