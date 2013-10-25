@@ -1,0 +1,31 @@
+* Elixir の .ex と .exs の違い
+
+foo アプリケーションを作って，中を観ると，拡張子が =.ex= と =.exs= のものがある．
+どう違うのだろうか？
+
+#+BEGIN_SRC
+$ mix new foo
+$ tree foo
+foo/
+├── README.md
+├── lib
+│   ├── foo
+│   │   └── supervisor.ex
+│   └── foo.ex
+├── mix.exs
+└── test
+    ├── foo_test.exs
+    └── test_helper.exs
+#+END_SRC
+
+[[https://twitter.com/niku_name/status/393677033223380992][聞いてみたら，答えてくれた]]．
+
+#+BEGIN_QUOTE
+just intent. They are executed the same, but .exs is not meant to be compiled!
+#+END_QUOTE
+
+意思表明の違い．
+どちらも実行できるという点では同じだが，
+コンパイルしないで使うようなものは =.exs= にする．
+
+ということのようだ．
