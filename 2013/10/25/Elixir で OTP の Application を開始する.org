@@ -1,0 +1,36 @@
+* Elixir で OTP の Application を開始する
+
+[[elixir-lang.org/getting_started/mix/2.html][Building OTP apps with Mix]] を参考にしている．
+
+今回は 2.4 Starting applications のあたり．
+
+** アプリケーションを始める
+
+定義しただけのアプリケーションなのに，開始しなくても使える．
+それは Mix が全てのアプリケーションの開始と依存の解決をデフォルトで行なってくれるためだ．
+[[http://www.erlang.org/doc/man/application.html][OTP が提供している :application モジュール]]の関数を呼ぶことで手動でアプリケーションを開始できる．
+
+#+BEGIN_SRC
+iex> :application.start(:stacker)
+{ :error, { :already_started, :stacker } }
+#+END_SRC
+
+ここではアプリケーションは既に開始しているので，エラーメッセージが返る．
+
+Mix はあなたのアプリケーションだけでなく，依存しているアプリケーションも開始する．
+プロジェクトの依存 ( [[http://elixir-lang.org/getting_started/mix/1.html][前の章]]で書いた， =deps= キーで定義したもの ) とアプリケーションの依存は異なることに注意．
+
+プロジェクトの依存は，テストフレームワークやコンパイル時にのみ必要な依存も含められる．
+アプリケーションの依存は，実行時に必要な全てのものになる．
+アプリケーションの依存はどれも明示的に =application= 関数に追加しなければならない．
+
+#+BEGIN_SRC
+def application do
+  [ registered: [:stacker],
+    applications: [:some_dep],
+    mod: { Stacker, [:hello] } ]
+end
+#+END_SRC
+
+Mix 上で task が動作するとき，
+アプリケーションとアプリケーションが依存しているものが起動することを保証する．
