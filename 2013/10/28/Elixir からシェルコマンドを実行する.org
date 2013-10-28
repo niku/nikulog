@@ -1,0 +1,49 @@
+* Elixir からシェルコマンドを実行する
+
+[[http://elixir-lang.org/docs/stable/System.html#cmd/1][System.cmd/1]] で elixir 上からシェルコマンドが実行できる．
+
+試してみよう．
+
+#+BEGIN_SRC
+$ iex
+iex(1)> IO.puts System.cmd("ls")
+LICENSE
+README.md
+ebin
+lib
+mix.exs
+test
+
+:ok
+#+END_SRC
+
+ところでコマンドの正常/異常終了を計測するのに exit status ( シェルスクリプトだと =$?= で取るアレ ) を取ることはできないのだろうか？
+
+一応 ("ls; echo $?") とすれば，最後にステータスコードを取れる
+
+#+BEGIN_SRC
+iex(1)> IO.puts System.cmd("ls; echo $?")
+LICENSE
+README.md
+ebin
+lib
+mix.exs
+test
+0
+
+:ok
+#+END_SRC
+
+とはいえ，もうちょっとまともな方法があるんじゃないだろうか．
+タプルの 1 番目に文字列，2 番目にステータスコードのようなものを想像している．
+探してみよう．
+
+[[https://github.com/elixir-lang/elixir/blob/378f6ee0e2e14bd283746a489b1de54fd47e0be5/lib/elixir/lib/system.ex#L203-L222][elixir のソース]] を見たところ =System.cmd/1= は erlang の =:os= をそのまま利用しているようだ．
+そこで erlang の =:os= のドキュメント [[http://erlang.org/doc/man/os.html][Erlang -- os]] を眺めてみる．……なさそうですなあ．
+
+erlang のメーリングリストを検索してみると，
+[[https://groups.google.com/forum/#!msg/erlang-programming/_iXH82V_Mtc/Ly-y_mJM6pwJ][os:cmd/1 with return code]] というスレッドに書いてあった，
+[[https://github.com/saleyn/erlexec][erlexec]] というライブラリを使えばできそうな気はする．
+（試してはいない）
+
+Elixir から試したりいい方法がありそうだったらそのうち書くかもしれない．
