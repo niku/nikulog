@@ -1,0 +1,18 @@
+* あるコミット時点のアプリケーションの検証を楽に行いたい
+
+play framework を使ったアプリケーションの振舞を検証するのに
+: git checkout xxx
+: play clean run
+している．
+
+これでも検証はできるのだけど，play framework の場合，毎回コンパイルしなおさなければならなくて遅い．
+
+コミットの度に Jenkins を使って war を生成しているので，
+この war を利用して，あるコミットの時点のアプリケーションの振舞を検証できると嬉しい．
+
+: https://example.com/war-number/application-path...
+
+のようなアクセスが来たら，そのつど play framework を起動するといいのだろうか．
+[[http://pow.cx/][pow]] のようなものを想像している．もうあるだろうか．
+
+そもそも pow はどうやって動いているのか．
