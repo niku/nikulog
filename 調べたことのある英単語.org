@@ -4,3 +4,5 @@
 - extensively :: 広く，広範囲に渡って
 - intend :: するつもりである，意図する
 - consider :: 熟慮する，検討する
+- quite :: まあまあ，…のほう / すっかり，完全に
+- regardless :: 注意しない，無頓着な
