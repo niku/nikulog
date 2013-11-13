@@ -1,0 +1,16 @@
+* helm action の N 番目を指定する方法
+
+helm-mode で TAB を押すと，要素に対する action の一覧が見られる．
+
+普段はリターンを押している = 1 番目を多用していると思う．
+
+その他に 4 番目まではショートカット用の function が用意されているようだ．
+
+- helm-mode で 1 番目の action を指定する :: helm-select-action (C-m)
+- helm-mode で 2 番目の action を指定する :: helm-select-2nd-action (C-e)
+- helm-mode で 3 番目の action を指定する :: helm-select-3rd-action (C-j)
+- helm-mode で 4 番目の action を指定する :: helm-select-4th-action ()
+
+** 参考
+
+[[https://github.com/emacs-helm/helm/wiki#62-jump-with-nth-commands][Home・emacs-helm/helm Wiki]] Jump with nth commands
