@@ -1,0 +1,27 @@
+* PKIX path validation failed を回避する
+
+注意: セキュリティのことでもあるし，内容が不正確かもしれないので，うのみにせず原典にあたること．
+
+最近 =sbt compile= するとのようなエラーが出ていて foo_2.9.1-0.2.9 のパッケージ依存が解決できなくなっていた．
+
+ [error] Server access Error: sun.security.validator.ValidatorException: PKIX path validation failed: java.security.cert.CertPathValidatorException: Path does not chain with any of the trust anchors url=https://example.com/dav/maven/snapshots/com/example/foo_2.9.1/0.2.9/foo_2.9.1-0.2.9.pom
+
+JavaDoc の [[http://docs.oracle.com/javase/jp/6/api/java/security/cert/CertPathValidatorException.html][CertPathValidatorException]] とエラーメッセージを参考にすると，example.jp への SSL 証明書が無効になっているというエラーのようだ．
+
+システムをいじくったりパッケージをアップデートしているうちにおかしくしてしまったのかもしれない．
+今回はオレオレ証明書を追加することで，エラーを回避する．
+
+まず，オレオレ証明書をダウンロードする．
+
+ $ echo | openssl s_client -connect example.com:443 2>&1 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > certificate
+
+次に，オレオレ証明書を java のキーストアに追加する．デフォルトのパスワードは changeit らしい．
+
+ $ sudo keytool -import -alias example.com_CA -file certificate -keystore /etc/ssl/certs/java/cacerts
+
+これで =sbt compile= すると動作するようになる．
+
+** 参考にしたサイト
+
+- キーストアにオレオレ証明書を追加する方法 :: [[http://www.chrissearle.org/2007/10/25/Adding_self-signed_https_certificates_to_java_keystore/][Adding self-signed https certificates to java keystore]]
+- keytool の使い方など:: [[http://apis.jpn.ph/fswiki/wiki.cgi?page=Java%2Fkeytool][Java/keytool - 備忘録]]
