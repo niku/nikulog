@@ -1,0 +1,20 @@
+* findコマンドで特定の条件を除外する
+
+=find= で特定のディレクトリを除外するには
+: -prune
+を使う．
+
+#+BEGIN_SRC
+$ find . -exec echo {} \;
+.
+./foo
+./foo/bar
+./hoge
+./hoge/fuga
+$ find . -name hoge -prune -o -exec echo {} \;
+.
+./foo
+./foo/bar
+#+END_SRC
+
+すぐ忘れるんだよなあ．
