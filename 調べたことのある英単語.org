@@ -6,3 +6,5 @@
 - consider :: 熟慮する，検討する
 - quite :: まあまあ，…のほう / すっかり，完全に
 - regardless :: 注意しない，無頓着な
+- notably :: 特に，明白に
+- absent :: 不在の，欠けて
