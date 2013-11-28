@@ -1,0 +1,33 @@
+* Rakeタスクを自作して自動インポートする(非Rails)
+
+Rails の場合 [[http://guides.rubyonrails.org/command_line.html#custom-rake-tasks][Custom Rake Tasks]] にあるように =lib/tasks/foo.rake= というファイルを作ると自動的に読みこんでくれて， =rake -T= すると一覧に表示される．
+
+さて，Rails ではない場合でも同じように「あるディレクトリにファイルを作ると，自動的にタスクとして読み込んでくれる」というのを作れるだろうか？
+
+Rake [[http://docs.ruby-lang.org/ja/2.0.0/library/rake.html][リファレンスマニュアル]]の Rake コマンドの使い方のところを眺めると，答えが書いてあった．
+
+#+BEGIN_QUOTE
+#+BEGIN_SRC
+-R, --rakelibdir RAKELIBDIR   RAKELIBDIR にある *.rake ファイルを自動的にインポートします。
+    --rakelib                 デフォルトは rakelib です。
+#+END_SRC
+#+END_QUOTE
+
+=rakelib= という名前のディレクトリを作って，そこに =*.rake= を収めると自動的にインポートしてくれるようだ．
+
+#+BEGIN_SRC
+$ mkdir foo
+$ cd foo
+foo$ touch Rakefile
+foo$ rake -AT
+foo$ mkdir rakelib
+foo$ cat <<EOD > rakelib/foo.rake
+task :hello do
+  puts 'do task hello!'
+end
+EOD
+foo$ rake -AT
+rake hello  #
+#+END_SRC
+
+hello というタスクが追加できている．
