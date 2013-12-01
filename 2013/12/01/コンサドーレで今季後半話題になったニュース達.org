@@ -1,0 +1,58 @@
+* コンサドーレで今季後半話題になったニュース達
+
+[[http://www.adventar.org/calendars/173][Consadole Advent Calendar]] 1 日目の記事．
+
+今季の後半 (8 月以降 ) に話題になったニュースを [[https://twitter.com/consadole][@consadole]] Bot を通じて振りかえってみる．
+
+本当は今季全てをやりたかったのだが，twitter の仕様上ふりかえられる件数に制限 (3200 件 ) があるためでできなかった……残念．
+
+post をふぁぼられた数トップ 10 と RT された数トップ 10 を出している．
+算出に使ったコードと結果は [[https://gist.github.com/niku/7733891][gist]] に置いた．
+
+** ふぁぼられ数 top 10
+
+上原，前，謙伍加入，カズゥ残留などの話題が上位をしめている．
+
+上原，謙伍の加入には，一度コンサドーレに縁があって，
+その後ちょっと離れてしまっても，縁があればまた一緒にやっていけことがあるんだなあと嬉しい驚きだった．
+
+| 35 | 10-04 20:53 | 【札幌】北海道教育大・ＭＦ上原、来季加入へ http://t.co/2fhQcutl5E                                                                        | [[https://twitter.com/consadole/status/386096635412885505]] |
+| 30 | 10-04 06:23 | 【札幌】前寛之、トップ昇格！クラブ初の兄弟選手誕生 http://t.co/ROr9qa89bS                                                                | [[https://twitter.com/consadole/status/385877695218720769]] |
+| 23 | 11-27 14:08 | 愛媛ＦＣ　石井 謙伍 選手　加入決定のお知らせ http://t.co/srSIiWH6Pp                                                                      | [[https://twitter.com/consadole/status/405563675055902720]] |
+| 16 | 10-07 18:38 | 上原 拓郎 選手(北海道教育大学岩見沢校/コンサドーレ札幌ユース・U-18出身) 2014年シーズン 新加入内定のお知らせ http://t.co/a2m8MioHkZ       | [[https://twitter.com/consadole/status/387149831061262336]] |
+| 14 | 10-05 06:23 | 【札幌】岩見沢教育大・ＭＦ上原獲得「育った札幌で」 http://t.co/jb5JLD1aaO                                                                | [[https://twitter.com/consadole/status/386240084896268288]] |
+| 13 | 08-13 11:23 | 札幌上里、Ｊ１完全移籍の打診断り残留へ http://t.co/aUN6DTUiuF                                                                            | [[https://twitter.com/consadole/status/367109014775021568]] |
+| 13 | 11-24 19:53 | コンサドーレファミリーの皆様へ http://t.co/MoXkwsmjpo                                                                                    | [[https://twitter.com/consadole/status/404563324886454272]] |
+| 11 | 09-25 18:53 | 上里一将 選手からサポーターの皆様へ http://t.co/zd1K5zT3G5                                                                               | [[https://twitter.com/consadole/status/382804954882142208]] |
+| 11 | 10-13 14:27 | 21分 【札幌GOAL!】三上の左ＣＫはいったんクリアされるが拾った前田が縦パスを出すと受けた神田がターンから左足を振りぬくとゴール左隅に決まる | [[https://twitter.com/consadole/status/389261142758924289]] |
+| 10 | 11-24 00:38 | 勝てばＪ１昇格プレーオフ進出確実　コンサきょう札幌で北九州戦 http://t.co/ZG4QW1AMbB                                                      | [[https://twitter.com/consadole/status/404272653076140032]] |
+
+** RT 数 top 10
+
+こちらも上位は加入のお知らせがしめているが，ふぁぼとは違い，「勝った」とか「点を取った」というのが多い．
+どれも日付と内容をみればありありと情景がうかぶ．
+[[https://twitter.com/consadole/status/369090828641128448][
+フェホの容体について]] は本当に心配したが，何事もなく幸いだった．
+来年も DF 裏のスペースに蹴られたあいまいなボールを俊足を生かして奪取していってほしい．
+
+あと，もうちょっとシュートがうまくなってくれるともっと楽しいのでぜひお願いしたい．
+
+| 147 | 10-04 20:53 | 【札幌】北海道教育大・ＭＦ上原、来季加入へ http://t.co/2fhQcutl5E                            | [[https://twitter.com/consadole/status/386096635412885505]] |
+| 140 | 11-27 14:08 | 愛媛ＦＣ　石井 謙伍 選手　加入決定のお知らせ http://t.co/srSIiWH6Pp                          | [[https://twitter.com/consadole/status/405563675055902720]] |
+| 110 | 10-04 06:23 | 【札幌】前寛之、トップ昇格！クラブ初の兄弟選手誕生 http://t.co/ROr9qa89bS                    | [[https://twitter.com/consadole/status/385877695218720769]] |
+|  71 | 11-10 17:56 | 試合終了 前半にあげたビンのPKによるゴールを守りきり1-0で勝利する                             | [[https://twitter.com/consadole/status/399460475345199105]] |
+|  70 | 08-18 22:38 | 8/18(日)Ｇ大阪戦におけるフェホ選手の容体について http://t.co/ovFTNrm1HF                      | [[https://twitter.com/consadole/status/369090828641128448]] |
+|  69 | 11-10 16:43 | 37分 【札幌GOAL!】ビンが強烈なシュートを左隅に決め先制点を奪う                               | [[https://twitter.com/consadole/status/399442154310758400]] |
+|  69 | 10-13 14:55 | 試合終了 札幌が神田のゴールを守り切って4回戦進出を決める                                     | [[https://twitter.com/consadole/status/389268016489168896]] |
+|  67 | 11-03 14:55 | 試合終了 内村があげた貴重な１点を守りきり、札幌が１−０で勝利！                               | [[https://twitter.com/consadole/status/396878165907623936]] |
+|  60 | 08-21 13:08 | 岡山一成 選手 奈良クラブ(関西サッカーリーグ DIVISION 1)加入のお知らせ http://t.co/kmmrATCHh3 | [[https://twitter.com/consadole/status/370034549113122816]] |
+|  56 | 09-26 06:23 | 【札幌】０９年戦力外の石井、再獲得へ　本人も前向き http://t.co/bc7QRLRVor                    | [[https://twitter.com/consadole/status/382978590167425024]] |
+
+** さいごに
+
+なにげなく consadole bot を始めて数年，5000 以上の人が眺める bot になった．
+
+これは良質なニュースや話題，実況を提供してくださっている方とフォローしてくださっている方によって成りたっている．
+この場を借りて感謝したい．
+
+今後も持続可能な程度の熱意と適当さでぼちぼち続けていこうと思う．
