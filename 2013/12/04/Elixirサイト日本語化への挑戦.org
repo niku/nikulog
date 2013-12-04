@@ -1,0 +1,31 @@
+* Elixirサイト日本語化への挑戦
+
+駆け出しのプログラマだったころ，良さそうな技術であってもサイトが日本語でないだけで「ウッ」となっていた．
+
+Elixirも良さそうな技術に見えるんだけど，今のところ日本語での情報が少ないので，敷居が上がってしまっている感じがする．
+
+僕としてはElixirを使っている日本人のコミュニティができて，多少古くても，日本語で情報をやりとりできるところがあるとうれしい．
+
+そのためにElixir に親しむ人が増えるように，[[https://github.com/niku/elixir-lang.github.com/tree/translate-into-japanese][Elixirのサイトを日本語化]]してみることにした．
+
+まずは getting_started 以下を日本語化していて
+
+- [[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese/getting_started/1.markdown][GettingStarted]]
+- [[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese/getting_started/2.markdown][Diving in]]
+- [[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese/getting_started/3.markdown][Module]]
+
+はひとまずできた．
+
+1 日 1 ファイルくらい日本語化しているペースで，getting_started 以下にあるファイルの残りは 10 個弱なので年内には 日本語化をすませたい．御期待あれ．
+
+もし間違っているところに気付いたら教えてもらいたい．
+
+ところで英語のサイトを日本語化するのは，
+もちろん英語を読み取るのが大変なところもあるのだけど，
+それより原文の構成や内容を壊さないように平易で自然な日本語に書き出すのが大変だ．
+
+日本語化のノウハウってあるのかな．
+
+とりあえず英語では全部主語があるけど，それを逐一日本語にしていくとおかしな感じになるのでWeは全部省略することにした．
+
+ここまで日本語化した部分を読みなおしてみると，"in Elixir"(エリクサーでは)というフレーズももうちょっと省略すればよかったなと考えている．
