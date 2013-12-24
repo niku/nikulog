@@ -1,0 +1,4 @@
+* CP932(Windows31J)のCSVをUTF8に変換する
+#+#+begin_src ruby
+Dir.glob('*.csv'){|f| File.write(f, File.read(f, encoding: Encoding::CP932).encode(Encoding::UTF_8)) }
+#+end_src
