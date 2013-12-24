@@ -1,0 +1,4 @@
+* milkodeに登録したパッケージのファイルパス一覧を取得する
+#+begin_src ruby
+print `milk list`.split("\n").flat_map{|project|`milk files #{project}`.split("\n").map{|f|"\"/home/niku/projects/#{project}/#{f}\""}}.join("\n")
+#+end_src
