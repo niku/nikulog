@@ -1,0 +1,41 @@
+* recentf に保存する履歴の長さを無限にする
+
+Emacs には過去に開いたファイルを記憶しておいて，後から利用する recentf というライブラリがある．
+
+recentf では過去に開いたファイルを何個覚えておくか設定でき，その数以上になると，古いものから忘れるようになっている．
+
+デフォルトでは 20 個（！）の履歴を覚えておくようになっている．
+
+昔の PC のリソースでは
+
+- ストレージサイズが小さいので，覚えておく数を減らして，ファイル容量の抑制をしていた
+- CPU が今より遅いので，覚えておく数を減らして，計算速度を向上していた
+
+といった理由により古いものを忘れる設定があったのだと思う．
+
+最近の PC ではエディタを開いたり，ファイルの履歴を数千辿るのは造作もないので，リストを忘れなくてもよい．
+
+そこで「履歴を忘れない（無限に保存する）」という設定に変更したい．
+
+いくつか recentf の設定を眺めると =(describe-variable 'recentf-max-saved-items)= に
+
+#+begin_quote
+Maximum number of items of the recent list that will be saved.
+A nil value means to save the whole list.
+See the command `recentf-save-list'.
+#+end_quote
+
+「nil を設定すると全てのリストを保存する」と書いてあるので
+
+#+begin_src emacs-lisp :tangle yes
+(setq recentf-max-saved-items nil)
+#+end_src
+
+とすると，全ての履歴を保存できる．
+
+今は
+
+- Intel(R) Core(TM) i5-3210M CPU @ 2.50GHz
+- wc -l ~/.recentf # => 6075
+
+といった環境にあるが helm-recentf はサクサク動作している．
