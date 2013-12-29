@@ -1,0 +1,28 @@
+* VirtualBoxで64bitCPUを検出できない場合の対処
+
+[[https://github.com/niku/my-packer-and-vagrant-example/][packer を利用して]] VirtualBox で VM を起動させようとすると，いつしか
+
+#+begin_src
+#+begin_quote
+This kernel requires an x86-64 CPU, but only detected an i686 CPU.
+Unable to boot - please use a kernel appropriate for your CPU.
+#+end_quote
+#+end_src
+
+というエラーが出るようになっていた．
+
+VirtualBox4.3.x になってからはエラーになってしまうようだ．
+
+回避するには 2 つの方法がある．
+
+1. =VBoxManage modifyvm <vmname> --longmode on= というコマンドで VM の CPU 設定を変更する．
+2. =VBoxManage modifyvm <vmname> --ostype Debian_64= というコマンドで VM の OS の種類を明示する．
+
+ostype に指定できる種類は =VBoxManage list ostypes= で一覧がみられる．
+
+今回は，後者の packer の[[https://github.com/niku/my-packer-and-vagrant-example/commit/4bd9381f6d5dcb8719f9e3d69555321bf29cc95a][設定ファイルに ostype を指定する]]方法でエラーを回避した．
+
+** 参考
+
+- [[https://forums.virtualbox.org/viewtopic.php?f=8&t=58767][Kernel requires an X86-64 CPU...]]
+- [[https://forums.virtualbox.org/viewtopic.php?f=6&t=57942][Ubuntu 13.10 64bits on a Windows host]]
