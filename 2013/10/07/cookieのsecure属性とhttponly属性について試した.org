@@ -1,7 +1,42 @@
 * cookieのsecure属性とhttponly属性について試した
 
 cookie には [[http://tools.ietf.org/html/rfc6265#section-5.2.5][secure]] や [[http://tools.ietf.org/html/rfc6265#section-5.2.6][httponly]] という属性があるのだけど，
-設定すると具体的にどうなるのかわからなかったので以下のような簡単な sinatra アプリを作って試した．
+設定すると具体的にどうなるのかわからなかったので下に貼ったソースコードのような簡単な sinatra アプリを作って[[https://github.com/niku/cookie_attributes][heroku に上げてみた]]．
+
+フォームに値を入力すると，サーバーが受け取った cookie と JavaScript が知っている cookie を表示することができる．
+
+[[http://glacial-brushlands-4114.herokuapp.com/][http アクセス]]で試すと
+
+#+BEGIN_SRC
+result:
+params: aa, cookies: {"none"=>"none", "http-only"=>"http-only"}
+
+local cookie:
+none=none
+#+END_SRC
+
+という感じになる．
+
+[[https://glacial-brushlands-4114.herokuapp.com/][https アクセス]]で試すと
+
+#+BEGIN_SRC
+result:
+params: abc, cookies: {"none"=>"none", "http-only"=>"http-only", "secure"=>"secure", "both"=>"both"}
+
+local cookie:
+none=none; secure=secure
+#+END_SRC
+
+と secure 属性のものが読めるようになる．
+
+何も設定していない項目は読めるのは当然だけど，
+=http-only= は =document.cookie= からは読めないのに，
+なぜかサーバーには渡ってきている．なぜだ！
+
+ブラウザが勝手に付与してくれるんだろうか．
+ここらへんの仕組みについて詳しい人がいればぜひ教えていただきたい．
+
+** herokuに上げたコード
 
 [[cookie_attributes.rb]]
 #+BEGIN_SRC
@@ -50,40 +85,3 @@ $(function() {
   </script>
 </body>
 #+END_SRC
-
-起動して，アクセスすると，フォームが表示される．
-
-そのフォームに値を入力すると，サーバーが受け取った cookie と JavaScript が知っている cookie を表示することができる．
-
-[[https://github.com/niku/cookie_attributes][heroku に上げてみた]]．
-
-[[http://glacial-brushlands-4114.herokuapp.com/][http アクセス]]で試すと
-
-#+BEGIN_SRC
-result:
-params: aa, cookies: {"none"=>"none", "http-only"=>"http-only"}
-
-local cookie:
-none=none
-#+END_SRC
-
-という感じになる．
-
-[[https://glacial-brushlands-4114.herokuapp.com/][https アクセス]]で試すと
-
-#+BEGIN_SRC
-result:
-params: abc, cookies: {"none"=>"none", "http-only"=>"http-only", "secure"=>"secure", "both"=>"both"}
-
-local cookie:
-none=none; secure=secure
-#+END_SRC
-
-と secure 属性のものが読めるようになる．
-
-何も設定していない項目は読めるのは当然だけど，
-=http-only= は =document.cookie= からは読めないのに，
-なぜかサーバーには渡ってきている．なぜだ！
-
-ブラウザが勝手に付与してくれるんだろうか．
-ここらへんの仕組みについて詳しい人がいればぜひ教えていただきたい．
