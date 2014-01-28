@@ -1,0 +1,47 @@
+* Programming Elixir
+
+The Pragmatic Bookshelf の [[http://pragprog.com/book/elixir/programming-elixir][Programming Elixir]] を読んでいる．
+自分が思い出せるよう，読んだところまで日本語でまとめていくことにする．
+
+** モチベーション
+
+Elixir のことを最初に知ったのは，RubyKaigi2013 で基調講演のレポートを担当した際，
+レポート班チーム仲間の udzura さんの「Jose Valim の基調講演は，Jose Valim が作っている言語 Elixir のことを Shinjuku.ex というコミュニティを開催して知っているので，私が担当しようと思います」
+といったような発言からだった．
+
+そのときは Elixir を調べてみたのだけど，特に何も思わなかった．
+
+そのあと pragger のようなパイプライン処理をするライブラリで，
+かつ分散した処理は並列で処理してくれるようなものを書きたいなと考えたとき，
+並列処理ということで Go や Haskell などをみてみたが，シンタックスがピンとこなかった．
+
+「そういえば Ruby と似ている Elixir というのがあるな」と思い，Elixir のサイトに行ってみると，なかなかシンタックスがよさそうだった．
+
+チュートリアルをやってみると，
+ErlangVM や OTP ライブラリ，メッセージパッシングといったものが自分にとって新鮮だったこと．
+マクロのようなコアな仕組みが実用的な感じで綺麗にまとまっていそうだったことなどが手に馴染みそうだったので
+早速本を買ってやってみることにした．
+
+** Conventional Programming
+*** Pattern Matching
+*** Immutability
+*** Elixir Basics
+*** Anonymous Functions
+*** Modules and Named Functions
+*** Lists and Recursion excerpt
+*** Processing Collections?Enum and Stream
+*** Strings and Binaries
+*** Records
+*** Control Flow
+*** Organizing a Project
+** Concurrent Programming
+*** Working With Multiple Processes
+*** Nodes-The Key To Distributing Services excerpt
+*** OTP: Servers
+*** OTP: Supervisors
+*** OTP: Applications
+** More Advanced Elixir
+*** Macros and Code Evaluation
+*** Protocols-Polymorphic Functions
+*** Linking Modules: Behavio(u)rs and Use
+*** More Cool Stuff
