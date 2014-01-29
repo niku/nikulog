@@ -1,0 +1,44 @@
+* るりまに pull request を送った
+
+=Pathname#write= と =Pathname#binwrite= を実装に取り込んでほしいと [[https://bugs.ruby-lang.org/issues/6528#change-7378][ruby-lang.org の issue]] に上げていたら Ruby2.1.0 で取りこまれていた．
+
+るりまにはまだ反映されていなかったようなので，追加してみた．
+
+最近のるりまは github にソースがあり，いつもやっているみたいに普通に pull request を送るだけでよいようだ．簡単だった．
+
+るりまでやりたいけど，まだできていないことはたくさんありそうなので，機会があればみんなも pull request をサクサクと送りつけてみよう．
+
+** るりまに pull request を送る手順
+
+=Pathname#write= を追加して，確認した手順を書く．
+
+まずは [[https://github.com/rurema/doctree][rurema/doctree]] を fork する．その後
+
+#+begin_src
+$ git clone git@github.com:niku/doctree.git
+$ cd doctree
+$ bundle install
+$ bundle exec rake
+$ bundle exec bitclust htmlfile ./refm/api/src/pathname.rd --target Pathname --ruby=2.1.0 > Pathname.html
+#+end_src
+
+として，Pathname.html を生成する．
+
+生成した Pathname.html を任意のブラウザで開くと，[[http://docs.ruby-lang.org/ja/2.1.0/class/Pathname.html][るりまのPathname]] と同じような (CSS は適用されていない ) HTML が見られる．まだ =Pathname#write= はない．
+
+そこで，ブランチを作成して，本家へプルリクエストを送ることにする．
+
+: $ git branch add-pathname-write-methods-since-2.1.0
+
+ここで =Pathname#write= を追加する．
+
+: $ git commit -m 'Add Pathname#write since 2.1.0'
+: $ bundle exec bitclust htmlfile ./refm/api/src/pathname.rd --target Pathname --ruby=2.1.0 > Pathname.html
+
+生成した Pathname.html を開いてみると， =Pathname#write= が追加されているはずだ．
+
+確認できたら github へ push する．
+
+: $ git push --set-upstream origin add-pathname-write-methods-since-2.1.0
+
+github へブランチを push したら，pull request を送る．
