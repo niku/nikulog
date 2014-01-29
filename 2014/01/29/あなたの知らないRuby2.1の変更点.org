@@ -1,0 +1,45 @@
+* あなたの知らないRuby2.1の変更点
+
+=Pathname#write= でファイルが書けるようになっていること．
+
+Ruby2.0 のころは =Pathname#read= があるのに，write がなく，読み書きに対称性がなかった．
+
+=Pathname#open= などを使えばファイルを書くことはできたけど，read できるなら write もしたかった．
+
+#+begin_src
+PRECISE64 /home/niku% rbenv local 2.0.0-p353
+PRECISE64 /home/niku% cat foo.txt
+foobar
+PRECISE64 /home/niku% irb --prompt simple
+>> require 'pathname'
+=> true
+>> (Pathname.pwd + 'foo.txt').read
+=> "foobar"
+>> (Pathname.pwd + 'foo.txt').write('hogefuga')
+NoMethodError: undefined method `write' for #<Pathname:/home/niku/foo.txt>
+        from (irb):2
+        from /home/niku/.rbenv/versions/2.0.0-p353/bin/irb:12:in `<main>'
+#+end_src
+
+Ruby2.1 では =Pathname#write= が実装されているので読み書きの対称性ができた．
+
+#+begin_src
+PRECISE64 /home/niku% rbenv local 2.1.0
+PRECISE64 /home/niku% cat foo.txt
+foobar
+PRECISE64 /home/niku% irb --prompt simple
+>> require 'pathname'
+=> true
+>> (Pathname.pwd + 'foo.txt').write('hogefuga')
+=> 8
+>> (Pathname.pwd + 'foo.txt').read
+=> "hogefuga"
+#+end_src
+
+ファイル関連の処理をするときは Pathname を積極的に使っていきたい．
+
+ディレクトリの移動や，子要素の取得なんかが楽ですよ．
+
+詳しくは[[http://docs.ruby-lang.org/ja/2.1.0/class/Pathname.html][るりまサーチのPathname]]あたりを参照されたし．
+
+あっ，ここまだ write ないね．
