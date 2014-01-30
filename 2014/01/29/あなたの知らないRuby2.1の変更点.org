@@ -42,4 +42,4 @@ PRECISE64 /home/niku% irb --prompt simple
 
 詳しくは[[http://docs.ruby-lang.org/ja/2.1.0/class/Pathname.html][るりまサーチのPathname]]あたりを参照されたし．
 
-あっ，ここまだ write ないね．
+書いたときは =Pathneme#write= がなかったので，[[るりまに pull request を送った][るりまに pull request を送った]]．
