@@ -1,0 +1,13 @@
+* Programming Elixir を読んでいる
+
+The Pragmatic Bookshelf の [[http://pragprog.com/book/elixir/programming-elixir][Programming Elixir]] を読んでいる．読んだところまで日本語でまとめていくことにする．
+
+まとめた内容は [[../../../reviews/Programming Elixir][Programming Elixir]] に追加していく．
+
+今日は "A Vain Attempt at a Justification" を読んだ．
+
+ここはいわゆる前書きにあたると思うんだけど，タイトルの意味があんまりわからなかった．「書く理由を無駄に正当化してみる」ということなんだろうか．
+
+Elixir を最初にみたときは何とも思わなかったのだけど，知っていくうちに楽しくなってきた．
+
+前書きを読むと Dave も最初はピンとこなかったみたい．何だか勝手に親近感を抱く．

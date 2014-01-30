@@ -22,26 +22,50 @@ ErlangVM や OTP ライブラリ，メッセージパッシングといったも
 マクロのようなコアな仕組みが実用的な感じで綺麗にまとまっていそうだったことなどが手に馴染みそうだったので
 早速本を買ってやってみることにした．
 
-** Conventional Programming
-*** Pattern Matching
-*** Immutability
-*** Elixir Basics
-*** Anonymous Functions
-*** Modules and Named Functions
-*** Lists and Recursion excerpt
-*** Processing Collections?Enum and Stream
-*** Strings and Binaries
-*** Records
-*** Control Flow
-*** Organizing a Project
-** Concurrent Programming
-*** Working With Multiple Processes
-*** Nodes-The Key To Distributing Services excerpt
-*** OTP: Servers
-*** OTP: Supervisors
-*** OTP: Applications
-** More Advanced Elixir
-*** Macros and Code Evaluation
-*** Protocols-Polymorphic Functions
-*** Linking Modules: Behavio(u)rs and Use
-*** More Cool Stuff
+** 内容まとめ
+
+*** A Vain Attempt at a Justification
+
+言語マニアで色々な言語を試して，デザインや実装のことを考えるのが好き．
+
+Ruby には 1988 年に出会い，何故だか説明するのは難しいが大好きになった．
+
+それから 15 年，同じ感覚になれるものを探していた．
+
+最初に Elixir に出会ったときは，ぐっとこなかった．
+
+数ヶ月前，関数型言語を学術的なハマりを抜きに紹介できる方法を探して，Corey Haines とチャットしているときに，「もう一回試してみたら」と勧められた．
+
+もう一度やってみると，Ruby に抱いたのと同じ気持になった．
+
+そこでこの本を書いている．
+
+言語やライブラリの全てを紹介するつもりはなく，短く楽しいものにするつもりだ．
+
+このプログラミングモデルのパワーや美しさを伝えたい．
+
+ともかく，楽しんでもらいたい．
+
+*** Conventional Programming
+**** Pattern Matching
+**** Immutability
+**** Elixir Basics
+**** Anonymous Functions
+**** Modules and Named Functions
+**** Lists and Recursion excerpt
+**** Processing Collections?Enum and Stream
+**** Strings and Binaries
+**** Records
+**** Control Flow
+**** Organizing a Project
+*** Concurrent Programming
+**** Working With Multiple Processes
+**** Nodes-The Key To Distributing Services excerpt
+**** OTP: Servers
+**** OTP: Supervisors
+**** OTP: Applications
+*** More Advanced Elixir
+**** Macros and Code Evaluation
+**** Protocols-Polymorphic Functions
+**** Linking Modules: Behavio(u)rs and Use
+**** More Cool Stuff
