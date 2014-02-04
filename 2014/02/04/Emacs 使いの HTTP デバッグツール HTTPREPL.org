@@ -1,0 +1,91 @@
+* Emacs 使いの HTTP デバッグツール HTTPREPL
+
+[[httprepl.png]]
+
+[[https://addons.mozilla.org/ja/firefox/addon/restclient/][MELPA]] に [[https://github.com/gregsexton/httprepl.el][HTTPREPL]] というのが登録された．ちょっと使ってみたところ良さそうだったので紹介する．
+
+** どういうもの？
+
+Web サーバーや Web クライアントの開発をしていると HTTP リクエストを送ってみて，レスポンスを眺めたいことがよくある．
+
+そういう場合によくやるのは，シェルから curl や wget を動かしたり，ブラウザから [[https://addons.mozilla.org/ja/firefox/addon/restclient/][RESTClient アドオン]]を使ったりすることだ．
+
+これらは大体 GET/PUT/POST/DELETE/PATCH/HEAD などの各種 VERB に対応し，任意のヘッダやボディをつけることができ，HTTP レスポンスを眺められる．
+
+もちろんこれらを使うのでも十分有用なのだが，Emacs 使いの場合はこれを Emacs から使えるともっと便利になるだろう．
+
+なぜなら，送る文字列や URL を Emacs で開いているバッファのどこかから切り出してきて貼りつけたり，レスポンスを Emacs で加工してどこかへ保存することがよくあるからだ．
+
+HTTPREPL は Emacs 上から対話的に HTTP リクエストを送り，HTTPレスポンスを眺めることができるツールだ．
+
+** 試したい
+
+既に melpa を使うよう設定してあるなら，
+=(package-install 'httprepl)= を Emacs で評価するだけで HTTPREPL がインストールできる．
+
+インストールできたら =M-x httprepl= と打ちこむと， =*httprepl*= というバッファ名で
+
+#+begin_src
+*** Welcome to HTTP REPL ***
+>
+#+end_src
+
+が開く．
+
+=(describe-function 'httprepl-mode)= によると，以下のような形式でリクエストを構築できる．
+
+#+begin_quote
+#+begin_src
+> GET|POST|PUT|DELETE|OPTIONS|HEAD|TRACE|CONNECT uri
+Header: value
+Another-Header: value
+
+Body of the request.
+#+end_src
+#+end_quote
+
+今回はリクエストヘッダを抜きに，単純に GET を送ってみる．
+
+#+begin_src
+*** Welcome to HTTP REPL ***
+> get https://github.com/
+#+end_src
+
+と入力してリターンキーを押すと，ずらずらと HTTP レスポンスが表示されたはずだ．
+
+ここで HTTP レスポンスだけを眺めたい場合は =C-c C-c= と入力する．
+そうすると =*http-response*= バッファへ HTTP レスポンスが書き出される．
+
+** リクエストにヘッダを足す
+
+=(describe-function 'httprepl-mode)= によると，以下のような形式でヘッダつきのリクエストを送れる．
+
+#+begin_quote
+#+begin_src
+PUT http://httpbin.org/put
+Content-Type: text/plain
+
+This is the body of the request
+#+end_src
+#+end_quote
+
+リターンを押した瞬間にリクエストを送ってしまうので，1行目を入力し終わってから 2 行目へ移るのにリターンキーは使えない．
+
+httprepl ではリクエストを送らずに改行するキーバインドとして =M-j= を用意している．
+
+そこで
+
+#+begin_src
+PUT http://httpbin.org/put|
+#+end_src
+
+まで入力が終わったら =M-j= を押す("|"はカーソルだと思ってもらいたい)．すると
+
+#+begin_src
+PUT http://httpbin.org/put
+|
+#+end_src
+
+という状態になる．そこで2行目以降も同様に入力して，最後の行を入力し終わったらリターンキーを押す．
+
+すると PUT リクエストがヘッダ付きで送られる．
