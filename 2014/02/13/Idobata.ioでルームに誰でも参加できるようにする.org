@@ -1,0 +1,43 @@
+* Idobata.ioでルームに誰でも参加できるようにする
+
+Idobata で IRC のように「誰でも自由に参加してください」というルームを作りたい．
+
+そのときに誰でも join 可能なルームにするための URL をどうやったら作れるか説明する．
+
+** idobata の 2 種類の招待 URL
+
+Idobata には 2 種類の Invite URL が用意されている．
+
+1. Organization( 例 : /Sapporo.beam/ ) への /Member Invite/
+2. Organization 中の Room( 例 : /Sapporo.beam/ の /lobby/) への /Guest Invite/
+
+1 の /Member Invite/ は，1 人がその URL へアクセスするとそれ以降の人のアクセスは無効になる．
+
+2 の /Guest Invite/ は，URL へ何人アクセスしても無効にならない．
+
+つまり常に誰にでも入ってきてもらいたい URL には /Guest Invite/ のものを利用する．
+
+** Guest Invite の有効化
+
+Room を作った直後は Guest Invite が無効になっている．
+
+Guest Invite URL を有効にする方法を説明する．
+
+ルームの右上にある歯車をクリックする
+
+[[guest-invitation-1.png]]
+
+ROOM SETTINGS をクリックする
+
+[[guest-invitation-2.png]]
+
+ROOM SETTINGS の中の Enable guest invitation にチェックを入れると，その下に URL が出てくる．
+
+この URL を利用する．
+
+[[guest-invitation-3.png]]
+
+** まとめ
+
+ルーム作成直後には有効になっていない Guest Invite 機能の URL を利用すると，
+IRC のような「誰にでも開かれた」ルームを作ることができる．べんり．
