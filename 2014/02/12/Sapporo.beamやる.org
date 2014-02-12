@@ -1,0 +1,13 @@
+* Sapporo.beamやる
+
+明日(2/13)19:00-21:00 に札幌グランドホテルのスタバでやる．
+
+札幌でElixirやErlangのことを話せる場所を用意したいので試しに集まってみることにした．
+
+beamはErlangのスクリプトをコンパイルしたときの拡張子で，Elixirでもbeamを使えるのでこの名前にした．
+
+毎週木曜日にやる．
+
+毎月第三木曜日は用事があるので，第三週だけは金曜日にやろう．
+
+[[https://idobata.io][idobata.io]]に[[https://idobata.io/#/organization/sapporobeam/room/lobby][Sapporo.beam]]も作った．興味ある人はjoinしてみてね．
