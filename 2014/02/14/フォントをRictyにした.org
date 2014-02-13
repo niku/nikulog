@@ -1,0 +1,57 @@
+* フォントをRictyにした
+
+今まではヒラギノ角ゴを使ってたのだけど，
+Ricty 使うとどうなるか知りたかったので導入してみた．
+
+** インストール
+
+HomeBrew を使っているなら
+
+#+begin_src shell
+$ brew tap sanemat/font
+$ brew install ricty
+#+end_src
+
+で Ricty フォントを生成できる．
+
+:brew install ricty
+が終わる際，コンソールに Ricty フォントを有効化するための方法が表示される．
+
+もし見逃していたら
+:brew info ricty
+で読める．
+
+#+begin_src
+To install Ricty:
+  $ cp -f /usr/local/Cellar/ricty/3.2.2/share/fonts/Ricty*.ttf ~/Library/Fonts/
+  $ fc-cache -vf
+#+end_src
+
+のように書いてあるので，その通りにコマンドを実行する．
+
+** 設定
+
+[[http://save.sys.t.u-tokyo.ac.jp/~yusa/fonts/ricty.html][公式サイト]]の「既知の問題」によるとフォントには 1.5 ポイントの倍数を設定すると ascii とマルチバイト文字の幅が確実に 1:2 になるそうだ．
+
+ターミナルで利用しているなら，ターミナルの設定を変更すれば Ricty にできる．
+
+GUI で利用しているなら scratch バッファで
+#+begin_src elsp
+(set-frame-font "ricty-10.5")
+(set-frame-font "ricty-12")
+(set-frame-font "ricty-13.5")
+(set-frame-font "ricty-15")
+(set-frame-font "ricty-18")
+#+end_src
+のように書いて，それぞれの式を評価 ( 行末で C-j) してみるとフォントとサイズが変わる．
+
+ちょうどよさそうな設定を見つけたら，その設定を init.el に
+#+begin_src elsp
+(add-to-list 'default-frame-alist '(font . "ricty-18"))
+#+end_src
+のように書く．
+
+** 参考
+
+- [[http://save.sys.t.u-tokyo.ac.jp/~yusa/fonts/ricty.html][プログラミング用フォント Ricty]]
+- [[http://d.hatena.ne.jp/kitokitoki/20110502/p2][emacs での Ricty の導入手順]]
