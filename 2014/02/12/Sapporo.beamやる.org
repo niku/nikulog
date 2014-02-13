@@ -10,4 +10,4 @@ beamはErlangのスクリプトをコンパイルしたときの拡張子で，E
 
 毎月第三木曜日は用事があるので，第三週だけは金曜日にやろう．
 
-[[https://idobata.io][idobata.io]]に[[https://idobata.io/organizations/sapporobeam/rooms/lobby/join_request/2157a022-d48d-40bb-b18d-d2119ea65fcc][Sapporo.beam]]も作った．興味ある人はjoinしてみてね．
+[[https://idobata.io][idobata.io]]に[[https://idobata.io/organizations/sapporobeam/rooms/lobby/join_request/623ef5c3-428b-40c2-ae77-73ce7bb22fd0][Sapporo.beam]]も作った．興味ある人はjoinしてみてね．
