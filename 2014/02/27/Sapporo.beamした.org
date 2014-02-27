@@ -1,0 +1,108 @@
+* Sapporo.beamした
+
+2週ぶり2回目
+
+今日はweberを動かしてみよう．
+
+[[https://github.com/0xAX/weber#quick-start]] を参考にする．
+
+#+begin_src
+$ git clone git@github.com:0xAX/weber.git
+$ make && make test
+$ mix weber.new ~/projects/testWebApp
+$ cd ~/projects/testWebApp
+$ ./start.sh
+#+end_src
+
+start.shするとずらずらとgit cloneしてくる．
+
+もっと詳しく知るにはexamplesをみてねと書いてあるのでみる．
+
+[[https://github.com/0xAX/weber/tree/master/examples/SimpleChat]]
+
+example *s* なのに1個しかない！
+
+#+begin_src
+$ cd ~/projects/weber/examples/SimpleChat
+$ mix deps.get && mix compile
+#+end_src
+
+またgit cloneしてくるのか……mix deps.get の結果をlocalのどこかに統一して置いておきたいな．
+
+#+begin_src
+(snip)
+== Compilation error on file lib/helpers/Room.ex ==
+** (CompileError) lib/helpers/Room.ex:26: function '<-'/2 undefined
+    (stdlib) lists.erl:1323: :lists.foreach/2
+    (stdlib) erl_eval.erl:569: :erl_eval.do_apply/6
+    (elixir) src/elixir.erl:140: :elixir.eval_forms/4
+    (elixir) src/elixir_lexical.erl:17: :elixir_lexical.run/2
+
+$ elixir --version
+Elixir 0.12.4
+#+end_src
+
+失敗した． =<-= でエラーになるのみたことあるやつだ．
+
+[[http://www.isotope11.com/blog/sending-messages-in-elixir-0-dot-12-dot-3][Sending messages in Elixir 0.12.3]]
+
+=pid <- message= はリスト内包表記で使いたいから =send(pid, message)= になったんだよね．
+
+Room.ex を
+
+#+begin_src
+-        pid <- username
++        send(pid, username)
+#+end_src
+
+と変更して =mix compile= すると成功した．
+
+成果をプルリクエスト[[https://github.com/0xAX/weber/pull/173][ Fix bug example/SimpleChat can't be launched on elixir 0.12.4]]
+
+次に =./start.sh= してみる．
+
+#+begin_src
+(snip)
+** Reason for termination ==
+** {{'Elixir.File.Error','__exception__',enoent,<<"read file">>,
+        <<"/Users/niku/Documents/projects/weber/examples/SimpleChat/deps/weber/lib/weber/i18n/localization/localeen_US.json">>},
+    [{'Elixir.File','read!',1,[{file,"lib/file.ex"},{line,205}]},
+     {'Elixir.Weber.Localization.LocalizationManager',apply_on_file,3,
+         [{file,"lib/weber/i18n/localization_manager.ex"},{line,54}]},
+     {'Elixir.Enum','-each/2-lists^foreach/1-0-',2,
+         [{file,"lib/enum.ex"},{line,517}]},
+     {'Elixir.Enum',each,2,[{file,"lib/enum.ex"},{line,517}]},
+     {'Elixir.Weber.Localization.LocalizationManager',handle_cast,2,
+         [{file,"lib/weber/i18n/localization_manager.ex"},{line,29}]},
+     {gen_server,handle_msg,5,[{file,"gen_server.erl"},{line,604}]},
+     {proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,239}]}]}
+#+end_src
+
+エラーですね．
+
+=localization/localeen_US.json=
+
+localeとen_US.jsonの間に/が入っていないせいっぽい．
+
+weber/lib/weber/i18n/localization_manager.ex の
+
+#+begin_src elixir
+  def apply_on_file(path, file, apply_fun) do
+    file_data = File.read!(path <> file)
+    (file_data != <<>>) && apply_fun.(file, file_data)
+  end
+#+end_src
+
+=File.read!(path <> file)= を =File.read!(Path.join(path,file))= に直して， =mix deps.compile= する．
+
+Ruby の =File.join= とか =File.extname= みたいなパスをいじるのは Elixir では [[http://elixir-lang.org/docs/master/Path.html][Path モジュール]]にあるようだ．
+
+コンパイル通った!
+
+成果をプルリクエスト [[https://github.com/0xAX/weber/pull/172][Fix bug that weber can't find locale files.]]
+
+** まとめ
+
+- 二人もいた
+- Pathモジュールを知った
+- weberに貢献した
