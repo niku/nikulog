@@ -1,0 +1,13 @@
+* Sapporo.beamやる
+
+Sapporo.beamとはErlangVMを使うプログラミング言語ErlangとかElixirについてワイワイ話すところ．
+
+RubySapporoのMLでも[[http://qwik.jp/RubySapporo/233.html][紹介してもらった]]．
+
+明日(3/6)19:00-21:00 に札幌グランドホテルのスタバでやる．
+
+3回目．
+
+きてね．
+
+[[https://idobata.io][idobata.io]]に[[https://idobata.io/#/organization/sapporobeam/room/lobby][Sapporo.beam]]も作った．興味ある人はjoinしてみてね．
