@@ -1,0 +1,57 @@
+* Sapporo.beamした
+
+1週ぶり3回目
+
+今日は
+
+- Beam以外のことをやってた人
+- GettingStartedを参考にiexをいじってた人
+- GettingStartedを翻訳してた人
+
+の3人も参加者がいて楽しかった．
+
+僕はGettingStartedを翻訳しつつ，GettingStartedを参考にしている人とちょっとしゃべったりした．
+
+** =<<>>= はバイナリを表現するリテラルだよという話
+
+#+begin_src
+<<255>> #=> <<255>>
+<<256>> #=> <<0>>
+#+end_src
+
+255より大きい数字はオーバフローする．
+
+** =if= はマクロなんだよという話
+
+[[http://elixir-lang.org/docs/master/Kernel.html#if/2][Kernel#if/2]]で実装されている．
+
+=if= のあとの =/2= は引数を *2* つ受け取るという意味．
+
+#+begin_src elixir
+if 1+1 == 2 do
+  "foo"
+else
+  "bar"
+end
+#+end_src
+
+は
+
+#+begin_src elixir
+if(1+1==2, [{:do, "foo"},{:else, "bar"}])
+if(1+1==2, [do: "foo", else: "bar"])
+if(1+1==2, do: "foo", else: "bar")
+if 1+1==2 do "foo" else "bar" end
+#+end_src
+
+と同じ．
+
+普通の[[http://www.gnu.org/software/emacs/manual/html_node/elisp/Association-Lists.html][alist]]でdo/endを表現できるように，シンタックスシュガーを考えたみたい．
+
+Rubyが1.9のころ[[http://magazine.rubyist.net/?0041-200Special-kwarg][名前付き引数をハッシュでうまいことやっていた]]のに似ているね．
+
+** 翻訳
+
+マクロの文脈で late resolution というのを何と訳せばいいかわからなかった．
+
+=Hygiene= はLISPの人たちが「健全」と訳しているようなので真似した．
