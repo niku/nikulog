@@ -55,3 +55,5 @@ Rubyが1.9のころ[[http://magazine.rubyist.net/?0041-200Special-kwarg][名前�
 マクロの文脈で late resolution というのを何と訳せばいいかわからなかった．
 
 =Hygiene= はLISPの人たちが「健全」と訳しているようなので真似した．
+
+[[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese/getting_started/5.markdown][翻訳結果]]
