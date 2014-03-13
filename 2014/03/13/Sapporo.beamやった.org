@@ -1,0 +1,214 @@
+* Sapporo.beamやった
+
+今日は2人もきた．本当は3人こられるはずだったが，会場予定地の札幌グランドホテルのスタバが改装中で一人はぐれてしまった．残念．
+
+ひとりはElixir本のAppendix2にあるType Specifications and Type Checkingを参考に
+型情報のアノテーションをつけて，dializerで整合性をチェックすることを試した．
+
+もうひとりはGo言語を試していた．
+
+** プロジェクト作成
+
+#+begin_src shell
+$ mix new simple --bare
+$ cd mix
+$ emacsclient lib/simple.ex
+#+end_src
+
+で
+
+#+begin_src elixir
+defmodule Simple do
+  @type atom_list :: list(atom)
+  @spec count_atoms(atom_list) :: non_neg_integer
+  def count_atoms(list) do
+  end
+end
+#+end_src
+
+と実装する．count_atoms(list) の中身はあえて空にしておく．
+
+- =@type= は型情報を自分で作っていて「 =atom_list= は要素に =atom= だけ入っている =list= のこと」という宣言
+- =@spec= が型情報を使っているところで「 =count_atoms= という関数は引数に =atom_list= をとって，返り値に =non_neg_integer= を返す」という宣言
+
+=atom= や =non_neg_integer= はErlangであらかじめ宣言されていて， =non_neg_integer= は0以上の整数のことを指す．
+
+この状態で解析してみよう．解析するには，まずコンパイルする必要がある．
+
+#+begin_src shell
+$ mix compile
+lib/simple.ex:4: warning: variable list is unused
+Compiled lib/simple.ex
+Generated simple.app
+#+end_src
+
+** dialyzerの準備
+
+解析はdialyzerというErlangのツールを使って解析する．
+
+#+begin_src shell
+$ dialyzer _build/dev/lib/simple/ebin
+  Checking whether the PLT /Users/niku/.dialyzer_plt is up-to-date...
+dialyzer: Could not find the PLT: /Users/niku/.dialyzer_plt
+Use the options:
+   --build_plt   to build a new PLT; or
+   --add_to_plt  to add to an existing PLT
+
+For example, use a command like the following:
+   dialyzer --build_plt --apps erts kernel stdlib mnesia
+Note that building a PLT such as the above may take 20 mins or so
+
+If you later need information about other applications, say crypto,you can extend the PLT by the command:
+  dialyzer --add_to_plt --apps crypto
+For applications that are not in Erlang/OTP use an absolute file name.
+#+end_src
+
+PLTが見つからないらしい．
+
+Elixir本によると，Dialyzerには使っている全てのランタイムライブラリのスペックが必要で，キャッシュしておいて使うそうだ．
+このキャッシュのことをPLT(Persistent Lookup Table)という．
+
+PLTを作る．今回は(Erlangの)ertsとElixirのライブラリをPLTにしてみる．
+
+ElixirのライブラリをPLTにするには，Elixirのパスを知らなければならない．
+
+Elixirのパスを知るには
+
+: $ elixir -e "IO.puts :code.lib_dir(:elixir)"
+
+とするとよい．
+
+: /usr/local/Cellar/elixir/0.12.5/bin/../lib/elixir
+
+のように出力される．そのパスに =/ebin= を付け足したものを指定する．
+
+#+begin_src shell
+$ dialyzer --build_plt --apps erts /usr/local/Cellar/elixir/0.12.5/bin/../lib/elixir/ebin
+  Compiling some key modules to native code... done in 0m43.96s
+  Creating PLT /Users/niku/.dialyzer_plt ...
+Unknown functions:
+  'Elixir.Access.BitString':'__impl__'/1
+...(snip)
+  unicode:unicode_binary/0
+ done in 1m57.96s
+done (passed successfully)
+#+end_src
+
+数年前のmacbookproだと2分くらいかかった．これでPLTができた．
+
+** dialyzerを試す
+
+試してみる．
+
+#+begin_src shell
+$ dialyzer _build/dev/lib/simple/ebin
+  Checking whether the PLT /Users/niku/.dialyzer_plt is up-to-date... yes
+  Proceeding with analysis...
+simple.ex:3: Invalid type specification for function 'Elixir.Simple':count_atoms/1. The success typing is (_) -> 'nil'
+ done in 0m0.43s
+done (warnings were emitted)
+#+end_src
+
+おっ
+
+: simple.ex:3: Invalid type specification for function 'Elixir.Simple':count_atoms/1. The success typing is (_) -> 'nil'
+
+となっている．
+
+=The success typing= は「実装コードでは」くらいの意味で， =nil= になるよーと言っているが， =@spec= 宣言では =non_neg_integer= としている．
+
+ここで宣言と実装コードが合わないことが検知できている．
+
+宣言と実装コードが合った場合にどうなるか見てみよう．
+
+#+begin_src elixir
+defmodule Simple do
+  @type atom_list :: list(atom)
+  @spec count_atoms(atom_list) :: non_neg_integer
+  def count_atoms(list) do
+    length list
+  end
+end
+#+end_src
+
+と直して，再度チェックしてみる．
+
+#+begin_src shell
+$ mix compile
+Compiled lib/simple.ex
+Generated simple.app
+$ dialyzer _build/dev/lib/simple/ebin
+  Checking whether the PLT /Users/niku/.dialyzer_plt is up-to-date... yes
+  Proceeding with analysis... done in 0m0.47s
+done (passed successfully)
+#+end_src
+
+何も出なくなった．整合性が取れると何も出なくなるようだ．
+
+** 型推論
+
+新たに =lib/simple/client.ex= というファイルを作って
+
+#+begin_src elixir
+​defmodule​ Client ​do
+  ​@spec​ other_function() :: non_neg_integer
+  ​def​ other_function ​do
+    Simple.count_atoms [1, 2, 3]
+  ​end
+​end
+#+end_src
+
+コンパイル，解析する．
+
+#+begin_src shell
+$ mix compile
+Compiled lib/client.ex
+Generated simple.app
+$ dialyzer _build/dev/lib/simple/ebin
+  Checking whether the PLT /Users/niku/.dialyzer_plt is up-to-date... yes
+  Proceeding with analysis...
+client.ex:3: Function other_function/0 has no local return
+client.ex:4: The call 'Elixir.Simple':count_atoms([1 | 2 | 3,...]) breaks the contract (atom_list()) -> non_neg_integer()
+ done in 0m0.44s
+done (warnings were emitted)
+#+end_src
+
+おっ
+
+: client.ex:4: The call 'Elixir.Simple':count_atoms([1 | 2 | 3,...]) breaks the contract (atom_list()) -> non_neg_integer()
+
+で =count_atoms= の =(atom_list()) -> non_neg_integer()= が守れていないとわかる．
+
+dialyzerは，そうするとエラーが出るのだろうと想定して，返り値を返さないと想定する．だから
+
+: client.ex:3: Function other_function/0 has no local return
+
+となる．
+
+直してみる．
+
+#+begin_src elixir
+defmodule Client do
+  @spec other_function() :: non_neg_integer
+  def other_function do
+    Simple.count_atoms [:a, :b, :c]
+  end
+end
+#+end_src
+
+#+begin_src shell
+$ mix compile
+Compiled lib/client.ex
+Generated simple.app
+$ dialyzer _build/dev/lib/simple/ebin
+  Checking whether the PLT /Users/niku/.dialyzer_plt is up-to-date... yes
+  Proceeding with analysis... done in 0m0.43s
+done (passed successfully)
+#+end_src
+
+何も出なくなった．ヒュー
+
+** まとめ
+
+- ElixirはErlang由来の型チェックツールDialyzerというものがある
+- Dialyzerを使うと「〜として作ったつもり」というのと，実際のコードの振舞いの整合性をチェックできる
