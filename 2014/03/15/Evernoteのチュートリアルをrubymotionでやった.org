@@ -1,0 +1,531 @@
+* Evernoteのチュートリアルをrubymotionでやった
+
+[[http://dev.evernote.com/intl/jp/doc/start/ios.php][Evernote SDK for iOS クイックスタートガイド]]を RubyMotion でやる．
+
+まだ記録として残している人はいないようだったのでここに記す．
+
+** 1. 必要なもの
+
+- テストアカウント作成
+- Evernote API キー取得
+  - Consumer Key
+  - Consumer Secret
+- 最新版のXcode
+
+についてはRubyMotion特有のことがなにもないので省略する．
+
+プロダクトの作成から．
+
+rubymotion ではプロダクト作成を
+
+: motion create <プロダクト名>
+
+で行える．そうするとプロダクトの雛形が展開される．
+
+#+begin_src shell
+$ motion --version
+2.22
+$ motion create EvernoteTutorialWithRubyMotion
+    Create EvernoteTutorialWithRubyMotion
+    Create EvernoteTutorialWithRubyMotion/.gitignore
+    Create EvernoteTutorialWithRubyMotion/app/app_delegate.rb
+    Create EvernoteTutorialWithRubyMotion/Gemfile
+    Create EvernoteTutorialWithRubyMotion/Rakefile
+    Create EvernoteTutorialWithRubyMotion/resources/Default-568h@2x.png
+    Create EvernoteTutorialWithRubyMotion/spec/main_spec.rb
+#+end_src
+
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/d00fdd66f82313a6b37a0c75d6b11059e0ab6fa7][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/d00fdd66f82313a6b37a0c75d6b11059e0ab6fa7][前回からの差分]]
+
+** 2. SDKのダウンロードとインストール
+
+Rubyのライブラリ管理ツールにRubyGemsやBundlerがあるように，
+Objective-Cのライブラリ管理ツールに[[http://cocoapods.org/][CocoaPods]]がある．
+
+CocoaPodsではiOS用の[[http://cocoapods.org/?q=evernote-SDK][Evernote-SDK]]が提供されている．
+
+RubyMotionからはCocoaPodsを簡単に扱うためのライブラリmotion-cocoapodsというGemがある．
+
+そこで
+
+1. motion-cocoapodsというGemのインストール
+2. motion-cocoapodsを利用したcocoapodsのインストール
+3. cocoapodsを利用したEvernote-SDKのインストール
+
+を行い，RubyMotionからEvernote-SDKを利用できるようにする．
+
+*** 1. motion-cocoapodsというGemのインストール
+
+Gemのインストールは
+
+1. BundleファイルにGemの依存関係を書く
+2. Bundleからinstallコマンドを実行する
+
+と行なえる．
+
+RubyMotionで利用するGemはRubyMotion特有のものが多い
+(例:motion-cocoapodsをCRubyやJRubyからは利用できない)
+ため，取得してくるGemはシステム全体が利用できる場所に置かず，
+プロジェクト内部で利用できる場所へ置くことにする．
+
+具体的には
+: bundle install --path vendor/bundle
+というようにコマンドラインオプションへ =--path vendor/bundle= を追加する．
+
+こうするとvender/bundleというプロダクト内部のパスへGemがインストールされる．
+
+**** vender/bundleをgit管理対象外にする
+
+vender/bundle以下のファイルはコマンドを打つと
+何回でも繰り返しインストールできるので，
+バージョン管理対象からは外しておく．
+
+具体的には.gitignoreへ
+: vendor/bundle
+を追記する．
+
+*** 2. motion-cocoapodsを利用したcocoapodsのインストール
+
+motion-cocoapodsを利用してcocoapodsをインストールするには
+: rake pod:install
+というコマンドを実行すればよい．今回はBundlerを利用しているので
+: bundle exec rake pod:install
+となる．
+
+*** 3. cocoapodsを利用したEvernote-SDKのインストール
+
+cocoapodsを利用してEvernote-SDKのインストールをするには
+
+1. Rakefileファイルにpodの依存関係を書く
+2. Rakeからpod:insallコマンドを実行する
+
+と行なえる．
+
+具体的にはRakefileへ
+
+#+begin_src ruby
+Motion::Project::App.setup do |app|
+  # Use `rake config' to see complete project settings.
+  app.name = 'EvernoteTutorialWithRubyMotion'
+  app.pods do
+    pod 'Evernote-SDK-iOS'
+  end
+end
+#+end_src
+
+というようにpodの依存関係の記述を追記して
+: bundle exec rake pod:install
+するとvender/Pods以下にcocoapodsのライブラリがインストールされる．
+
+**** vender/Podsをgit管理対象外にする
+
+vender/Pods以下のファイルもコマンドを打つと
+何回でも繰り返しインストールできるので，
+バージョン管理対象からは外しておく．
+
+具体的には.gitignoreへ
+: vendor/Pods
+を追記する．
+
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/09a525815c504850c76c2dc7d5d85f0406968dd1][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/compare/d00fdd66f82313a6b37a0c75d6b11059e0ab6fa7...09a525815c504850c76c2dc7d5d85f0406968dd1][前回からの差分]]
+
+** 3. SDK と OAuth の設定
+
+*** didFinishLaunchingWithOptions
+
+#+begin_quote
+アプリケーションのメイン部分で、didFinishLaunchingWithOptions メソッドを見つけます。このメソッドの最後の方（ただし return YES; の前）に以下のコードを追加します
+#+end_quote
+
+app/app_delegate.rbの
+AppDaelegate#application(application, didFinishLaunchingWithOptions:launchOptions) へ
+APIキーを設定する．
+
+Objective-Cのことをほとんど何も知らないので以下の例をrubymotionで書くとどうなるかわからない．
+
+#+begin_src objective-c
+NSString *EVERNOTE_HOST = BootstrapServerBaseURLStringSandbox;
+NSString *CONSUMER_KEY = @"your-key";
+NSString *CONSUMER_SECRET = @"your-secret";
+
+[EvernoteSession setSharedSessionHost:EVERNOTE_HOST
+                          consumerKey:CONSUMER_KEY
+                       consumerSecret:CONSUMER_SECRET];
+#+end_src
+
+そこでEmacsの[[https://github.com/ainame/motion-mode][motion-mode]]に搭載されている[[http://qiita.com/ainame/items/e2d2cd3aa29341166211#3-8][motion-convert-code-region]]を利用してみる．
+
+コードをリージョンで囲んでM-x motion-convert-code-regionすると以下のようにruby風のコードになる．一部おかしなところがあるがとっかかりとしては悪くない．
+
+EVER *NO* TEがfalseになっているところは新鮮な驚きがあった．気持はわからないでもない．きっとObjective-Cではfalseの意味にNOを使ったりするのだろう．
+
+#+begin_src ruby
+EVERfalseTE_HOST = BootstrapServerBaseURLStringSandbox
+CONSUMER_KEY = "your-key"
+CONSUMER_SECRET = "your-secret"
+
+EvernoteSession.setSharedSessionHost(EVERfalseTE_HOST, consumerKey:CONSUMER_KEY, consumerSecret:CONSUMER_SECRET)
+#+end_src
+
+- falseとなっているのをNOに戻す
+- 定数(大文字)をメソッド内で定義するとコンパイル時に =dynamic constant assignment= で失敗するので変数(小文字)として扱う
+- githubにpublicにソースコードを置こうとしている関係上KEYとSECRETは環境変数から取得する
+
+を考慮した結果以下のようになる．
+
+#+begin_src ruby
+evernote_host = BootstrapServerBaseURLStringSandbox
+consumer_key = ENV['CONSUMER_KEY']
+consumer_secret = ENV['CONSUMER_SECRET']
+
+EvernoteSession.setSharedSessionHost(evernote_host, consumerKey: consumer_key, consumerSecret: consumer_secret)
+#+end_src
+
+これをAppDelegate#application(application, didFinishLaunchingWithOptions:launchOptions)へ書き足す．
+
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/466754a39412847bc8e87e9f5a229904f71e075e][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/466754a39412847bc8e87e9f5a229904f71e075e][前回からの差分]]
+
+*** ヘッダーファイル
+
+#+begin_quote
+必ずEvernoteSession.h と ENConstants.h のヘッダーファイルを含めてください。
+#+end_quote
+
+ヘッダーファイルはrubymotionでは不要なので何もしない．
+
+*** application:openURL:sourceApplication:annotation
+
+#+begin_quote
+application:openURL:sourceApplication:annotation: メソッドを以下のように変更してください
+#+end_quote
+
+#+begin_src objective-c
+- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation {
+    BOOL canHandle = NO;
+    if ([[NSString stringWithFormat:@"en-%@", [[EvernoteSession sharedSession] consumerKey]] isEqualToString:[url scheme]] == YES) {
+    canHandle = [[EvernoteSession sharedSession] canHandleOpenURL:url];
+    }
+    return canHandle;
+}
+#+end_src
+
+よくわからないのでruby-motionのmotion-convert-code-regionに頼ってみる．
+
+#+begin_src
+- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation {
+    BOOL canHandle = false
+    if (NSString.stringWithFormat("en-%@",.EvernoteSession.sharedSession.consumerKey) isEqualToString(url.scheme) == true) {
+    canHandle = EvernoteSession.sharedSession.canHandleOpenURL(url)
+    }
+    return canHandle
+}
+#+end_src
+
+多少わかりそうになったもののまだよくわからない．これをヒントに判断していく．
+
+メソッドシグネチャについて，[[http://rubymotion.jp/RubyMotionDocumentation/guides/runtime/#_objective_c_messages][RubyMotionの変換法則]]に従うと
+
+: (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation
+
+は
+
+: def application(application, openURL: url, sourceApplication: sourceApplication, annotation: annotation)
+
+になるんじゃないかなあ．
+
+返す値について，ソースコードを読むと，基本的にはfalseを返し，ある一定条件を満たす場合のみtrueを返すようにみえる．
+
+条件とは何か．2つある．
+
+1つめ
+
+: [[NSString stringWithFormat:@"en-%@", [[EvernoteSession sharedSession] consumerKey]] isEqualToString:[url scheme]] == YES
+
+は
+
+: NSStrinng.stringWithFormat("en-%@", EvernoteSession.sharedSession.consumerKey).isEqualToString(url.scheme)
+
+かなあ．
+
+2つめ
+
+: [[EvernoteSession sharedSession] canHandleOpenURL:url];
+
+は
+
+: EvernoteSession.sharedSession.canHandleOpenURL(url)
+
+だろう．
+
+つまり
+
+#+begin_src rubymotion
+def application(application, openURL: url, sourceApplication: sourceApplication, annotation: annotation)
+  NSStrinng.stringWithFormat("en-%@", EvernoteSession.sharedSession.consumerKey).isEqualToString(url.scheme) &&
+  EvernoteSession.sharedSession.canHandleOpenURL(url)
+end
+#+end_src
+
+となる．
+
+*** applicationDidBecomeActive
+
+#+begin_quote
+applicationDidBecomeActive: メソッドを EvernoteSession の handleDidBecomeActive メソッドを呼ぶように変更してください
+#+end_quote
+
+#+begin_src objective-c
+- (void)applicationDidBecomeActive:(UIApplication *)application
+{
+[[EvernoteSession sharedSession] handleDidBecomeActive];
+}
+#+end_src
+
+は
+
+#+begin_src rubymotion
+def applicationDidBecomeActive(application)
+  EvernoteSession.sharedSession.handleDidBecomeActive
+end
+#+end_src
+
+になるだろう．
+
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/c058a76239072f2d2a465fb6e2680ea7a2aaa0df][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/c058a76239072f2d2a465fb6e2680ea7a2aaa0df][前回からの差分]]
+
+** 4. アプリケーションの plist ファイルの更新
+
+[[http://rubymotion.jp/RubyMotionDocumentation/guides/project-management/index.html#_advanced_info_plist_settings][2.8. Advanced Info.plist Settings]]によるとrubymotionではplistの設定をRakefileの中のapp.info_plistへ書くようだ．
+
+#+begin_src rubymotion
+app.info_plist['CFBundleURLTypes'] = [
+  {
+    'CFBundleURLName' => ["en-#{ENV['CONSUMER_KEY']}"]
+  }
+]
+#+end_src
+
+環境変数'CONSUMER_KEY'には，EvernoteAPI申請時にもらったConsumer Keyを設定しておく．
+もしConsumer Keyがhogeだったとすると，CFBundleURLNameには'en-hoge'という値が入る．
+
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/b12f5954957eba2cfc9cb2f3a46d884e12bba5ff][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/b12f5954957eba2cfc9cb2f3a46d884e12bba5ff][前回からの差分]]
+
+** 5. Apple Framework の追加
+
+- StoreKit.framework
+- Security.framework
+
+が必要だと書いてある．
+
+[[http://rubymotion.jp/RubyMotionDocumentation/guides/project-management/index.html#_common_options][2.1. Common Options]]によるとrubymotionではframeworkの依存関係をRakefileの中のapp.frameworksへ書くようだ．
+
+そこで
+
+#+begin_src rubymotion
+app.frameworks << 'StoreKit' << 'Security'
+#+end_src
+
+というのが必要……かと思った．
+
+実際には，CocoaPods経由でEvernote-SDKをインストールすると[[https://github.com/CocoaPods/Specs/blob/master/Evernote-SDK-iOS/1.3.1/Evernote-SDK-iOS.podspec#L14][Evernote-SDKの設定に書いてある]]ので作業は不要だった．
+
+** 6. OAuth の検証
+
+#+begin_quote
+アプリのメインな UIViewController ヘッダーファイルを開き、以下の 2 行を追加します:
+#+end_quote
+
+rubymotionではヘッダーファイル不要なので何もしない．
+
+EvernoteのチュートリアルではInterfaceBuilderでボタンを用意して，
+そのボタンをタップしたときにテストされるようになっている．
+
+今回はInterfaceBuilderを立ち上げるのが面倒なので，
+直接コードでボタンを生成して，そのボタンへイベントをバインドするようにした．
+
+*** ウィンドウとボタンの生成
+
+今回使うコントローラーはTestAuthControllerという名前に決めた．ファイル名はtest_auth_controller.rbだ．
+
+通常，rubymotionでコントローラーを置く場所はapp/controllersディレクトリとなっている．そこへ置く．
+
+最初はapp/controllersディレクトリがないので作る．
+
+app/controllers/test_auth_controller.rb は
+
+#+begin_src ruby
+class TestAuthController < UIViewController
+  def viewDidLoad
+    super
+    @button = UIButton.buttonWithType UIButtonTypeRoundedRect
+    @button.title = 'auth'
+    @button.sizeToFit
+    self.view.addSubview @button
+  end
+end
+#+end_src
+
+とする．このコントローラーをまだどこからも使っていないのでまだ何もならない．
+
+このコントローラーを使うよう app/app_delegate.rb を変更する．
+
+#+begin_src ruby
+class AppDelegate
+  def application(application, didFinishLaunchingWithOptions:launchOptions)
+    evernote_host = BootstrapServerBaseURLStringSandbox
+    consumer_key = ENV['CONSUMER_KEY']
+    consumer_secret = ENV['CONSUMER_SECRET']
+
+    EvernoteSession.setSharedSessionHost(evernote_host, consumerKey: consumer_key, consumerSecret: consumer_secret)
+
+    @window = UIWindow.alloc.initWithFrame(UIScreen.mainScreen.bounds)
+    @window.makeKeyAndVisible
+    @window.rootViewController = TestAuthController.alloc.initWithNibName(nil, bundle: nil)
+    true
+  end
+#(snip)
+#+end_src
+
+=@window= について書いた3行を追加した．
+
+ここで
+
+: bundle exec rake simulator
+
+するとあっさりした画面がでてくるはずだ．
+
+[[evernote-test-auth-button.png]]
+
+authを押してもイベントをつけていないのでまだ何もおこらない．
+
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/17cf78b140b1d9908e9feb599e545e4c7a8cc3fe][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/17cf78b140b1d9908e9feb599e545e4c7a8cc3fe][前回からの差分]]
+
+*** ボタンへのイベント登録
+
+#+begin_src objective-c
+- (IBAction)testEvernoteAuth:(id)sender
+{
+    EvernoteSession *session = [EvernoteSession sharedSession];
+    NSLog(@"Session host: %@", [session host]);
+    NSLog(@"Session key: %@", [session consumerKey]);
+    NSLog(@"Session secret: %@", [session consumerSecret]);
+
+    [session authenticateWithViewController:self completionHandler:^(NSError *error) {
+        if (error || !session.isAuthenticated){
+            if (error) {
+                NSLog(@"Error authenticating with Evernote Cloud API: %@", error);
+            }
+            if (!session.isAuthenticated) {
+                NSLog(@"Session not authenticated");
+            }
+        } else {
+            // We're authenticated!
+            EvernoteUserStore *userStore = [EvernoteUserStore userStore];
+            [userStore getUserWithSuccess:^(EDAMUser *user) {
+                // success
+                NSLog(@"Authenticated as %@", [user username]);
+            } failure:^(NSError *error) {
+                // failure
+                NSLog(@"Error getting user: %@", error);
+            } ];
+        }
+    }];
+}
+#+end_src
+
+例によってコードをmotion-convert-code-regionしてみる．
+
+#+begin_src ruby
+- (IBAction)testEvernoteAuth:(id)sender {
+    session = EvernoteSession.sharedSession
+    NSLog("Session host: %@", session.host)
+    NSLog("Session key: %@", session.consumerKey)
+    NSLog("Session secret: %@", session.consumerSecret)
+
+    session.authenticateWithViewController(self, completionHandler: -> error {)
+        if (error || !session.isAuthenticated){
+            if (error) {
+                NSLog("Error authenticating with Evernote Cloud API: %@", error)
+            }
+            if (!session.isAuthenticated) {
+                NSLog("Session not authenticated")
+            }
+        } else {
+            // We're authenticated! EvernoteUserStore *userStore = EvernoteUserStore.userStore
+            userStore.getUserWithSuccess(->user{)
+                // success NSLog("Authenticated as %@", user.username)
+            } failure(->error{)
+                // failure NSLog("Error getting user: %@", error)
+            }
+        }
+    }
+}
+#+end_src
+
+うーん．何となくわかるような？
+Objective-Cでの =^= はRubyでの =->= のようなものという予備知識があったので，
+構文エラーもなんとか直せそうな気がする．
+
+#+begin_src ruby
+  def testEvernoteAuth
+    session = EvernoteSession.sharedSession
+    NSLog("Session host: %@", session.host)
+    NSLog("Session key: %@", session.consumerKey)
+    NSLog("Session secret: %@", session.consumerSecret)
+
+    session.authenticateWithViewController(self,
+                                           completionHandler: -> error {
+                                             if (error || !session.isAuthenticated)
+                                               if (error)
+                                                 NSLog("Error authenticating with Evernote Cloud API: %@", error)
+                                               end
+                                               if (!session.isAuthenticated)
+                                                 NSLog("Session not authenticated")
+                                               end
+                                             else
+                                               # We're authenticated!
+                                               userStore = EvernoteUserStore.userStore
+                                               userStore.getUserWithSuccess(
+                                                 -> user {
+                                                   # success
+                                                   NSLog("Authenticated as %@", user.username)
+                                                 },
+                                                 failure: -> error2 {
+                                                   # failure
+                                                   NSLog("Error getting user: %@", error2)
+                                                 }
+                                               )
+                                             end
+                                           })
+  end
+end
+#+end_src
+
+こんな感じにした．
+
+これでauthボタンを押すとイベントが動作する．
+
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/c946f0cbe4138ae21a57460d14a64c15d03debc8][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/c946f0cbe4138ae21a57460d14a64c15d03debc8][前回からの差分]]
+
+** 7. Acidテスト
+
+動作するようになっているはずなので試す．
+
+: $ CONSUMER_KEY=xxx CONSUMER_SECRET=yyy bundle exec rake simulator
+
+とコマンドを打つとシミュレータが起動する．
+
+authボタンを押すと，Evernoteのログイン画面になる．
+
+アカウントとパスワードを入力して正しくログインすると，コンソール画面に
+
+: 2014-03-15 06:49:55.592 EvernoteTutorialWithRubyMotion[82019:70b] Authenticated as xxx
+
+といったようなログが出てくるはずだ．これが出れば成功だ．
