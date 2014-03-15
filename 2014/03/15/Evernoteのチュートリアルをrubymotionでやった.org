@@ -133,6 +133,27 @@ vender/Pods以下のファイルもコマンドを打つと
 
 ** 3. SDK と OAuth の設定
 
+*** motion-my_env
+
+githubへpublicにソースコードを置くので秘密の情報をソースコードに書いてpushすることはできない．
+
+通常のプログラムだと環境変数ENVを使うところだが，[[https://twitter.com/watson1978/status/444697414583070720][実機に転送した時に環境変数ENVは使えない]]．そこで[[https://github.com/ainame/motion-my_env][motion-my_env]]を利用する．
+
+motion-my_envのREADMEに従いGemfileに
+: gem 'motion-my_env'
+を追加．
+
+Rakefileに
+: app.my_env.file = './config/environment.yaml'
+を追加．
+
+そして対象のファイルをgitには登録したくないので.gitignoreへ
+: config/environment.yaml
+を追加しておく．
+
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/580a8e78f22211be6e029414352cf9d3845c1bc9][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/compare/09a525815c504850c76c2dc7d5d85f0406968dd1...580a8e78f22211be6e029414352cf9d3845c1bc9][前回からの差分]]
+
 *** didFinishLaunchingWithOptions
 
 #+begin_quote
@@ -171,22 +192,22 @@ EvernoteSession.setSharedSessionHost(EVERfalseTE_HOST, consumerKey:CONSUMER_KEY,
 
 - falseとなっているのをNOに戻す
 - 定数(大文字)をメソッド内で定義するとコンパイル時に =dynamic constant assignment= で失敗するので変数(小文字)として扱う
-- githubにpublicにソースコードを置こうとしている関係上KEYとSECRETは環境変数から取得する
+- CONSUMER_KEYとCONSUMER_SECRETはソース内に書かずにすませたいのでMY_ENVを使う
 
 を考慮した結果以下のようになる．
 
 #+begin_src ruby
 evernote_host = BootstrapServerBaseURLStringSandbox
-consumer_key = ENV['CONSUMER_KEY']
-consumer_secret = ENV['CONSUMER_SECRET']
+consumer_key = MY_ENV['CONSUMER_KEY']
+consumer_secret = MY_ENV['CONSUMER_SECRET']
 
 EvernoteSession.setSharedSessionHost(evernote_host, consumerKey: consumer_key, consumerSecret: consumer_secret)
 #+end_src
 
 これをAppDelegate#application(application, didFinishLaunchingWithOptions:launchOptions)へ書き足す．
 
-- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/466754a39412847bc8e87e9f5a229904f71e075e][ここまでのソース]]
-- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/466754a39412847bc8e87e9f5a229904f71e075e][前回からの差分]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/a75fb98892ba341ee39c763b44e8dbb334dfc0cd][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/a75fb98892ba341ee39c763b44e8dbb334dfc0cd][前回からの差分]]
 
 *** ヘッダーファイル
 
@@ -294,26 +315,54 @@ end
 
 になるだろう．
 
-- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/c058a76239072f2d2a465fb6e2680ea7a2aaa0df][ここまでのソース]]
-- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/c058a76239072f2d2a465fb6e2680ea7a2aaa0df][前回からの差分]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/6df467b123125afcf7948c4be04f29f864272478][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/6df467b123125afcf7948c4be04f29f864272478][前回からの差分]]
 
 ** 4. アプリケーションの plist ファイルの更新
 
 [[http://rubymotion.jp/RubyMotionDocumentation/guides/project-management/index.html#_advanced_info_plist_settings][2.8. Advanced Info.plist Settings]]によるとrubymotionではplistの設定をRakefileの中のapp.info_plistへ書くようだ．
 
+先ほどと同じようにライブラリMY_ENVの値を利用したいところだが，Rakefileの中ではまだMY_ENVが利用できないようで
+: uninitialized constant MY_ENV
+というエラーになる．
+
+アドホックだがMY_ENVに用意したYAMLファイルを読み込んで利用することにする．
+
 #+begin_src rubymotion
-app.info_plist['CFBundleURLTypes'] = [
-  {
-    'CFBundleURLName' => ["en-#{ENV['CONSUMER_KEY']}"]
-  }
-]
+# -*- coding: utf-8 -*-
+$:.unshift("/Library/RubyMotion/lib")
+require 'motion/project/template/ios'
+require 'yaml'
+
+begin
+  require 'bundler'
+  Bundler.require
+rescue LoadError
+end
+
+# Can't use MY_ENV in Rakefile
+conf = YAML::load_file('./config/environment.yaml')
+
+Motion::Project::App.setup do |app|
+  # Use `rake config' to see complete project settings.
+  app.name = 'EvernoteTutorialWithRubyMotion'
+  app.pods do
+    pod 'Evernote-SDK-iOS'
+  end
+  app.my_env.file = './config/environment.yaml'
+  app.info_plist['CFBundleURLTypes'] = [
+    {
+      'CFBundleURLName' => ["en-#{conf['CONSUMER_KEY']}"]
+    }
+  ]
+end
 #+end_src
 
-環境変数'CONSUMER_KEY'には，EvernoteAPI申請時にもらったConsumer Keyを設定しておく．
+config/environment.yaml内に記載するCONSUMER_KEYには，EvernoteAPI申請時にもらったConsumer Keyを設定しておく．
 もしConsumer Keyがhogeだったとすると，CFBundleURLNameには'en-hoge'という値が入る．
 
-- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/b12f5954957eba2cfc9cb2f3a46d884e12bba5ff][ここまでのソース]]
-- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/b12f5954957eba2cfc9cb2f3a46d884e12bba5ff][前回からの差分]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/c9f97d6de1d1075ac4fe715befacd0619a6cf5bb][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/c9f97d6de1d1075ac4fe715befacd0619a6cf5bb][前回からの差分]]
 
 ** 5. Apple Framework の追加
 
@@ -378,8 +427,8 @@ end
 class AppDelegate
   def application(application, didFinishLaunchingWithOptions:launchOptions)
     evernote_host = BootstrapServerBaseURLStringSandbox
-    consumer_key = ENV['CONSUMER_KEY']
-    consumer_secret = ENV['CONSUMER_SECRET']
+    consumer_key = MY_ENV['CONSUMER_KEY']
+    consumer_secret = MY_ENV['CONSUMER_SECRET']
 
     EvernoteSession.setSharedSessionHost(evernote_host, consumerKey: consumer_key, consumerSecret: consumer_secret)
 
@@ -403,8 +452,8 @@ class AppDelegate
 
 authを押してもイベントをつけていないのでまだ何もおこらない．
 
-- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/17cf78b140b1d9908e9feb599e545e4c7a8cc3fe][ここまでのソース]]
-- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/17cf78b140b1d9908e9feb599e545e4c7a8cc3fe][前回からの差分]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/968a547de1a48b8377d12677488349971f7b70af][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/968a547de1a48b8377d12677488349971f7b70af][前回からの差分]]
 
 *** ボタンへのイベント登録
 
@@ -511,14 +560,16 @@ end
 
 これでauthボタンを押すとイベントが動作する．
 
-- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/c946f0cbe4138ae21a57460d14a64c15d03debc8][ここまでのソース]]
-- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/c946f0cbe4138ae21a57460d14a64c15d03debc8][前回からの差分]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/tree/04911f532055b6f01b7c95f95d878f71526ad5e7][ここまでのソース]]
+- [[https://github.com/niku/EvernoteTutorialWithRubyMotion/commit/04911f532055b6f01b7c95f95d878f71526ad5e7][前回からの差分]]
 
 ** 7. Acidテスト
 
 動作するようになっているはずなので試す．
 
-: $ CONSUMER_KEY=xxx CONSUMER_SECRET=yyy bundle exec rake simulator
+config/environment.yaml.exampleをconfig/environment.yamlへリネームして，CONSUMER_KEYとCONSUMER_SECRETを自分が取得したもので書き換える．
+
+: $ bundle exec rake simulator
 
 とコマンドを打つとシミュレータが起動する．
 
