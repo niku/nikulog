@@ -1,0 +1,310 @@
+* Sapporo.beamした
+
+今日は2人もきた．
+
+一人はGoの続きを調べていて，[[https://github.com/naoina/kocha][Kocha]]というwebフレームワークを触ってみていた．「チュートリアルがトラブルなく終わったので印象は良い」と言っていた．
+
+最後にちょこっと見せてもらったけど，Railsのscaffoldに比べると動作が軽快でサクサク感があった．
+
+もう一人（自分）はHeroku上でElixirを動かすことを試した．ここではその記録をまとめる．
+
+Herokuには[[https://devcenter.heroku.com/articles/buildpacks][Buildpack]]というHeroku上で言語やフレームワークを動かす仕組みがあり，
+Rubyもその仕組みを使って，Herokuが[[https://github.com/heroku/heroku-buildpack-ruby][デフォルトで用意しているRuby用Buildpack]]を使って動作している．
+
+このBuildpackでは[[https://devcenter.heroku.com/articles/third-party-buildpacks][サードパーティ製のもの]]も動かすことができる．
+
+今回はこの仕組みを使って，[[https://github.com/HashNuke/heroku-buildpack-elixir][ElixirのBuildpack]]を試す．
+
+これとは別の[[https://github.com/goshakkk/heroku-buildpack-elixir][ElixirのBuildpack]]もあるようなんだけど，最後のコミットが3ヶ月前だったので今回は採用しなかった．
+
+それではやってみよう．
+
+** プロジェクト作成
+
+プロジェクトの名前はheroku_buildpack_with_plugという名前にした．
+
+#+begin_src shell
+$ mix new heroku_buildpack_with_plug --bare
+* creating README.md
+* creating .gitignore
+* creating mix.exs
+* creating lib
+* creating lib/heroku_buildpack_with_plug.ex
+* creating test
+* creating test/test_helper.exs
+* creating test/heroku_buildpack_with_plug_test.exs
+
+Your mix project was created successfully.
+You can use mix to compile it, test it, and more:
+
+    cd heroku_buildpack_with_plug
+    mix compile
+    mix test
+
+Run `mix help` for more information.
+$ cd heroku_buildpack_with_plug
+#+end_src
+
+- [[https://github.com/niku/heroku_buildpack_with_plug/tree/9bbbcecfde9103fb1cc287dc2469b6e978f433fe][ここまでのコード]]
+- [[https://github.com/niku/heroku_buildpack_with_plug/commit/9bbbcecfde9103fb1cc287dc2469b6e978f433fe][前回からの差分]]
+
+** Plugを使う
+
+RubyでのRackのようなHTTP用ミドルウェアがElixirにもあり[[https://github.com/elixir-lang/plug][Plug]]と呼ばれている．
+
+名前がもうちょっとオリジナリティがあるものだと検索しやすくてさらによかった．まあ仕方ない．
+
+ともかくこれを利用してHTTPサーバーを動かしてみる．
+
+[[https://github.com/elixir-lang/plug#installation][Plugのinstallation]]を参考にmix.exsへapplicationとdepsを追加する．
+
+#+begin_src elixir
+defmodule HerokuBuildpackWithPlug.Mixfile do
+  use Mix.Project
+
+  def project do
+    [ app: :heroku_buildpack_with_plug,
+      version: "0.0.1",
+      elixir: "~> 0.12.5",
+      deps: deps ]
+  end
+
+  def application do
+    [ applications: [:cowboy, :plug] ]
+  end
+
+  def deps do
+    [ { :cowboy, github: "extend/cowboy" },
+      { :plug, "0.3.0", github: "elixir-lang/plug" } ]
+  end
+end
+#+end_src
+
+書いたら依存関係に書いたライブラリを取得する．
+
+#+begin_src shell
+$ mix deps.get
+#+end_src
+
+[[https://github.com/elixir-lang/plug#hello-world][PlugのサンプルにあるHello World]]を適用して，起動してみる．
+
+lib/heroku_buildpack_with_plug.ex へ
+#+begin_src elixir
+defmodule HerokuBuildpackWithPlug do
+  import Plug.Connection
+
+  def init(options) do
+    # initialize options
+
+    options
+  end
+
+  def call(conn, _opts) do
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_resp(200, "Hello world")
+  end
+end
+
+IO.puts "Running HerokuBuildpackWithPlug with Cowboy on http://localhost:4000"
+Plug.Adapters.Cowboy.http HerokuBuildpackWithPlug, []
+#+end_src
+
+と書き
+
+: $ mix run --no-halt lib/heroku_buildpack_with_plug.ex
+
+を実行，ブラウザでlocalhost:4000にアクセスしてみると，Hello worldと表示されるはずだ．
+
+- [[https://github.com/niku/heroku_buildpack_with_plug/tree/b36eafcabc03790889a1395ea5375c561c4f2f6c][ここまでのコード]]
+- [[https://github.com/niku/heroku_buildpack_with_plug/compare/9bbbcecfde9103fb1cc287dc2469b6e978f433fe...b36eafcabc03790889a1395ea5375c561c4f2f6c][前回からの差分]]
+
+** Buildpack
+
+次にBuilpackを適用してみる．
+
+#+begin_src shell
+$ heroku create --buildpack "https://github.com/HashNuke/heroku-buildpack-elixir.git"Creating polar-earth-4093... done, stack is cedar
+BUILDPACK_URL=https://github.com/HashNuke/heroku-buildpack-elixir.git
+http://polar-earth-4093.herokuapp.com/ | git@heroku.com:polar-earth-4093.git
+Git remote heroku added
+#+end_src
+
+……これでいいのだろうか？まあ進めてみる．
+
+次にBuildpackの設定elixir_buildpack.configが必要だ．
+
+サンプルが用意されているのでダウンロードしてそのまま利用させてもらう．
+
+#+begin_src shell
+$ curl -O https://raw.github.com/HashNuke/heroku-buildpack-elixir/master/elixir_buildpack.config
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100    98  100    98    0     0     97      0  0:00:01  0:00:01 --:--:--    97
+#+end_src
+
+ここまでの内容をgitへコミットして
+
+: $ git push -u heroku master
+
+する．
+
+- [[https://github.com/niku/heroku_buildpack_with_plug/tree/6ec4bf3c7bec4d3ec741dedfc5f34e18d7a21172][ここまでのコード]]
+- [[https://github.com/niku/heroku_buildpack_with_plug/commit/6ec4bf3c7bec4d3ec741dedfc5f34e18d7a21172][前回からの差分]]
+
+*** webサーバーを起動するコマンドをProcfileへ指定する
+
+: $ heroku open
+
+してみると，"Application Error"になっている．うまくいっていない．
+
+: $ heroku logs
+
+すると
+
+#+begin_src
+2014-03-19T15:49:38.388999+00:00 heroku[web.1]: Starting process with command `mix server -p 45597`
+2014-03-19T15:49:40.395282+00:00 app[web.1]: ** (Mix) The task server could not be found
+2014-03-19T15:49:41.647045+00:00 heroku[web.1]: Process exited with status 1
+2014-03-19T15:49:41.663901+00:00 heroku[web.1]: State changed from starting to crashed
+#+end_src
+
+となっている．
+
+: mix server -p 45597
+
+というコマンドが存在しないためのようだ．
+
+[[https://github.com/HashNuke/heroku-buildpack-elixir#other-notes][heroku-buildpack-elixirのother-notes]]に
+
+#+begin_quote
+Add your own Procfile to your application, else the default web task mix server -p $PORT will be used.
+#+end_quote
+
+これだ．Procfileを作成してコマンドを書けばいいようだ．
+
+ProcfileについてはHerokuに[[https://devcenter.heroku.com/articles/procfile][Process Types and the Procfile]]というドキュメントがあった． =web:= に続いて実行したいコマンドを記述すればよいようだ．
+
+#+begin_src
+web: mix run --no-halt lib/heroku_buildpack_with_plug.ex
+#+end_src
+
+- [[https://github.com/niku/heroku_buildpack_with_plug/tree/5581bea0d9de4f3221066f84c5bc8557d66185d2][ここまでのコード]]
+- [[https://github.com/niku/heroku_buildpack_with_plug/commit/5581bea0d9de4f3221066f84c5bc8557d66185d2][前回からの差分]]
+
+*** Plugでポート番号を指定して起動する
+
+: $ git push
+: $ heroku open
+
+すると"Application Error"になっている．まだうまくいっていない．
+
+heroku logs してみると
+
+#+begin_src
+2014-03-19T16:09:36.628910+00:00 heroku[web.1]: Starting process with command `mix run --no-halt lib/heroku_buildpack_with_plug.ex`
+2014-03-19T16:09:39.254666+00:00 app[web.1]: lib/heroku_buildpack_with_plug.ex:1: warning: redefining module HerokuBuildpackWithPlug
+2014-03-19T16:09:39.272263+00:00 app[web.1]: Running HerokuBuildpackWithPlug with Cowboy on http://localhost:4000
+2014-03-19T16:10:36.824484+00:00 heroku[web.1]: Error R10 (Boot timeout) -> Web process failed to bind to $PORT within 60 seconds of launch
+2014-03-19T16:10:36.824740+00:00 heroku[web.1]: Stopping process with SIGKILL
+2014-03-19T16:10:38.301630+00:00 heroku[web.1]: Process exited with status 137
+2014-03-19T16:10:38.317056+00:00 heroku[web.1]: State changed from starting to crashed
+#+end_src
+
+ふむふむ．herokuの指定したPORT番号でwebサーバーを立ち上げなければならないようだ．
+
+Plugでポート番号を指定するにはどうすればよいのか？
+
+Plugのドキュメントを眺めたら[[http://elixir-lang.org/docs/plug/Plug.Adapters.Cowboy.html][例が書いてあった]]．
+
+: Plug.Adapters.Cowboy.http HerokuBuildpackWithPlug, []
+
+を
+
+: Plug.Adapters.Cowboy.http HerokuBuildpackWithPlug, [], port: 8080
+
+とすると指定できる．
+
+この状態でローカル環境で起動してlocalhost:8080へアクセスしてみるとつながる．なるほど．
+
+あとはこのport値を =PORT= という環境変数から取得できればよい．
+
+ドキュメントを探してみると，名前を指定した環境変数の取得は[[http://elixir-lang.org/docs/master/System.html#get_env/1][System.get_env/1]]でできるようだ．
+このときの取得できた値はバイナリ（文字列）なので，それを整数へ変換するのに[[http://elixir-lang.org/docs/master/Kernel.html#binary_to_integer/1][Kernel.binary_to_integer/1]]を使う．
+
+結果的にこうなる．
+
+: port = System.get_env("PORT")
+: Plug.Adapters.Cowboy.http HerokuBuildpackWithPlug, [], port: binary_to_integer(port)
+
+この状態で
+
+: PORT=8080 mix run --no-halt lib/heroku_buildpack_with_plug.ex
+
+として起動するとブラウザからlocalhost:8080へアクセスでき
+
+: PORT=18888 mix run --no-halt lib/heroku_buildpack_with_plug.ex
+
+として起動するとブラウザからlocalhost:18888へアクセスできることを確認する．
+
+- [[https://github.com/niku/heroku_buildpack_with_plug/tree/1468e77093c5f40afb9ef3823795e445c1f669a7][ここまでのコード]]
+- [[https://github.com/niku/heroku_buildpack_with_plug/commit/1468e77093c5f40afb9ef3823795e445c1f669a7][前回からの差分]]
+
+*** ポート番号がない場合はデフォルト状態で起動させる
+
+それでは push してみよう．
+
+#+begin_src
+$ git push
+
+(snip)
+
+== Compilation error on file lib/heroku_buildpack_with_plug.ex ==
+** (ArgumentError) argument error
+    :erlang.binary_to_integer(nil)
+    lib/heroku_buildpack_with_plug.ex:19: (file)
+    (elixir) src/elixir_lexical.erl:17: :elixir_lexical.run/2
+    (elixir) lib/kernel/parallel_compiler.ex:91: anonymous fn/3 in Kernel.ParallelCompiler.spawn_compilers/8
+
+
+ !     Push rejected, failed to compile elixir app
+
+#+end_src
+
+あら，pushができなかった．
+
+=binary_to_integer(nil)= がエラーになっているようだ．環境変数が設定されない場合があって，そのときに =nil= が返ってきているのか？
+
+この状況を回避するため，環境変数"PORT"に何も設定されていないときはデフォルトで起動することにする．
+
+lib/heroku_buildpack_with_plug.ex はこんな感じだ
+#+begin_src elixir
+port = System.get_env("PORT")
+if port do
+IO.puts "Running HerokuBuildpackWithPlug with Cowboy on http://localhost:#{port}"
+  Plug.Adapters.Cowboy.http HerokuBuildpackWithPlug, [], port: binary_to_integer(port)
+else
+  IO.puts "Running HerokuBuildpackWithPlug with Cowboy on http://localhost:4000"
+  Plug.Adapters.Cowboy.http HerokuBuildpackWithPlug, []
+end
+#+end_src
+
+: $ git push
+: $ heroku open
+
+ブラウザにHello Worldと表示される．うまくいったようだ．うひょー
+
+- [[https://github.com/niku/heroku_buildpack_with_plug/tree/7c30ed175152a19d166e3644e544dcc87dbf5474][ここまでのコード]]
+- [[https://github.com/niku/heroku_buildpack_with_plug/commit/7c30ed175152a19d166e3644e544dcc87dbf5474][前回からの差分]]
+
+** まとめ
+
+*** できたこと
+
+heroku上にelixir製ミドルウェアplugを置いてHTTPリクエストを正常に処理できた．
+
+サンプルは[[https://github.com/niku/heroku_buildpack_with_plug][githubに置いた]]．
+
+*** わからなかったこと
+
+なぜ環境変数ありと環境変数なしの2回heroku_buildpack_with_plug.exが呼ばれたのか．
