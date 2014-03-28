@@ -1,0 +1,79 @@
+* Sapporo.beamした
+
+今日は2人もきた．
+
+1人は翻訳したチュートリアルを読みながら理解を深めてた．
+
+もう1人(自分)は[[https://groups.google.com/forum/#!topic/elixir-lang-talk/W7EU9arHnwI][v0.13リリースを契機にElixirのチュートリアルが刷新されていた]]ので翻訳していた．
+
+MLによると
+
+- 今あるものは2年前くらいに下書きしたものからできていた
+- Map,Struct,内包表記など新しい機能について書いた
+- メタプログラミング向けにmetaというカテゴリでガイドを書いた
+- PDFで欲しいって人がたくさんいるので，PDFにする方法があればPDFでも配布しようかな
+
+らしい．
+
+現状のものと新しいものを比較してみよう．
+
+#+begin_src
+$ git co master
+$ find getting_started -type f | sort | xargs wc -l
+   309 getting_started/1.markdown
+   697 getting_started/2.markdown
+   469 getting_started/3.markdown
+   364 getting_started/4.markdown
+   300 getting_started/5.markdown
+   293 getting_started/6.markdown
+    51 getting_started/7.markdown
+   158 getting_started/ex_unit/1.markdown
+   302 getting_started/mix/1.markdown
+   326 getting_started/mix/2.markdown
+   128 getting_started/mix/3.markdown
+  3397 total
+#+end_src
+
+#+begin_src
+$ git co v0.13
+$ find getting_started -type f | sort | xargs wc -l
+    87 getting_started/1.markdown
+   177 getting_started/10.markdown
+   172 getting_started/11.markdown
+   110 getting_started/12.markdown
+   128 getting_started/13.markdown
+   177 getting_started/14.markdown
+    99 getting_started/15.markdown
+   196 getting_started/16.markdown
+   175 getting_started/17.markdown
+    94 getting_started/18.markdown
+   181 getting_started/19.markdown
+   350 getting_started/2.markdown
+    43 getting_started/20.markdown
+   114 getting_started/3.markdown
+   175 getting_started/4.markdown
+   267 getting_started/5.markdown
+   179 getting_started/6.markdown
+   184 getting_started/7.markdown
+   249 getting_started/8.markdown
+    67 getting_started/9.markdown
+   162 getting_started/ex_unit/1.markdown
+   146 getting_started/meta/1.markdown
+   275 getting_started/meta/2.markdown
+   159 getting_started/meta/3.markdown
+   301 getting_started/mix/1.markdown
+   325 getting_started/mix/2.markdown
+   128 getting_started/mix/3.markdown
+  4720 total
+#+end_src
+
+分量が行数にして1.5倍くらい増えてる．これからやりがいがありそうだ……
+
+さしあたって
+
+- [[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese-v0.13/getting_started/1.markdown][1 Elixirをインタラクティブに動かす - Interactive Elixir]]
+- [[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese-v0.13/getting_started/2.markdown][2 基本的な型 - Basic types]]
+
+の2つを翻訳した．合計450行くらいでだいたい3-4時間くらいかかったので，全部翻訳するのに30-50時間くらいかかるんだろうか．
+
+ぼちぼちすすめていこう．
