@@ -1,0 +1,5 @@
+* ElixirのGetting Started翻訳中
+
+今日は[[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese-v0.13/getting_started/4.markdown][4 パターンマッチング - Pattern matching]]を翻訳した．
+
+一日一つずつやっていけばなんとか4月中に終わるな．とおっ!
