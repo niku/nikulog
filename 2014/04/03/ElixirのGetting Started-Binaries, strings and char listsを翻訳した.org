@@ -1,0 +1,17 @@
+* ElixirのGetting Started-Binaries, strings and char listsを翻訳した
+
+今日は[[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese-v0.13/getting_started/6.markdown][6 バイナリ，文字列そして文字リスト - Binaries, strings and char lists]]を翻訳した．
+
+ここのUTF-8とユニコードのくだりはElixir関係なく多くの人に有用であろう．
+
+Rubyだといい感じにラップしてくれて文字を扱ってくれているのだが，
+Elixirの文字列だと本当にバイトに過ぎないことが理解を助けているように思えた．
+
+自分の理解も書いておく．
+
+- ユニコード :: 世の中の文字をコードポイント(数字)に割り当てたもののこと．コンピューターと直接は関係ない．
+- UTF-8 :: 1バイト(255)までの数字ではコードポイントの一部しか表現できないので，複数バイトでコードポイントを表現することになる．そのときの複数バイトのコードポイントへの変換方式のこと．コンピューター特有の問題．
+
+ここらへんがなんとなくわかった気になれたのは[[http://amazon.jp/o/ASIN/4274066304/0x1d-22][Joel on Software]]の「すべてのソフトウェア開発者が絶対確実に知っていなければならないUnicodeとキャラクタセットに関する最低限のこと(言い訳なし!) 」を読んだときだった．
+
+文体は異なるが[[http://www.servletgarden.com/blog/2008/01/31/unicode-and-character-sets-translation/][Unicode and Character Sets (Translation)]]でwebでも読める．
