@@ -1,0 +1,19 @@
+* Rubyで標準入力から文字列を受けとって標準出力に出す
+
+#+begin_src shell
+$ echo 'foo' | echo.rb | cat
+foo
+#+end_src
+
+となるような echo.rb を作る．
+
+今までRubyスクリプトを繋ぐということをあんまりやってこなかったので新鮮だった．
+
+#+begin_src ruby
+#!/usr/bin/env ruby
+while line = gets
+  puts line
+end
+#+end_src
+
+これは結構遊べそうだ．
