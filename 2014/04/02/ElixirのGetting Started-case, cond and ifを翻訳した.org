@@ -1,0 +1,10 @@
+* ElixirのGetting Started-case, cond and ifを翻訳した
+
+今日は[[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese-v0.13/getting_started/5.markdown][5 case，condそしてif - case, cond and if]]を翻訳した．
+
+翻訳があやしいところ
+
+- control-flow structure :: 処理制御構造と訳した．なんと訳するのが日本語でピッタリくるんだろう．
+- =^= pin operator :: ピン演算子と訳した．これピッタリくる訳語あるんかいな．
+- clause :: 句と訳した．日本語だと「句」where句とか「節」guard節と訳されていますけどどっちがいいんだろう．
+- guard :: ガード．なんかいい訳あるんだろうか．
