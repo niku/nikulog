@@ -57,6 +57,10 @@ Failed to parse template: open wheezy.json: no such file or directory
 
 [[https://github.com/niku/my-packer-and-vagrant-example/commit/7171bf7417fb8464fa2aab8044a351a05eef6d3d][7171bf7417fb8464fa2aab8044a351a05eef6d3d]] のようになる．
 
+#+BEGIN_HTML
+<ins datetime="2014-04-04T15:33:00+09:00">packer0.5.0からtype名はvirtualboxではなくvirtualbox-isoになった．<a href="https://github.com/niku/my-packer-and-vagrant-example/commit/271a734d8953e89ab15ca24959bcf3194961e22c">271a734d8953e89ab15ca24959bcf3194961e22c</a>参照のこと</ins>
+#+END_HTML
+
 ** 1. ブートメニューで止まる
 
 : $ packer build wheezy64.json
