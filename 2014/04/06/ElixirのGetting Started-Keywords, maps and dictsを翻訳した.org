@@ -1,0 +1,18 @@
+* ElixirのGetting Started-Keywords, maps and dictsを翻訳した
+
+今日は[[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese-v0.13/getting_started/7.markdown][7 キーワード，マップそしてリスト - Keywords, maps and dicts]]を翻訳した．
+
+これまでできるだけ原文に忠実に訳そうと思っていたのだが
+
+- 英語では1と複数を(a ...や...sという記述で)きっちり分ける，日本語ではわけない
+- 英語では主語を毎回はっきり書く，日本語では自明の場合に省略する
+
+あたりを主に訳者の英語力不足のため吸収しきれず，
+英語も併記していることもあるので，
+最近は日本語でわかりやすくなる方に振っちゃえという判断になりつつある．
+
+#+begin_quote
+Whenever you need a key-value store, maps are the "go to" data structure in Elixir.
+#+end_quote
+
+の意味がよくわからなかった．後で聞いてみよう．
