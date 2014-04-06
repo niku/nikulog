@@ -1,0 +1,18 @@
+* Sapporo.beamした
+
+今日は3人もきた．
+
+一人はHashRocketのブログ「[[http://hashrocket.com/blog/posts/taking-advantage-of-the-polyglot-lifestyle][Taking Advantage of the Polyglot Lifestyle]]」を見てdynamoを動かしてみようとして，コンパイルでつまづいていた．
+
+一人はGo言語のORマッパーの続きを眺めていた．RailsのActiveRecordと比べるとquery(where句)の書きかたが生々しいらしい．
+
+一人(自分)はidobataでElixirのコードについて聞かれたので，[[https://gist.github.com/niku/9971916][答えた]]のと，それが終わったら[[http://niku.name/articles/2014/04/06/Elixir%E3%81%AEGetting%20Started-Keywords,%20maps%20and%20dicts%E3%82%92%E7%BF%BB%E8%A8%B3%E3%81%97%E3%81%9F][翻訳の続き]]をしていた．
+
+サッポログランドホテルのスタバに新しく導入された，
+日本のスターバックス店舗の1割未満にしか置かれていない[[http://www.starbucks.co.jp/reserve/][クローバー]]という機械と，
+特別な豆(フィンカ ヌエポ メキシコ)によるアイスコーヒーを頼んでみた．
+
+おいしかったが，値段がはるのと，ホットコーヒーで飲んだ方がよかったかなあという感想になった．
+次の機会があればそうしてみよう．
+
+店員の人が丁寧にウンチクをかたむけながら自分だけのために作ってくれるので，一度注文してみるとおもしろいと思う．
