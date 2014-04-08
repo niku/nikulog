@@ -1,0 +1,9 @@
+* ElixirのGetting Started-Modulesを翻訳した
+
+今日は[[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese-v0.13/getting_started/8.markdown][8 モジュール - Modules]]を翻訳した．
+
+callとinvokeはどちらも「呼び出し」と訳していた．
+
+ニュアンスの違いが気になったのでネイティブの人へ聞いたところ「invokeはやや固めで，callの方が柔らかい．使い分けはそれくらい」と教えてくれた．
+
+あんまり気にしなくていいみたい．これからも気にしないで使おう．助かる．
