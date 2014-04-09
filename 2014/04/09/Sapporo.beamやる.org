@@ -1,0 +1,23 @@
+* Sapporo.beamやる
+
+Sapporo.beamとはErlangVMを使うプログラミング言語ErlangとかElixirについてワイワイ話すところ．
+
+ElixirのインストールやElixirのドキュメント翻訳やWebフレームワークに触ってみたりできる．
+
+明日(4/10)19:00-21:00 に札幌グランドホテルにあるスターバックスでやる．
+
+- [[http://niku.name/articles/2014/02/13/Sapporo.beam%E3%81%97%E3%81%9F][1回目]]
+- [[http://niku.name/articles/2014/02/27/Sapporo.beam%E3%81%97%E3%81%9F][2回目]]
+- [[http://niku.name/articles/2014/03/06/Sapporo.beam%E3%81%97%E3%81%9F][3回目]]
+- [[http://niku.name/articles/2014/03/13/Sapporo.beam%E3%82%84%E3%81%A3%E3%81%9F][4回目]]
+- [[http://niku.name/articles/2014/03/20/Sapporo.beam%E3%81%97%E3%81%9F][5回目]]
+- [[http://niku.name/articles/2014/03/27/Sapporo.beam%E3%81%97%E3%81%9F][6回目]]
+- [[http://niku.name/articles/2014/04/04/Sapporo.beam%E3%81%97%E3%81%9F][7回目]]
+
+次は8回目みたい．
+
+僕は[[https://github.com/niku/elixir-lang.github.com][Getting Startedの日本語翻訳]]かtwitterのStreamTimelineをelixirで取得してみるのをやろうかと思っている．きてね．
+
+twitterのハッシュタグはサッポロビールの人気にあやかろうと #サッポロビーム にした．
+
+idobata.ioに[[https://idobata.io/#/organization/sapporobeam/room/lobby][Sapporo.beam]]もある．興味ある人はjoinしてみてね．
