@@ -1,0 +1,9 @@
+* ElixirのGetting Started-Recursionを翻訳した
+
+今日は[[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese-v0.13/getting_started/9.markdown][9 再帰 - Recursion]]を翻訳した．
+
+イミュータブル，ガード，アキュムレーターなど日本語でいい感じに翻訳するのが無理なやつが増えてきた．
+
+一度通して翻訳したあとに読みやすいよう揃えていきたい．
+
+ちょっと長い文が多くて翻訳に苦労した．英語書く人は文を短く切ってくれると翻訳に対応づけやすくて嬉しい．
