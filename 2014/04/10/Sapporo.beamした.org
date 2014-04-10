@@ -1,0 +1,69 @@
+* Sapporo.beamした
+
+今日は2人もきた．
+
+1人(初参加してくれた)はElixirからGUIツールの[[http://www.erlang.org/doc/apps/wx/chapter.html][wxErlang]]を利用できるという[[https://github.com/oslampa/seagull][seagull]]を試していた．
+
+もう1人(自分)は，最初は[[http://niku.name/articles/2014/04/10/Elixir%E3%81%AEGetting%20Started-Recursion%E3%82%92%E7%BF%BB%E8%A8%B3%E3%81%97%E3%81%9F][Getting StartedのRecursion]]を翻訳した．後から合流してseagullを動かしてみた．
+
+#+begin_src
+$ git clone git@github.com:oslampa/seagull.git
+$ cd seagull
+$ iex -S mix
+Erlang R16B03-1 (erts-5.10.4) [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false] [dtrace]
+
+Interactive Elixir (0.12.5) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> Demo.Calc.start
+
+=ERROR REPORT==== 10-Apr-2014::19:50:10 ===
+ERROR: Could not find 'wxe_driver.so' in: /usr/local/Cellar/erlang/R16B03-1/lib/erlang/lib/wx-1.1.2/priv
+
+=ERROR REPORT==== 10-Apr-2014::19:50:10 ===
+Error in process <0.57.0> with exit value: {{load_driver,"No driver found"},[{wxe_server,start,1,[{file,"wxe_server.erl"},{line,64}]},{wx,new,1,[{file,"wx.erl"},{line,114}]},{'Elixir.WindowProcess',gui_process,2,[{file,"lib/window_process.ex"},{line,12}]}]}
+#+end_src
+
+アカン……ドライバーがないようだ．
+
+「wxWidgetsが入ってないのでは」と教えてもらったのでerlangのコンパイルオプションを眺めてみる．
+
+#+begin_src
+$ brew edit erlang
+#+end_src
+
+すると，エディタでbrewのコンパイルオプションその他が眺められる．
+
+ファイルの中に
+
+#+begin_src
+  depends_on 'wxmac' => :recommended # for GUI apps like observer
+#+end_src
+
+というのがある．recommendedというのを有効にすればできそうだなあ．
+
+Homebrewの[[https://github.com/Homebrew/homebrew/wiki/Formula-Cookbook#specifying-other-formulae-as-dependencies][Specifying other formulae as dependencies]]をみると，recommendedのやつをインストールするには =--with-xxx= をコマンドに渡すと書いてある．
+
+確かにErlangインストールするとき，下のようにElixirのインストールから依存関係の解決でインストールしたからこのオプションを有効にした記憶がない．
+
+: $ brew install elixir
+
+そこで
+
+: $ reinstall erlang --with-wxmac
+
+として再インストールしてみた．プログレスを眺めているとwxmacが入ったようだ．再度挑戦する．
+
+#+begin_src
+$ iex -S mix
+Erlang R16B03-1 (erts-5.10.4) [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false] [dtrace]
+
+Interactive Elixir (0.12.5) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> Demo.Calc.start
+#+end_src
+
+[[seagull-demo-calc.png]]
+
+うひょー！ElixirでGUI動いた！
+
+教えてくれた人はWindows7で，ErlangをバイナリでインストールしたらwxWidgetsも含まれていたようで，特に何もしないでも動作していた．
+
+あと，seagullを作っている人が[[https://github.com/oslampa/problems][problems]]というリポジトリで"Solutions to 99 problems list in Elixir."というのをやっているのを教えてもらった．
