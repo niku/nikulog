@@ -1,0 +1,17 @@
+* ElixirのGetting Started-Enumerables and Streamsを翻訳した
+
+今日は[[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese-v0.13/getting_started/10.markdown][10 enumerableとstream - Enumerables and Streams]]を翻訳した．
+
+- enumerable
+- streams
+- composable
+
+これらの単語を最初はカタカナで書いてみてたのだけど，アルファベットの方がわかりやすそうだったのであきらめて英語にした．
+
+どこで線引きするのか難しいなあ．英語の文章を日本語に翻訳している人はすべからくこういう苦労をしているのだな．
+
+あと =[[http://elixir-lang.org/docs/stable/Stream.html#resource/3][Stream.resource/3=]] という便利そうなメソッドを覚えた．
+
+Ruby の begin - rescue - ensure を1メソッドの中に書くという感じだろうか．リソースを開いてxxxして確実に閉じるということをするためのものなんだろう．
+
+Ruby のブロックつき open に比べると，リソースを開くとリソースを閉じるも自分で書かないといけなさそうな点が面倒かな．ここはもっと高級な(ラップした)関数があるんだろうか．
