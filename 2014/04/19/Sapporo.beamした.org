@@ -1,0 +1,7 @@
+* Sapporo.beamした
+
+今日は1人でやった．
+
+時間が短かったのと日程がいつもと違うせいもあったと思う．参加したかった人ごめんね．
+
+今日は[[https://github.com/niku/elixir-lang.github.com/tree/translate-into-japanese-v0.13][ElixirのGetting Startedを日本語に翻訳]]の続きをしていた．
