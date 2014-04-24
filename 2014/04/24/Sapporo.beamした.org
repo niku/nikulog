@@ -1,0 +1,18 @@
+* Sapporo.beamした
+
+今日はオンラインに1人，オフラインに3人もきた．
+
+オンラインの1人はWindowsにElixir0.13.0を入れていたそうだ．
+0.12.5のときはコマンドプロンプト内でiexが立ちあがっていたので"あ"と打つと(UTF-8ではないないので)クラッシュしていた．
+0.13.0からは専用ウィンドウが立ちあがるようになったので"あ"と打てるようになった．すばらしい！
+
+オフラインの1人は[[http://opalang.org/][Opa]]という言語をいじっていた．
+OCamlにJavaScriptの皮をかぶせたもので，HTML/CSS/JavaScriptを静的型付言語として構築できるみたい．
+デモをみせてもらったけどすんごいテクノロジーで一言は説明しがたい．
+ある企業が自分のところで利用するのに作っているみたい．
+
+オフラインの1人は[[https://github.com/phoenixframework/phoenix][Phoenix]]をHerokuにデプロイして動かしてみていた．
+
+オフラインの1人(自分)はGithubに[[https://github.com/sapporo-beam][sapporo-beamというorganization]]を作ってた．まだなんにもない．
+
+v0.13.0でWindowsでもハマらずに使えるようになったみたいだし，Elixirはじまりはじめているな．
