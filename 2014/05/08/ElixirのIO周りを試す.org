@@ -1,0 +1,163 @@
+* ElixirのIO周りを試す
+
+[[https://github.com/niku/elixir-lang.github.com/blob/translate-into-japanese-v0.13/getting_started/12.markdown][ElixirのGetting StartedのIOを翻訳]]して色々知ったので試していく．
+
+** シェバング(shebang)について
+
+ファイルの1行目に書くシェバングは
+
+: #!/usr/bin/env elixir
+
+でいいみたい．
+
+** 標準出力を試す
+
+#+begin_src elixir
+#!/usr/bin/env elixir
+IO.puts "hello"
+#+end_src
+
+という内容のファイルを作って，hello.exsとして保存．
+
+elixirのファイルはexかexsという拡張子にするのが標準的で
+
+- exはelixircでコンパイルすることを意図したファイル
+- exsはコンパイルしないで利用することを意図したファイル
+
+となっている．
+
+#+begin_src shell
+$ chmod 755 hello.exs
+$ ./hello.exs
+hello
+#+end_src
+
+うむ．標準出力されているようだ．
+
+** 標準入力を試す
+
+#+begin_src elixir
+#!/usr/bin/env elixir
+case IO.gets "yes or no? " do
+  "yes\n" -> IO.puts "yes!"
+  "no\n"  -> IO.puts "no!"
+end
+#+end_src
+
+という内容のファイルを作って，input.exsとして保存．
+
+#+begin_src shell
+$ chmod 755 input.exs
+$ ./input.exs
+yes or no? yes
+yes!
+$ ./input.exs
+yes or no? no
+no!
+$ echo 'yes' | ./input.exs
+yes or no? yes!
+#+end_src
+
+うむ．標準入力を使っているようだ．
+
+** 標準エラー出力を試す
+
+#+begin_src elixir
+#!/usr/bin/env elixir
+IO.puts "stdout"
+IO.puts :stderr, "stderror"
+#+end_src
+
+という内容のファイルを作って，error.exsとして保存．
+
+#+begin_src shell
+$ chmod 755 error.exs
+$ ./error.exs
+stdout
+stderr
+$ ./error.exs > /dev/null
+stderr
+#+end_src
+
+うむ．標準エラー出力を使っているようだ．
+
+: > /dev/null
+は，標準出力を =/dev/null= へリダイレクトしている(標準出力を捨てている)．
+
+つまり標準エラー出力だけが表示されるはずで，そのとおりになっている．
+
+** 日本語を試す
+
+#+begin_src elixir
+#!/usr/bin/env elixir
+case IO.gets "ほげ or ふが？ " do
+  "ほげ\n" -> IO.puts "ほげ！"
+  "ふが\n" -> IO.puts "ふが！"
+end
+#+end_src
+
+という内容のファイルを作って，multibyte.exsとして保存．
+
+#+begin_src shell
+$ chmod 755 multibyte.exs
+$ ./multibyte.exs
+ほげ or ふが？ ほげ
+ほげ！
+$ ./multibyte.exs
+ほげ or ふが？ ふが
+ふが！
+$ echo "ほげ" | ./multibyte.exs
+ほげ or ふが？ ほげ！
+#+end_src
+
+うむ．日本語も平気なようだ．
+
+** ファイルの読み込み
+
+#+begin_src elixir
+#!/usr/bin/env elixir
+doc = File.read! "foo.txt"
+IO.puts doc
+#+end_src
+
+という内容のファイルを作って，file_input.exsとして保存．
+
+#+begin_src shell
+$ echo "あいう\nえお" > foo.txt
+$ chmod 755 file_input.exs
+$ ./file_input.exs
+あいう
+えお
+
+#+end_src
+
+うむ．読み込める．
+
+** ファイルの書き込み
+
+#+begin_src elixir
+#!/usr/bin/env elixir
+File.write! "bar.txt", "かきく\nけこ"
+#+end_src
+
+という内容のファイルを作って，file_output.exsとして保存．
+
+#+begin_src shell
+$ cat bar.txt
+cat: bar.txt: No such file or directory
+$ chmod 755 file_output.exs
+$ ./file_output.exs
+$ cat bar.txt
+かきく
+けこ
+#+end_src
+
+うむ．書き込めている．
+
+** 異なるノード間でのIOのやりとり(わからなかった)
+
+「Erlang VMは同じネットワークの異なるノード間でファイルプロセスを交換し，
+どちらのノードであってもファイルを読み書きできます．」
+
+というのをどう試せばよいのかよくわからなかった．
+修行が足りない．
