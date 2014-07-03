@@ -1,0 +1,27 @@
+* railsで最後にmigrationしたファイルをコマンドから任意のエディタで開く
+
+忙しさにかまけて日記をほとんど書いていなかったことに気づいた．
+
+帯広も暑くなってきた．空がめっちゃ青い．
+
+railsで開発しているとき，コマンドで
+
+: bundle exec rails g migration ChangeFooColumnInHogeTable
+
+のようにしたあと，どうやって編集しているだろうか．
+
+僕は毎回 emacs で db/migration のなかからファイルを探して開いていた．
+
+あんまりやらないなら，それでも十分なんだけど，何回もやっているうちに面倒になってきた．
+
+そこで何かコマンドがないか探したところ [[https://coderwall.com/p/jgqsmg][Open last generated migration easily in your editor]] という記事があったので利用させてもらうことにした．
+
+: alias last_migration='ls db/migrate/* | tail -n1 | xargs $EDITOR'
+
+コマンドを打つと db/migrate の中から，最後の1つを選んで，エディタで開く．やっていることは同じだ．
+
+僕の場合は EDITOR の設定は以下のようになっており，emacsclient 経由で migration したファイルを開いている．
+
+: export EDITOR='emacsclient'
+
+編集し終わったら Emacs 上で =C-x #= とすれば端末に制御が返ってくる．
