@@ -1,0 +1,83 @@
+* Elixirでコマンドラインツールを作る
+
+今日は[[http://abstraction.killedthecat.net/create-command-line-utility-elixir-mix/][ How to create a command line utility with Elixir and mix]] というサイトを参考にして
+Elixirでコマンドラインツールを作ってみる．
+
+まずプロジェクトを作成する．
+
+#+begin_src shell
+/Users/niku/projects% elixir -v
+Elixir 0.14.3
+/Users/niku/projects% mix new timer
+#+end_src
+
+何もない状態でビルドしてみる．以前は =mix escriptize= という名前だったのだけど，[[https://github.com/elixir-lang/elixir/commit/2453501c8361a605682cdfb0ec4127b0b4c1a453#diff-c2c2d76e08e73ec404be79f44fa4dfef][v0.14.3になる前に変更された]]ようだ．
+
+#+begin_src shell
+/Users/niku/projects% cd timer
+/Users/niku/projects/timer% mix escript.build
+Compiled lib/timer.ex
+Generated timer.app
+** (Mix) Could not generate escript, please set :main_module in your project configuration (under `:escript` option) to a module that implements main/1
+#+end_src
+
+うむ． =escript= の中に =main_module= を指定してねと書いてある．これも以前は =escript_main_module= という名前だったのだけど，[[https://github.com/elixir-lang/elixir/commit/18572678721efec22461aa85ecb0fb9ba43a13c2][v0.14.3になる前に変更された]]ようだ．
+
+そこで =mix.exs= に足してやる．
+
+#+begin_src elixir
+# in mix.exs
+  def project do
+    [app: :timer,
+     version: "0.0.1",
+     elixir: "~> 0.14.3",
+     escript: [ main_module: Timer ], # add here
+     deps: deps]
+  end
+#+end_src
+
+もういちどビルドしてみる．
+
+#+begin_src shell
+/Users/niku/projects/timer% mix escript.build
+Compiled lib/timer.ex
+Generated timer.app
+Generated escript timer
+#+end_src
+
+通ったみたい． =timer= というファイルができているので実行してみる．
+
+#+begin_src shell
+/Users/niku/projects/timer% ./timer
+** (UndefinedFunctionError) undefined function: Timer.main/1
+    (timer) Timer.main([])
+    (elixir) lib/kernel/cli.ex:70: anonymous fn/3 in Kernel.CLI.exec_fun/2
+#+end_src
+
+=Timer.main(引数1)= が定義されていないとのこと．はい．定義します．
+
+=lib/timer.ex= に足す．
+
+#+begin_src elixir
+# in lib/timer.ex
+defmodule Timer do
+  def main(args) do
+    IO.puts("Hello world!")
+  end
+end
+#+end_src
+
+再コンパイル，再実行してみる．
+
+#+begin_src shell
+/Users/niku/projects/timer% mix escript.build
+Compiled lib/timer.ex
+Generated timer.app
+Generated escript timer
+/Users/niku/projects/timer% ./timer
+Hello world!
+#+end_src
+
+おっ，よしよし．Hello worldが表示された．
+
+ひとまずここまで．
