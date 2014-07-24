@@ -1,0 +1,13 @@
+* ブラウザが日本語を話すwebアプリを作った
+
+最近 [[https://cloud.voicetext.jp/webapi][VoiceText Web API]] というものが発表されて話題になった．
+
+HTTP 経由で日本語と各種パラメータをつけてリクエストすると，レスポンスに wav 形式で合成された音声が返ってくる．それを再生すると楽しめる．
+
+そこでブラウザが wav ファイルを再生してしゃべるようにしてみた．最近のブラウザはプラグインなしで音声再生ができるんだなあ．
+
+最初 webrick で開発してたのだけど content_type "audio/wave" を指定しても webrick のレスポンスの Content-Type が audio/wave にならなくて困った．
+
+サーバーを Thin にするだけど，レスポンスの Content-Type が変わったので，サーバーかRackのアダプタのどこかに原因がありそうだ(まだ調べていない)
+
+[[https://github.com/niku/voice_text_web_api_on_browser][コードは github に置いた]]．
