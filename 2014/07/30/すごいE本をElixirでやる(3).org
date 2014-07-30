@@ -1,0 +1,108 @@
+* すごいE本をElixirでやる(3)
+
+つづき
+
+- [[http://niku.name/articles/2014/07/28/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B][すごいE本をElixirでやる]]
+- [[http://niku.name/articles/2014/07/29/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(2)][すごいE本をElixirでやる(2)]]
+
+** 1 章
+
+*** 1.2 Erlang の基礎をいくつか
+
+**** アトム
+
+- Erlang だと小文字で書くだけでアトムになる．だから変数名を小文字で始められない．
+- Elixir は変数名を小文字で始められる，そのかわりアトムは =:= から始める．
+
+- Erlang だとシングルクォートで囲った値もアトムになる．
+- Elixir では =:= で始まったダブルクォートで囲った値もアトムになる．
+
+#+begin_src iex
+/Users/niku/projects/elixir% iex
+Erlang/OTP 17 [erts-6.1] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false] [dtrace]
+
+Interactive Elixir (0.14.3) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> :atom
+:atom
+iex(2)> :atoms_rule
+:atoms_rule
+iex(3)> :atoms_rule@erlang
+:atoms_rule@erlang
+iex(4)> :"Atoms can be cheated!"
+:"Atoms can be cheated!"
+iex(5)> :atom = :"atom"
+:atom
+#+end_src
+
+**** ブール代数と比較演算子
+
+Elixir の演算子は [[http://elixir-lang.org/getting_started/3.html][3 Basic operators]] を見るとわかりやすい．
+
+- =and= =or= は使えるけど，Erlang と違って短絡演算子になってる
+- =xor= は deprecated の warning が出た．
+- Elixir では厳密な比較に === や !=== を使う．厳密でない比較に == や != を使う．
+- Erlang とは違い 1 >= 1 に対応するのは 1 <= 1 で等号の位置が入れ替わったりしない．
+- Erlang と同じで =true= と =false= はシンボルである．
+
+おまけ．
+
+Elixir ではブール代数以外でも扱える =&&= と =||= が用意されている．その場合は =false= と =nil= だけが偽として扱われる．
+
+#+begin_src iex
+/Users/niku/projects/elixir% iex
+Erlang/OTP 17 [erts-6.1] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false] [dtrace]
+
+Interactive Elixir (0.14.3) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> true and false
+false
+iex(2)> false or true
+true
+iex(3)> true xor false
+iex:3: warning: Kernel.xor/2 is deprecated
+true
+iex(4)> not false
+true
+iex(5)> not (true and true)
+false
+iex(6)> 5 === 5
+true
+iex(7)> 1 === 0
+false
+iex(8)> 1 !== 0
+true
+iex(9)> 5 === 5.0
+false
+iex(10)> 5 == 5.0
+true
+iex(11)> 5 != 5.0
+false
+iex(12)> 1 < 2
+true
+iex(13)> 1 < 1
+false
+iex(14)> 1 >= 1
+true
+iex(15)> 1 =< 1
+** (SyntaxError) iex:15: syntax error before: '<'
+
+iex(15)> 1 <= 1
+true
+iex(16)> 5 + :llama
+** (ArithmeticError) bad argument in arithmetic expression
+    :erlang.+(5, :llama)
+iex(16)> 5 === true
+false
+iex(17)> 0 == false
+false
+iex(18)> 1 < false
+true
+iex(19)> 1 and 2
+** (ArgumentError) argument error: 1
+
+iex(20)> 1 && 2
+2
+iex(21)> 1 || 2
+1
+iex(21)> false || 2
+2
+#+end_src
