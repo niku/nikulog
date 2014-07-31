@@ -1,0 +1,119 @@
+* すごいE本をElixirでやる(4)
+
+つづき
+
+- [[http://niku.name/articles/2014/07/28/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B][すごいE本をElixirでやる]]
+- [[http://niku.name/articles/2014/07/29/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(2)][すごいE本をElixirでやる(2)]]
+- [[http://niku.name/articles/2014/07/30/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(3)][すごいE本をElixirでやる(3)]]
+
+** 1 章
+
+*** 1.2 Erlang の基礎をいくつか
+
+**** タプル
+
+Erlang と Elixir で特に違わないなあ．
+
+#+begin_src iex
+/Users/niku/projects/elixir% iex
+Erlang/OTP 17 [erts-6.1] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false] [dtrace]
+
+Interactive Elixir (0.14.3) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> x = 10
+10
+iex(2)> y = 4
+4
+iex(3)> point1 = {x, y}
+{10, 4}
+iex(4)> point2 = {4, 5}
+{4, 5}
+iex(5)> {a, b} = point2
+{4, 5}
+iex(6)> a
+4
+iex(7)> {a, _} = point2
+{4, 5}
+iex(8)> {_, _} = {4, 5}
+{4, 5}
+iex(9)> {_, _} = {4, 5, 6}
+** (MatchError) no match of right hand side value: {4, 5, 6}
+
+iex(9)> temperature = 23.213
+23.213
+iex(10)> precise_temprature = {:celsius, 23.213}
+{:celsius, 23.213}
+iex(11)> {:kelvin, t} = precise_temprature
+** (MatchError) no match of right hand side value: {:celsius, 23.213}
+
+iex(11)> {:point, {x, y}}
+{:point, {10, 4}}
+iex(12)>
+#+end_src
+
+*** リスト
+
+ここも Erlang と Elixir であんまり変わらない．
+
+=[223]= が Erlang だと "é" と表示されるはずが，Elixir だとそのまま =[223]= と表示されたところだけ違った．
+
+Elixir でも
+
+#+begin_src iex
+iex(23)> <<233 :: utf8>>
+"é"
+#+end_src
+
+とすれば同じように値を表現することはできる．(あんまりやらないだろうけど)
+
+詳しくは [[http://elixir-lang.org/getting_started/6.html][6 Binaries, strings and char lists]] に書いてある．
+
+#+begin_src iex
+/Users/niku/projects/elixir% iex
+Erlang/OTP 17 [erts-6.1] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false] [dtrace]
+
+Interactive Elixir (0.14.3) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> [1, 2, 3, {:numbers, [4, 5, 6]}, 5.34, :atom]
+[1, 2, 3, {:numbers, [4, 5, 6]}, 5.34, :atom]
+iex(2)> [97, 98, 99]
+'abc'
+iex(3)> [97, 98, 99, 4, 5, 6]
+[97, 98, 99, 4, 5, 6]
+iex(4)> [233]
+[233]
+iex(5)> [1, 2, 3] ++ [4, 5]
+[1, 2, 3, 4, 5]
+iex(6)> [1, 2, 3, 4, 5] -- [1, 2, 3]
+[4, 5]
+iex(7)> [2, 4, 2] -- [2, 4]
+[2]
+iex(8)> [2, 4, 2] -- [2, 4, 2]
+[]
+iex(9)> [1, 2, 3] -- [1, 2] -- [3]
+[3]
+iex(10)> [1, 2, 3] -- [1, 2] -- [2]
+[2, 3]
+iex(11)> hd([1, 2, 3, 4])
+1
+iex(12)> tl([1, 2, 3, 4])
+[2, 3, 4]
+iex(13)> list = [2, 3, 4]
+[2, 3, 4]
+iex(14)> new_list = [1 | list]
+[1, 2, 3, 4]
+iex(15)> [head | tail] = new_list
+[1, 2, 3, 4]
+iex(16)> head
+1
+iex(17)> tail
+[2, 3, 4]
+iex(18)> [new_head | new_tail] = tail
+[2, 3, 4]
+iex(19)> new_head
+2
+iex(20)> [1 | []]
+[1]
+iex(21)> [2 | [1 | []]]
+[2, 1]
+iex(22)> [3 | [2 | [1]]]
+[3, 2, 1]
+#+end_src
