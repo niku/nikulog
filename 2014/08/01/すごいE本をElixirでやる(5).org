@@ -1,0 +1,49 @@
+* すごいE本をElixirでやる(5)
+
+つづき
+
+- [[http://niku.name/articles/2014/07/28/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B][すごいE本をElixirでやる]]
+- [[http://niku.name/articles/2014/07/29/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(2)][すごいE本をElixirでやる(2)]]
+- [[http://niku.name/articles/2014/07/30/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(3)][すごいE本をElixirでやる(3)]]
+- [[http://niku.name/articles/2014/07/31/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(4)][すごいE本をElixirでやる(4)]]
+
+** 1 章
+
+*** 1.2 Erlang の基礎をいくつか
+
+**** リスト内包表記
+
+Elixir では [[http://elixir-lang.org/blog/2014/04/21/elixir-v0-13-0-released/][0.13.0]] から導入された．ドキュメントは [[http://elixir-lang.org/getting_started/18.html][18 Comprehensions]] にある．
+
+Erlang とは結構表記方法が違うなあ．
+
+#+begin_src iex
+/Users/niku/projects/eloido% iex
+Erlang/OTP 17 [erts-6.1] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false] [dtrace]
+Interactive Elixir (0.14.3) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> for n <- [1, 2, 3, 4], do: 2 * n
+[2, 4, 6, 8]
+iex(2)> for x <- [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], rem(x, 2) === 0, do: x
+[2, 4, 6, 8, 10]
+iex(3)> restaurant_menu = [{:steak, 5.99}, {:beer, 3.99}, {:poutine, 3.50}, {:kitten, 20.99}, {:water, 0.00}]
+[steak: 5.99, beer: 3.99, poutine: 3.5, kitten: 20.99, water: 0.0]
+iex(4)> for {item, price} <- restaurant_menu, price >= 3, price <= 10, do: {item, price * 1.07}
+[steak: 6.409300000000001, beer: 4.2693, poutine: 3.745]
+iex(5)> for x <- [1, 2], y <- [3, 4], do: x + y
+[4, 5, 5, 6]
+iex(6)> weather = [{:tronto, :rain}, {:montreal, :storms}, {:london, :fog}, {:paris, :sun}, {:boston, :fog}, {:vancouver, :snow}]
+[tronto: :rain, montreal: :storms, london: :fog, paris: :sun, boston: :fog, vancouver: :snow]
+iex(7)> foggy_places = for {x, :fog} <- weather, do: x
+[:london, :boston]
+#+end_src
+
+おまけ．
+
+Elixir は範囲を表記するのに =1..10= をつかえるので，
+
+#+begin_src iex
+iex(10)> for x <- 1..10, do: x
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+#+end_src
+
+と書ける．
