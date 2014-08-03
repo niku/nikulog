@@ -1,0 +1,87 @@
+* emacsのelixir-mode-iexが使えない問題を解決する
+
+** まとめ
+
+もし iex を起動したときに
+
+#+begin_src
+Error in process <0.25.0> with exit value: {{badmatch,{error,enotsup}},[{'Elixir.IEx','-start/2-fun-0-',2,[{file,"lib/iex.ex"},{line,454}]}]}=
+#+end_src
+
+というエラーが出たなら，v0.14.3 より後(v0.15.0)にすると改善する．
+
+** 現象
+
+OSX の emacs(GUI) から =elixir-mode-iex= を実行したときに
+
+#+begin_src
+Warning: could not run smart terminal, falling back to dumb one
+Eshell V6.1  (abort with ^G)
+1> 1> 1>
+=ERROR REPORT==== 2-Aug-2014::06:47:41 ===
+Error in process <0.25.0> with exit value: {{badmatch,{error,enotsup}},[{'Elixir.IEx','-start/2-fun-0-',2,[{file,"lib/iex.ex"},{line,454}]}]}
+#+end_src
+
+となり iex が使えない．
+
+elixir は homebrew でインストールしており，バージョンは v0.14.3 である．
+
+** 開発最新版でも再現するか見てみる
+
+手元に elixir のリポジトリをクローンして，コンパイルすると =bin/iex= に最新版の iex ができる．
+
+この iex を emacs から利用するには elisp (例: init.el ) に
+
+=(setq elixir-iex-command "/Users/niku/projects/elixir/bin/iex")=
+
+といったようにフルパスでコマンドを指定する．
+
+1. 最新版の elixir を用意する
+2. 最新版の elixir の iex を利用するように emacs へ指定する
+
+この 2 つの準備をして，emacs から =elixir-mode-iex= を実行してみる．
+
+そうするとエラーが出ず，問題が再現しない．つまり改善されている．
+
+** ソースコードを眺めてみる
+
+直っているので，単に使えるようにしたいだけなら「最新版にする」で十分だ．
+今回は興味本位で，簡単にわかるところまでは調べてみる．
+
+- v0.14.3 では発生する
+- 最新版では発生しない
+
+ので該当するファイルの =git diff= を眺めてみる．
+
+elixir のルートパスで
+
+=git diff v0.14.3.. -- lib/iex/lib/iex.ex=
+
+とすると，
+
+#+begin_src diff
+/Users/niku/projects/elixir% git diff v0.14.3.. -- lib/iex/lib/iex.ex
+
+diff --git a/lib/iex/lib/iex.ex b/lib/iex/lib/iex.ex
+index bbcd281..4e8d42d 100644
+--- a/lib/iex/lib/iex.ex
++++ b/lib/iex/lib/iex.ex
+@@ -487,7 +487,11 @@ defmodule IEx do
+         &IEx.Autocomplete.expand(&1)
+       end
+
+-    :io.setopts gl, [expand_fun: expand_fun, binary: true, encoding: :unicode]
++    # expand_fun is not supported by a shell variant
++    # on Windows, so we do two io calls, not caring
++    # about the result of the expand_fun one.
++    _ = :io.setopts(gl, expand_fun: expand_fun)
++    :io.setopts(gl, binary: true, encoding: :unicode)
+   end
+
+   defp ensure_module_exists(node, mod) do
+#+end_src
+
+「 =expand_fun= が windows の shell っぽいやつではサポートされていないので，
+呼び出しを 2 つに分け， 呼び出しの片方， =expand_fun= の結果について，ケアしないことにした．」
+
+といったようなことが書いてある．確かに _ = ... は結果を気にしない．という意味になる．つまり windows 対応のついでに直ったようだ．
