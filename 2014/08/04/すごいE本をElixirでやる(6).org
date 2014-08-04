@@ -1,0 +1,78 @@
+* すごいE本をElixirでやる(6)
+
+つづき
+
+- [[http://niku.name/articles/2014/07/28/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B][すごいE本をElixirでやる]]
+- [[http://niku.name/articles/2014/07/29/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(2)][すごいE本をElixirでやる(2)]]
+- [[http://niku.name/articles/2014/07/30/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(3)][すごいE本をElixirでやる(3)]]
+- [[http://niku.name/articles/2014/07/31/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(4)][すごいE本をElixirでやる(4)]]
+- [[http://niku.name/articles/2014/08/01/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(5)][すごいE本をElixirでやる(5)]]
+
+** 1 章
+
+*** 1.3 バイナリデータを扱う
+
+**** ビット構文
+
+Elixir のバイナリのパターンマッチは
+
+- (値)
+- (値)::(サイズ)
+- (値)::(型指定子リスト)
+- (値)::(サイズ)-(型指定子リスト)
+
+のように書く．
+
+[[https://groups.google.com/forum/#!msg/elixir-lang-talk/TuBeleHxoSc/sghyK9pauVIJ][Binary pattern matching]] あたりを眺めると昔(1年前)は書き方が違ったようで，
+=<< id :: [size(24), binary, unit(1)], rest :: binary >>= のように大括弧でくくっていた．
+これは *古い書き方なので真似してはいけない* ．
+
+情報があんまりなくて苦労したが，Elixir のテスト [[https://github.com/elixir-lang/elixir/blob/master/lib/elixir/test/elixir/kernel/binary_test.exs#L53][binary_test.exs]] の =:string_concatenation_as_match= を眺めるのが一番わかりやすかった．
+
+#+begin_src iex
+Eshell V6.1  (abort with ^G)
+Interactive Elixir (0.15.0) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> color = 0xf09a29
+15768105
+iex(2)> pixel = <<color::24>>
+<<240, 154, 41>>
+iex(3)> pixels = <<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
+<<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
+iex(4)> <<pix1, pix2, pix3, pix4>> = pixels
+** (MatchError) no match of right hand side value: <<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
+
+iex(4)> <<pix1::24, pix2::24, pix3::24, pix4::24>> = pixels
+<<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
+iex(5)> <<r::8, g::8, b::8>> = <<pix1::24>>
+<<213, 45, 132>>
+iex(6)> r
+213
+iex(7)> <<r::8, rest::binary>> = pixels
+<<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
+iex(8)> r
+213
+iex(9)> rest
+<<45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
+iex(10)> <<x1::unsigned>> = <<-44>>
+<<212>>
+iex(11)> <<x1::utf8>>
+"Ô"
+iex(12)> <<x2::signed>> = <<-44>>
+<<212>>
+iex(13)> x2
+-44
+iex(14)> <<x2::integer-signed-little>> = <<-44>>
+<<212>>
+iex(15)> x2
+-44
+iex(16)> <<n::8-unit(1)>> = <<72>>
+"H"
+iex(17)> n
+72
+iex(18)> <<n::integer>> = <<72>>
+"H"
+iex(19)> <<y::4-little-unit(8)>> = <<72, 0, 0, 0>>
+<<72, 0, 0, 0>>
+iex(20)> y
+72
+#+end_src
