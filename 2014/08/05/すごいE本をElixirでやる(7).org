@@ -1,0 +1,77 @@
+* すごいE本をElixirでやる(7)
+
+つづき
+
+- [[http://niku.name/articles/2014/07/28/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B][すごいE本をElixirでやる]]
+- [[http://niku.name/articles/2014/07/29/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(2)][すごいE本をElixirでやる(2)]]
+- [[http://niku.name/articles/2014/07/30/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(3)][すごいE本をElixirでやる(3)]]
+- [[http://niku.name/articles/2014/07/31/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(4)][すごいE本をElixirでやる(4)]]
+- [[http://niku.name/articles/2014/08/01/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(5)][すごいE本をElixirでやる(5)]]
+- [[http://niku.name/articles/2014/08/04/%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(6)][すごいE本をElixirでやる(6)]]
+
+** 1 章
+
+*** 1.3 バイナリデータを扱う
+
+**** ビット単位のバイナリ操作
+
+Elixir でのバイナリ演算は [[http://elixir-lang.org/docs/stable/elixir/Bitwise.html][Bitwise]] が担っている．
+
+#+begin_src iex
+Eshell V6.1  (abort with ^G)
+Interactive Elixir (0.15.0) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> use Bitwise
+nil
+iex(2)> 0b00100 = bsl 0b0010, 1
+4
+iex(3)> 0b00001 = bsr 0b0010, 1
+1
+iex(4)> 0b10101 = bor 0b10001, 0b00101
+21
+#+end_src
+
+**** バイナリ文字列
+
+#+begin_quote
+リストと比べてバイナリ文字列の不利な点は、パターンマッチや操作の際の単純さが失われることです
+#+end_quote
+
+と書いてあるけど，Erlang でバイナリ文字操作するのは面倒なのかなあ．Elixir はバイナリ文字列操作を特に苦手にしていないように見える．
+
+[[http://elixir-lang.org/docs/stable/elixir/String.html][String]] を眺めると色々できることがわかる．
+
+**** バイナリ内包表記
+
+Elixir でのバイナリ内包表記は [[http://elixir-lang.org/getting_started/18.html#18.2-bitstring-generators][18.2 Bitstring generators]] を見ると概要がわかる．
+
+より詳しくは [[http://elixir-lang.org/docs/stable/elixir/Kernel.SpecialForms.html#for/1][Kernel.SpecialForms.for/1]] を見るとよい．( 僕は =into= についてここで知った )
+
+1 行目のように バイナリ内包表記の中でバイナリを扱うときに
+
+: for <<x <- <<1,2,3,4,5>>>>, rem(x, 2) === 0, do: x
+
+と =>>>>= を繋げて書いてしまうと，パーサーが上手く文を区切ってくれないので必ずスペースを開けなければならない．
+
+あと Elixir の内包表記は何も指定しないと常にリストが返るので，バイナリを返したいときには =into= を指定すること．
+
+上に挙げた Kernel.SpecialForms.for/1 に書いてある．
+
+#+begin_src iex
+Eshell V6.1  (abort with ^G)
+Interactive Elixir (0.15.0) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> for <<x <- <<1,2,3,4,5>> >>, rem(x, 2) === 0, do: x
+[2, 4]
+iex(2)> pixels = <<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
+<<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
+iex(3)> rgb = for <<r::8, g::8, b::8 <- pixels >>, do: {r, g, b}
+[{213, 45, 132}, {64, 76, 32}, {76, 0, 0}, {234, 32, 15}]
+iex(4)> for {r, g, b} <- rgb, into: "", do: <<r::8, g::8, b::8>>
+<<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
+iex(5)> for bin <- [<<3, 7, 5, 4, 7>>], into: "", do: <<bin>>
+** (ArgumentError) argument error
+
+iex(5)> for bin <- [<<3, 7, 5, 4, 7>>], into: "", do: <<bin::binary>>
+<<3, 7, 5, 4, 7>>
+iex(6)> for << x <- <<3, 7, 5, 4, 7>> >>, into: "", do: <<x+1::integer>>
+<<4, 8, 6, 5, 8>>
+#+end_src
