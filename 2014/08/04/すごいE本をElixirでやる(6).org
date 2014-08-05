@@ -29,6 +29,8 @@ Elixir のバイナリのパターンマッチは
 
 情報があんまりなくて苦労したが，Elixir のテスト [[https://github.com/elixir-lang/elixir/blob/master/lib/elixir/test/elixir/kernel/binary_test.exs#L53][binary_test.exs]] の =:string_concatenation_as_match= を眺めるのが一番わかりやすかった．
 
+(2014-08-05 追記: [[https://twitter.com/mururururu][@mururu]] さんに 「[[https://twitter.com/mururururu/status/496300435276570624][ドキュメント の Kernel.SpecialForms.<<>> に詳しく載っている]]と教えていただいた．確かにきちんと書かれているので，テストを眺める前にドキュメントを眺めた方が理解が早そうだ)
+
 #+begin_src iex
 Eshell V6.1  (abort with ^G)
 Interactive Elixir (0.15.0) - press Ctrl+C to exit (type h() ENTER for help)
