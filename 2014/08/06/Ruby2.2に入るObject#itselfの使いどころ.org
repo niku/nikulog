@@ -1,0 +1,46 @@
+* Ruby2.2に入るObject#itselfの使いどころ
+
+2.2 からは [[https://github.com/ruby/ruby/commit/0a0160d6b659f6131a525fe1579e7c463d4c197e#diff-d41d8cd98f00b204e9800998ecf8427e][Object#itself というメソッドが使えるようになる]]．
+
+[[https://bugs.ruby-lang.org/issues/6373][2 年くらい前の提案]]が議論されて取り込まれたようだ．これがあるとどう嬉しいのか．
+
+例えば，重複した値のある配列に対して，重複した個数を求めたいとする．
+
+従来はこのようにして求めていた．
+
+#+begin_src ruby
+array = %i(a f b f c c b d b)
+array.group_by { |e| e }.map { |k,v| [k, v.count] }
+=> [[:a, 1], [:f, 2], [:b, 3], [:c, 2], [:d, 1]]
+#+end_src
+
+ところで，以下の 2 つの式は同じことをしている．
+
+詳しく知りたければ Symbol#to_proc について調べるといくつも解説がある．(例 : [[http://d.hatena.ne.jp/kitokitoki/20120415/p1][Symbol#to_proc でワンコールブロックを簡潔に書こう]] )
+
+#+begin_src ruby
+[1, 2, 3, 4].select { |e| e.odd? }
+[1, 2, 3, 4].select(&:odd?)
+#+end_src
+
+個人的には後者の方が好きなので，
+
+: array.group_by { |e| e }
+
+を
+
+: array.group_by(&:self)
+
+のように書けるとうれしい．
+
+しかし残念なことに =self= はメソッドではなく，[[http://docs.ruby-lang.org/ja/2.1.0/doc/spec=2fvariables.html#pseudo][疑似変数]]と呼ばれているものなので，この方法が使えない．
+
+=itself= はメソッドなので， =&:itself= と書ける．つまり以下のような書き方ができる．
+
+#+begin_src ruby
+array = %i(a f b f c c b d b)
+array.group_by(&:itself).map { |k,v| [k, v.count] }
+=> [[:a, 1], [:f, 2], [:b, 3], [:c, 2], [:d, 1]]
+#+end_src
+
+うれしい．
