@@ -1,0 +1,9 @@
+* Sapporo.beamした
+
+毎週やってる [[http://sapporo-beam.github.io/][Sapporo.beam]] ．
+
+今日は Elixir から twitter API をいじれる [[https://github.com/parroty/extwitter][ExTwitter]] がパラメータとして非 ASCII 文字を受けとれない問題を解決して [[https://github.com/parroty/extwitter/pull/1][pull request]] した．
+
+ExTwitter が依存しているライブラリ [[https://github.com/tim/erlang-oauth][erlang-oauth]] が[[https://github.com/tim/erlang-oauth/issues/22][最近非 ASCII 文字に対応した]]のでそれに対応させただけだ．
+
+ライブラリをアップデートしてくれると本当に楽で助かる．ありがたい．
