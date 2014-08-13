@@ -1,0 +1,53 @@
+* elixir-mode-iexでerlのpromptを抑制する方法
+
+OSX で GUI の Emacs から =elixir-mode-iex= を動かすと，左端に =1>= が出てしまう．
+どうも(IEXが利用している？)erlのプロンプトが出てしまっているようだ．
+
+[[./before_iex.gif]]
+
+今回，これを抑制することができたので方法を書く．
+
+[[./after_iex.gif]]
+
+シェルから以下の通りに実行して，その後 Emacs から =elixir-mode-iex= を実行すると，抑制できているはずだ．
+
+#+begin_src shell
+$ cat << __EOS__ > erl_prompt_for_iex.erl
+-module(erl_prompt_for_iex).
+-export([prompt_func/1]).
+
+prompt_func([{history, _}]) -> "".
+__EOS__
+$ mkdir ~/ebin
+$ erlc -o ~/ebin erl_prompt_for_iex.erl
+$ ls ~/ebin
+erl_prompt_for_iex.beam
+$ cat << __EOS__ >> ~/.erlang
+code:add_patha(filename:join(os:getenv("HOME"), "ebin")).
+shell:prompt_func({erl_prompt_for_iex, prompt_func}).
+__EOS__
+#+end_src
+
+** やっていること
+
+erl のプロンプトはユーザーの定義した関数で表示内容を変えられる．
+
+[[http://www.erlang.org/doc/man/shell.html][Erlang の shell モジュールのドキュメント]]の Prompting の部分を読むと，カスタマイズの方法が書いてある．
+
+1. 関数を定義する
+2. 定義した関数を呼び出すように設定する
+
+と変更できるようだ．
+
+今回は何も表示しない関数を用意し，これを erl のプロンプトとして利用している．
+
+[[https://github.com/rlipscombe/rl_erl_prompt][rl_erl_prompt]] がとても参考になった．適当にググったところではこのくらいしか erl のプロンプトを変えているコードを見つけられなかった．
+
+** わからないこと
+
+直面している問題は解決したのだが，以下のようなことはまだわかっていない
+
+- そもそも =elixir-mode-iex= を動かしたときに erl のプロンプトが出ることは避けられないのか
+- 今はファイルを用意し，コンパイルし，設定に書くという 3 ステップを必要としている．erl のプロンプトを変更するのにもっと簡単な方法はないか．
+
+知っている人がいれば是非教えてもらいたい．
