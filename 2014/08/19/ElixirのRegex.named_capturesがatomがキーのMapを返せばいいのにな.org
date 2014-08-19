@@ -1,0 +1,20 @@
+* ElixirのRegex.named_capturesがatomがキーのMapを返せばいいのにな
+
+#+begin_src iex
+iex(1)> defmodule My, do: defstruct a: "", b: ""
+{:module, My,
+ <<70, 79, 82, 49, 0, 0, 4, 208, 66, 69, 65, 77, 69, 120, 68, 99, 0, 0, 0, 99, 131, 104, 2, 100, 0, 14, 101, 108, 105, 120, 105, 114, 95, 100, 111, 99, 115, 95, 118, 49, 108, 0, 0, 0, 2, 104, 2, ...>>,
+ [a: "", b: ""]}
+iex(2)> map = %{a: "foo", b: "bar"}
+%{a: "foo", b: "bar"}
+iex(3)> struct(My, map)
+%My{a: "foo", b: "bar"}
+iex(4)> map = Regex.named_captures(~r/(?<a>\d) *, *(?<b>\d)/, "1 , 2")
+%{"a" => "1", "b" => "2"}
+iex(5)> struct(My, map)
+%My{a: "", b: ""}
+#+end_src
+
+=Regex.named_captures= で返ってくる =Map= のキーが文字列だから =struct= で簡単に =Struct= を作れない．
+
+マップのキーをアトムに簡単に変えるいい方法あるのかな．
