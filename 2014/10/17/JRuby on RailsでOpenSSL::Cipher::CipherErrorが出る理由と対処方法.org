@@ -1,0 +1,27 @@
+* JRuby on RailsでOpenSSL::Cipher::CipherErrorが出る理由と対処方法
+
+JRubyでRails環境を作り，よくあるような Welcome#index を作成してアクセスしたところ
+
+: OpenSSL::Cipher::CipherError (Illegal key size: possibly you need to install Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files for your JRE):
+
+というエラーが発生した．
+
+エラーメッセージを眺めると Java Cryptography Extention (JCE) というもののインストールが必要なようだ．
+
+** 追加で JCE が必要な理由
+
+[[http://blog.scheakur.com/post/50807486592/java-cryptography-extension-jce-unlimited-strength][なぜ Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files は JDK とは別にダウンロードしなければいけないのか]] がわかりやすかった．
+
+#+begin_quote
+特定の国々に対して高度な暗号化技術を輸出することが米国輸出規制に引っかかるためです。
+#+end_quote
+
+な，なるほどー！全世界に変更なしで JDK を配布するためには制限のある暗号化技術の状態で配る方が都合がよいのだな．
+
+** 対処方法
+
+[[http://www.oracle.com/technetwork/java/javase/downloads/index.html][Javaのダウンロードサイト]]から 対応する JDK バージョンの JCE をダウンロードする．JCE はサイトの下のほう，Additional Resources グループのなかにある．
+
+ダウンロードしたファイルを解凍して， =US_export_policy.jar= と =local_policy.jar= を =$JAVA_HOME/jre/lib/security= にある同名のファイルへ上書きコピーする．
+
+僕の場合は OSX で JDK8 を使っていたので =/Library/Java/JavaVirtualMachines/jdk1.8.0_25.jdk/Contents/Home/jre/lib/security= のファイルを上書きした．
