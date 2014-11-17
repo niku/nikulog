@@ -1,0 +1,21 @@
+* EmacsだけでMarkdownのリアルタイムプレビューをする
+
+Emacs で Markdown のリアルタイムプレビューをするには以下のようなライブラリがあるようだ．
+
+- [[https://github.com/syohex/emacs-realtime-markdown-viewer][syohex/emacs-realtime-markdown-viewer]]
+- [[https://github.com/syohex/emacs-moz-markdown-viewer][syohex/emacs-moz-markdown-viewer]]
+- [[https://github.com/yukihr/Warp][yukihr/Warp]]
+
+これらは外部ブラウザ経由で Markdown の結果を見ることができる．
+
+Emacs24.4 からは eww という組み込みブラウザが利用できるので，
+Emacs 組み込みブラウザ経由で Markdown の結果を見ることができるライブラリを作った．
+
+[[https://github.com/niku/realtime-preview.el][niku/realtime-preview.el]]
+
+[[realtime-preview.gif]]
+
+キーを打つたびにリアルタイムにプレビューが変化していくものを Emacs で作ったことがなかったので，
+まだ 50 行に満たないコードではあるもののすごく時間がかかった．
+
+なかなかおもしろいものができた．
