@@ -1,0 +1,124 @@
+* Extwitterでtwitter streamingを眺めてあそぶ
+
+[[http://qiita.com/advent-calendar/2014/elixir][Elixir Advent Calendar 2014]]の2日目の記事．
+
+前日はもっこすさんの[[http://moccosblue.blogspot.jp/2014/11/2014elixir10.html][2014年のElixir1.0初心者]] だった．
+
+最近はどんな言語でも Twitter の Streaming API を扱えるライブラリがある．
+
+Elixir には [[https://github.com/parroty/extwitter][extwitter]] というライブラリがあり，
+自分が作った [[https://github.com/niku/eloido][Eloido]] という idobata.io 向けのライブラリでも稼動している実績があるので紹介する．
+
+ライブラリを試すのに，一番簡単な方式は
+
+1. プロジェクトを作成する
+2. 利用するライブラリの情報をプロジェクトの設定ファイルへ書き込む
+3. ライブラリの依存関係を解決する
+4. ライブラリを試す
+
+だと考えられる．この手順で進めていく．
+
+** 1. プロジェクトを作成する
+
+まずはコマンドからプロジェクトを作成する．
+
+: $ mix new extwitter_sample
+: $ cd extwitter_sample
+
+特に目新しいことはない．
+
+** 2. 利用するライブラリの情報をプロジェクトの設定ファイルへ書き込む
+
+[[https://github.com/parroty/extwitter#usage][Extwitter の README]] の通り，mix.exs へ依存するライブラリ名を書く．
+
+: defp deps do
+
+以下へ 2 行を追加しただけである．
+
+#+begin_src elixir
+# mix.exs
+defmodule ExtwitterSample.Mixfile do
+  use Mix.Project
+
+  def project do
+    [app: :extwitter_sample,
+     version: "0.0.1",
+     elixir: "~> 1.0",
+     deps: deps]
+  end
+
+  # Configuration for the OTP application
+  #
+  # Type `mix help compile.app` for more information
+  def application do
+    [applications: [:logger]]
+  end
+
+  # Dependencies can be Hex packages:
+  #
+  #   {:mydep, "~> 0.3.0"}
+  #
+  # Or git/path repositories:
+  #
+  #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
+  #
+  # Type `mix help deps` for more examples and options
+  defp deps do
+    [{:oauth, github: "tim/erlang-oauth"},
+     {:extwitter, "~> 0.1"}]
+  end
+end
+#+end_src
+
+** 3. ライブラリの依存関係を解決する
+
+コマンドから
+
+: $ mix deps.get
+
+を実行する．ライブラリの依存関係を調べて，いくつかダウンロードされるはずだ．
+
+** 4. ライブラリを試す
+
+早速ライブラリを試そう，といきたいところだが，
+[[https://github.com/parroty/extwitter#sample][ExTwitter の README]] にもあるとおり，今回のライブラリを試すのには Twitter API が必要なのであらかじめ取得しておく．
+
+[[https://apps.twitter.com/][Twitter Application Management]] へアクセス，ログインし，右上の Create New App ボタンを押して，新規アプリケーションを登録しよう．
+
+すぐに Application が登録でき，その Application の =Keys and Access Tokens= タブをクリックすると
+
+- Consumer Key (API Key)
+- Consumer Secret (API Secret)
+- Access Token
+- Access Token Secret
+
+が書いてあるはずだ．これをメモしておく．
+
+iex はデフォルトで =.iex.exs= というファイル名のをソースコードを自動読み込みしてくれる．このファイルを作って Twitter API の設定を記述しておこう．
+
+#+begin_src elixir
+# .iex.exs
+ExTwitter.configure(
+  consumer_key: "XXX",
+  consumer_secret: "XXX",
+  access_token: "XXX",
+  access_token_secret: "XXX"
+)
+#+end_src
+
+準備ができたので試してみよう．
+
+: $ iex -S mix
+
+と打つと，依存関係を解決し，ライブラリと Twitter API の設定を読み込んだ状態でインタラクティブシェルが起動する．
+
+[[https://github.com/parroty/extwitter#sample][Sample]] にある Example for streaming API の部分を入力してみる
+
+#+begin_src iex
+stream = ExTwitter.stream_filter(track: "apple") |>
+  Stream.map(fn(x) -> x.text end) |>
+  Stream.map(fn(x) -> IO.puts "#{x}\n---------------\n" end)
+Enum.to_list(stream)
+#+end_src
+
+すると =apple= を含む投稿がずらずらと表示され続けるだろう．やめたくなったら Ctrl+C を 2 回押すとよい．
