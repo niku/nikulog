@@ -1,0 +1,89 @@
+* コンサドーレ札幌非公式Botで2014年6月以降話題になったニュース達
+
+[[http://www.adventar.org/calendars/406][コンサドーレ札幌 Advent Calendar 2014]] 1 日目の記事．
+
+去年は[[http://niku.name/articles/2013/12/01/%E3%82%B3%E3%83%B3%E3%82%B5%E3%83%89%E3%83%BC%E3%83%AC%E3%81%A7%E4%BB%8A%E5%AD%A3%E5%BE%8C%E5%8D%8A%E8%A9%B1%E9%A1%8C%E3%81%AB%E3%81%AA%E3%81%A3%E3%81%9F%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%B9%E9%81%94][コンサドーレで今季後半話題になったニュース達]]というのを書いた．
+
+このときは手動で twitter を遡って RT 数をカウントしていた．
+
+今年から twitter で [[https://analytics.twitter.com/about][Twitter アナリティクス]]という機能が無料で利用できるようになり，ここで様々な分析結果が見られるようになった．
+
+今回はここから consadole bot の指標を眺めてみよう．
+
+** フォロワー数
+
+[[twitter-accounts.png]]
+
+5300 くらいから 6200 くらいに増加．天気がかなり悪いときの厚別くらいの人数に見てもらえているようだ．
+
+twitter を利用する人が増えてきている影響か，特に波もなく徐々に増えつづけている．
+
+** Fav 数
+
+| Fav 数 | 日時                | テキスト                                                                                                                                                                                           |
+|     45 | [[https://twitter.com/consadole/status/538158609733918720][2014-11-28 11:33:00]] | 奈良竜樹選手　入籍のお知らせ http://t.co/FTEtCtI9Od #consadole                                                                                                                                     |
+|     35 | [[https://twitter.com/consadole/status/493002252424982531][2014-07-26 20:57:00]] | 45+4分 【劇的逆転ゴール！！！】砂川の左CKはファーサイドの櫛引が左足でダイレクトシュート。プロ4年目の櫛引がＪ初ゴールをゴール左に突き刺して札幌がアディショナルタイムで2点を奪う大逆転！ #consadole |
+|     21 | [[https://twitter.com/consadole/status/505249264402829312][2014-08-29 16:03:00]] | 監督交代に関する野々村社長からのメッセージ http://t.co/FVneOyHAi1 #consadole                                                                                                                       |
+|     18 | [[https://twitter.com/consadole/status/507393390632136704][2014-09-04 14:03:00]] | コンサドーレ札幌×北海道日本ハムファイターズWebサイト限定対談 「相席、よろしいですか？」第3回は小野選手×大谷選手　公開のお知らせ http://t.co/HpoZoHQgD2 #consadole                                |
+|     17 | [[https://twitter.com/consadole/status/493002759226937345][2014-07-26 20:59:00]] | 試合終了 アディショナルタイムで同点、逆転ゴールを奪った札幌が劇的な逆転劇を見せて3-2で勝利を収めた！ #consadole                                                                                    |
+|     15 | [[https://twitter.com/consadole/status/530193623623557121][2014-11-06 12:03:00]] | 進藤札幌入団会見「新ブランドつくる」 http://t.co/s9v9o21vog #consadole                                                                                                                             |
+|     14 | [[https://twitter.com/consadole/status/487039271744720896][2014-07-10 10:03:00]] | コンサドーレ札幌×北海道日本ハムファイターズWebサイト限定対談 「相席、よろしいですか？」第2回は都倉選手×西川選手 http://t.co/JkjWq9NgVq #consadole                                                |
+|     14 | [[https://twitter.com/consadole/status/526225485093543936][2014-10-26 13:15:00]] | 9分 【札幌先制ゴール】都倉のスーパーゴール！ＧＫホスンのゴールキックを受けた都倉が、胸トラップから左足で放ったミドルシュートがゴール右隅に決まり、札幌が先制 #consadole                            |
+|     13 | [[https://twitter.com/consadole/status/523714115596853249][2014-10-19 14:55:00]] | 試合終了 前半は攻めあぐねた札幌だったが、後半に入って石井、都倉のゴールで2点を奪った札幌が2-0で快勝 #consadole                                                                                     |
+|     13 | [[https://twitter.com/consadole/status/535625667681865728][2014-11-21 11:48:00]] | 古田ら武者修行４選手が来季札幌復帰へ http://t.co/IkkLAWowTG #consadole                                                                                                                             |
+
+** RT 数
+
+| RT数 | 日時                | テキスト                                                                                                                                                                                           |
+|  155 | [[https://twitter.com/consadole/status/538158609733918720][2014-11-28 11:33:00]] | 奈良竜樹選手　入籍のお知らせ http://t.co/FTEtCtI9Od #consadole                                                                                                                                     |
+|  122 | [[https://twitter.com/consadole/status/493002252424982531][2014-07-26 20:57:00]] | 45+4分 【劇的逆転ゴール！！！】砂川の左CKはファーサイドの櫛引が左足でダイレクトシュート。プロ4年目の櫛引がＪ初ゴールをゴール左に突き刺して札幌がアディショナルタイムで2点を奪う大逆転！ #consadole |
+|  110 | [[https://twitter.com/consadole/status/537867948929454080][2014-11-27 16:18:00]] | コンサドーレ札幌 契約満了選手について http://t.co/MwFOmq9nye #consadole                                                                                                                            |
+|  108 | [[https://twitter.com/consadole/status/504890655533826048][2014-08-28 16:18:00]] | 財前監督を解任　コンサドーレ札幌 http://t.co/qwjfS97foe #consadole                                                                                                                                 |
+|   95 | [[https://twitter.com/consadole/status/493002759226937345][2014-07-26 20:59:00]] | 試合終了 アディショナルタイムで同点、逆転ゴールを奪った札幌が劇的な逆転劇を見せて3-2で勝利を収めた！ #consadole                                                                                    |
+|   93 | [[https://twitter.com/consadole/status/504920848558329856][2014-08-28 18:18:00]] | コンサドーレ札幌 監督交代のお知らせ http://t.co/qFiquJuO5y #consadole                                                                                                                              |
+|   83 | [[https://twitter.com/consadole/status/499466156466384897][2014-08-13 17:03:00]] | 前 貴之 選手　カターレ富山へ期限付き移籍のお知らせ http://t.co/wrHcsOqiry #consadole                                                                                                               |
+|   69 | [[https://twitter.com/consadole/status/502040410626084864][2014-08-20 19:32:00]] | 27分 【札幌ゴール！】菊岡の左CKをファーに飛び込んだ都倉が頭で合わせて先制！ #consadole                                                                                                             |
+|   67 | [[https://twitter.com/consadole/status/526225485093543936][2014-10-26 13:15:00]] | 9分 【札幌先制ゴール】都倉のスーパーゴール！ＧＫホスンのゴールキックを受けた都倉が、胸トラップから左足で放ったミドルシュートがゴール右隅に決まり、札幌が先制 #consadole                            |
+|   66 | [[https://twitter.com/consadole/status/506049264695275520][2014-08-31 21:02:00]] | 試合終了 監督交代の苦境と、熊本でのリーグ戦成績3敗2分けという鬼門を突破し、札幌が約1ヶ月ぶりの勝利をつかんだ #consadole                                                                            |
+
+** 元にしたデータとプログラム
+
+@consadole のツイートアクティビティについては，出してまずい情報もなさそうだったので，他の人が利用できるようにそのまま [[https://gist.github.com/niku/b41ea05206bd01aaf704][gist]] に置いた．
+もしまずそうな情報が含まれているようなら，教えてほしい．適切に対処したい．
+
+以下の Ruby コードでそれぞれを算出した．
+
+#+begin_src ruby
+require "net/http"
+require "time"
+require "csv"
+
+doc = Net::HTTP.get(URI.parse("https://gist.githubusercontent.com/niku/b41ea05206bd01aaf704/raw/0dd6457074a5c4342e154cd349b4966a28a451a9/tweet_activity_metrics-2014.csv"))
+csv = CSV.parse(doc, encoding: "UTF-8", headers: true)
+
+puts "==== 一番古い内容 ===="
+p csv.map { |row| Time.parse(row["time"]) }.min
+# => 2014-06-28 15:31:00 +0900
+
+puts "==== 一番新しい内容 ===="
+p csv.map { |row| Time.parse(row["time"]) }.max
+# => 2014-11-30 12:03:00 +0900
+
+puts "==== RT された数 Top 10 ===="
+csv.sort_by { |row| row["retweets"].to_i }.reverse.first(10).each do |row|
+  puts [row["retweets"], Time.parse(row["time"]), row["Tweet text"], row["Tweet permalink"]].join(",")
+end
+
+puts "==== Favorite された数 Top 10 ===="
+csv.sort_by { |row| row["favorites"].to_i }.reverse.first(10).each do |row|
+  puts [row["favorites"], Time.parse(row["time"]), row["Tweet text"], row["Tweet permalink"]].join(",")
+end
+#+end_src
+
+** おわりに
+
+去年のまとめを眺めていると，上原選手が加入したことがかなり話題になっていた．しかし来年度は契約を更新しないことが明らかになっている．去年喜んでくれた人達にとってはすごく残酷なまとめになってしまった．
+
+今年のどんな劇的な逆転勝利よりも奈良さんの入籍のお知らせがニュースバリューとして捉えられているのがおもしろかった．
+
+来年も安定した品質で bot をお届けしていきたい．
