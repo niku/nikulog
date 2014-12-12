@@ -1,0 +1,21 @@
+* Elixir で時間を扱うのに便利なライブラリ Timex
+
+Elixir1.0系には日や時間を扱うモジュールや型がないので，Erlangのライブラリを使うか，Elixirの外部ライブラリを使う．
+
+- Erlangだと標準ライブラリに[[http://www.erlang.org/doc/man/calendar.html][calendar]]というものがあるようだ．これをElixirから利用できる．
+- Elixirだと外部ライブラリに[[https://github.com/bitwalker/timex][timex]]というものがあるようだ．
+
+今回はtimexを使って，twitterのcreated_atの時刻をコンバートした．
+
+#+begin_src elixir
+doc = "Thu Dec 11 22:02:32 +0000 2014"
+{:ok, datetime} = Timex.DateFormat.parse(doc, "{UNIX}")
+datetime
+|> Timex.Timezone.convert(Timex.Timezone.get("Asia/Tokyo"))
+|> Timex.DateFormat.format!("%Y-%m-%d %T", :strftime)
+# => "2014-12-12 07:02:32"
+#+end_src
+
+使いかたはtimexのREADMEを読めば大体わかる．
+
+渡せる文字列変数については，今のところどこにも書いていないのでソースコード内に書いてある一覧から判断した．
