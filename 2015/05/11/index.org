@@ -1,0 +1,32 @@
+* 2015-05-11
+** Twitterに貼っていたようなリンクをにくログに書いてみる
+[[http://twilog.org/niku_name][Twilog]] の検索を利用させてもらっても検索できるのだけど，local で grep できた方が早いし，
+[[https://github.com/niku/uti/commit/a21e1c5a697a71165ff2c1cf8ee78f81ab55d4f7][Firefox で開いている内容を(何の操作もせずに) Emacs で取得できるように設定した]]ので，投稿もにくログの方が簡単になった．
+** クライアントでのレンダリングをPostgresql上で代用したそうだ
+[[http://tdoc.info/blog/2015/04/28/react_ssr_plv8.html][Server Side React with PostgreSQL — そこはかとなく書くよん。]]
+
+最近は Postgresql をよく使っている．ドキュメントを眺めていると，継承やルールベースでの処理，フック，PubSub など
+Postgresql だけでだいたいのビジネスロジックを書けてしまうのではないかと思うくらい高機能だ．
+そんな高機能な Postgresql の機能のひとつに PL/v8 というものがある．これを使うと Postgresql 上で JavaScript を動作させられる．
+
+ということは，最近話題に登っているような Isomorphic な JavaScript をクライアントから (App ではなく)DB サーバーへと移せるということだ．
+アイディアとしては考えていたものの，やってみるには至っていなかった．
+
+日本語で既に試していた人がいた．すごい．
+** eww上でJavaScriptは動作させられるようになるのか
+[[https://lists.gnu.org/archive/html/emacs-devel/2014-01/msg01436.html][Re: eww and Javascript?]]
+
+Emacs の組み込みブラウザ eww では JavaScript を動作させられるか？Emacs の ML によると
+
+> At this time, eww has no plan to add javascript engine?
+> I recognize eww is simple browser and it has no intention of adding rich function.
+
+だそうな．今はできないし，今後も予定はないみたい．
+
+JavaScript を eww で評価して node/io.js 不要な JavaScript プログラミングだ！というようなことをやりたかった．残念．
+** Debian8(jessie)のbackportsにもうちょっとでdocker.ioパッケージが用意されるようだ
+> I can push it to backports after I get back from France
+
+[[https://github.com/docker/docker/pull/13104#issuecomment-100645071][Update debian.md by dooman87 · Pull Request #13104 · docker/docker]]
+
+だそうな．
