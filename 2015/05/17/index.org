@@ -1,0 +1,14 @@
+* 2015-05-17
+** 対訳用語集を作るためのツールlogaling
+[[http://logaling.github.io/][logaling | logaling]]
+
+翻訳で，ある単語を何と訳するか，ライブラリの助けがなく，記憶だけで行っていくと一貫性を保つのが難しい．
+例えば僕が翻訳を数日かけてやったとき，寝るまえに決めて書いことをすっかり忘れてしまって，自分が訳した文を読みなおすことがあった．
+これが数週間とか数ヶ月，あるいは多人数で行うとなるとさらに大変だろう．
+
+そのため，みな「対訳用語集」というものを利用しているそうだ．
+
+その対訳用語集を作るための CUI ツールが logaling だ．
+
+あらかじめ [[http://logaling.github.io/logalimacs/][logalimacs | logaling]] や [[https://github.com/tacahiroy/vim-logaling][tacahiroy/vim-logaling]] ， [[https://github.com/tacahiroy/loga-zsh-completion][tacahiroy/loga-zsh-completion]] との統合環境も用意されている．
+CUI ツールなので，他のエディタに向けても用意するのは比較的容易だろう．
