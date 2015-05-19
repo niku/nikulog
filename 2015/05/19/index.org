@@ -1,0 +1,13 @@
+* 2015-05-19
+** Debianのパッケージに更新があったら通知をメールで受け取ることができる
+[[https://twitter.com/henrich/status/600583459426304001][henrichさんはTwitterを使っています: "@niku_name https://t.co/dfDweJqo2w で subscribe するとパッケージのアップロードがある度にメールを受け取れます。"]]
+
+という情報を教えてもらって，早速 [[https://tracker.debian.org/pkg/docker.io][Debian Package Tracker - docker.io]] にメールを登録しました．
+
+入力欄には
+
+- メールアドレス
+- 姓
+- 名
+
+がありましたが，メールアドレスだけで登録できました．これで毎日 =docker.io= が jessie-backports に来ていないかチェックするタスクから解放されるぞー
