@@ -1,0 +1,37 @@
+* Rails4で外部キー制約をつけるときに見直すメモ
+migration するたびに見直している気がするので，メモしておく．今回は Rails4.2.1 で試している．
+
+まず xxxs テーブルに yyy へのリファレンス(yyy_id)を追加するには =bin/rails g migration AddReferenceToXxxs yyy:references= とする．
+=reference= ではなく， =references= であることに気をつけること．
+
+こうすると，外部制約つきの関連のマイグレーションファイルが用意される．別に手で書いてもいいのだけど，少しだけ楽ができる．
+
+#+begin_src ruby
+class AddReferenceToXxxs < ActiveRecord::Migration
+  def change
+    add_reference :xxxs, :yyy, index: true
+    add_foreign_key :xxxs, :yyys
+  end
+end
+#+end_src
+
+=add_foreign_key= には いくつかオプションが渡せる [[http://api.rubyonrails.org/classes/ActiveRecord/ConnectionAdapters/SchemaStatements.html#method-i-add_foreign_key][ActiveRecord::ConnectionAdapters::SchemaStatements]]
+
+その中で
+
+- =:on_delete=
+- =:on_update=
+
+の 2 つが，参照先(yyy)が消えたり更新されたりしたときの，参照元(xxx)のライフサイクルに影響してくる．
+
+上でリンクした API ドキュメントによると， =:on_delete= と =:on_update= で取りうる値は 3 つある．
+
+それぞれの内容については，API ドキュメントには記載されていないが， Postgresql の [[https://www.postgresql.jp/document/9.4/html/ddl-constraints.html#DDL-CONSTRAINTS-FK][制約]] を参考にすると
+
+- =:nullify= :: =null= にする
+- =:cascade= :: 参照先 (yyy) を消すときに一緒に参照元 (xxx) を消す
+- =:restrict= :: 参照先 (yyy) を参照している参照元 (xxx) がある場合，削除がエラーになる
+
+というものだ．
+
+例えば yyy を消したときに xxx も一緒に消えてほしい場合は =add_foreign_key :xxxs, :yyys, on_delete: :cascade= となる．
