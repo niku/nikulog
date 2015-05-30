@@ -1,0 +1,24 @@
+* 2015-05-29
+** Emacsでの整数値の最大/最小はいくつなのか調べた
+ざっとコードを読んでみた限りでは =eshell-history-size= には =nil= とか =-1= を指定しても，無限に履歴を保存するというオプションはないようだった．
+
+そこで最大値を設定しておくことにした．しかし，Emacs で扱える整数の最大値がいくつなのか知らなかった．
+
+[[http://www.gnu.org/software/emacs/manual/html_node/elisp/Integer-Basics.html][GNU Emacs Lisp Reference Manual: Integer Basics]] によると
+
+#+begin_quote
+The range of values for an integer depends on the machine.
+The minimum range is -536,870,912 to 536,870,911 (30 bits; i.e., -2**29 to 2**29 - 1),
+but many machines provide a wider range.
+#+end_quote
+
+ということらしい．マシンによって異なるようだ．
+
+64bit の mac だとどうなるか試してみた．
+
+#+begin_src elisp
+(expt 2 (- 64 3))       ; -2305843009213693952
+(- (expt 2 (- 64 3)) 1) ; 2305843009213693951
+#+end_src
+
+=2**61-1= が最大のようだ．64-3=61なので，上位 3bit は，32 bit でも 64 bit でも型情報などに割り当てているんだろう．
