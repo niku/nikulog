@@ -1,0 +1,182 @@
+* 話題の5つの問題をElixirで解く
+[[http://www.softantenna.com/wp/software/5-programming-problems/][1時間以内に解けなければプログラマ失格となってしまう5つの問題が話題に]]
+
+たいていは便利な関数が用意されているのだけど，それを使わないで解いてみた．
+
+最後の問題までは 30 分未満，最後の問題だけで 90 分くらいかかってしまった．
+
+** forループ、whileループ、および再帰を使用して、リスト内の数字の合計を計算する3つの関数を記述せよ
+
+Elixir には =while= がない．また =for= ループはあるがこの用途に適さないので，再帰だけやる．
+=[h|t]= という記法ではパターンマッチングでリストを1番目の要素と，それ以降の要素へと分解している．
+
+なお =Enum.sum/1= という関数があらかじめあるので，普段はこちらを使うとよい．
+
+#+begin_src elixir
+defmodule M1 do
+  def sum([]), do: 0
+  def sum([h|t]), do: h + sum(t)
+end
+
+M1.sum([])          # => 0
+M1.sum([1,2,3,4])   # => 10
+
+Enum.sum([1,2,3,4]) # => 10
+#+end_src
+
+** 交互に要素を取ることで、2つのリストを結合する関数を記述せよ
+
+リストの要素数が異なっていても対応できるようにしてみた．
+
+なおリストの要素数が同じ場合は =Enum.zip/2= という関数と， =Enum.flat_map/2= を組み合わせて利用する方が楽だろう．
+
+#+begin_src elixir
+defmodule M2 do
+  def zip([], []), do: []
+  def zip([h|t], []), do: [h | zip(t, [])]
+  def zip([], [h|t]), do: [h | zip(t, [])]
+  def zip([h1|t1], [h2|t2]) do
+    [h1, h2 | zip(t1, t2)]
+  end
+end
+
+M2.zip(["a", "b", "c"], [1, 2, 3])           # => ["a", 1, "b", 2, "c", 3]
+M2.zip(["a", "b", "c", "d", "e"], [1, 2, 3]) # => ["a", 1, "b", 2, "c", 3, "d", "e"]
+
+Enum.zip(["a", "b", "c"], [1, 2, 3]) |> Enum.flat_map(&Tuple.to_list/1) # => ["a", 1, "b", 2, "c", 3]
+#+end_src
+
+** 最初の100個のフィボナッチ数のリストを計算する関数を記述せよ
+
+ついでにメモ化を入れてみた．1度計算したフィボナッチ数は記憶しているので，すぐに結果を返せる．
+
+ErlangVM ってイミュータブルなのに，どうやってメモ化をしているんだと思った人は素晴しい洞察力だ．
+
+別プロセスを生成する =spawn_link= と，別プロセスにメッセージを送る =send= ，送られてきたメッセージをみる =receive= があると，プロセスで状態を持てるのだ！
+
+詳しくは [[http://shop.ohmsha.co.jp/shopdetail/000000003873/02-06-B2-99/page1/order/][すごいErlangゆかいに学ぼう！ | コンピュータ・一般書,プログラミング・開発,その他 | Ohmsha]] を読むとわかるだろう．
+
+#+begin_src elixir
+defmodule M3 do
+  def list(n) do
+    for x <- (0..n-1), do: get(x)
+  end
+
+  def get(n) do
+    case Agent.get(__MODULE__, &Map.get(&1, n)) do
+      nil ->
+        result = calc(n)
+        Agent.update(__MODULE__, &Map.put(&1, n, result))
+        result
+      x -> x
+    end
+  end
+
+  defp calc(0), do: 0
+  defp calc(1), do: 1
+  defp calc(n), do: get(n-2) + get(n-1)
+
+  def start_link, do: Agent.start_link(fn -> Map.new end, name: __MODULE__)
+end
+
+M3.start_link
+M3.list(100) # => [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, ...]
+#+end_src
+
+** 正の整数のリストを与えられたとき、数を並び替えて可能な最大数を返す関数を記述せよ
+
+=|>= は Elixir を特徴つけている表記の一つで，オブジェクト指向言語でのメソッドチェーンのように処理を繋げて書くことができる．F# 由来であるそうだ．
+
+また =<<h, t::binary>>= という形式で文字にもパターンマッチングさせることができる．
+
+#+begin_src elixir :tangle 4.ex
+defmodule M4 do
+  def calc(list) do
+    list
+    |> Enum.map(&to_string/1)
+    |> Enum.sort(&sorter/2)
+    |> Enum.reverse
+    |> Enum.join
+  end
+
+  defp sorter(<<>>, <<>>),             do: false
+  defp sorter(<<_, _::binary>>, <<>>), do: false
+  defp sorter(<<>>, <<_, _::binary>>), do: true
+  defp sorter(<<h1, t1::binary>>, <<h2, t2::binary>>) do
+    if h1 === h2 do
+      sorter(t1, t2)
+    else
+      h1 < h2
+    end
+  end
+end
+
+M4.calc([50, 2, 1, 9])       # => "95021"
+M4.calc([50, 2, 1, 9, 2, 5]) # => "9505221"
+#+end_src
+
+** 1,2,…,9の数をこの順序で、”+”、”-“、またはななにもせず結果が100となるあらゆる組合せを出力するプログラムを記述せよ
+
+Elixir には AST を評価する関数 =Code_eval_quoted= というものと， AST をコードにしてくれる =Macro.to_string= というものがある．
+
+今回は
+
+- 「+, -, 数値を文字列化してつなげたもの」という 3 つの候補についての全ての AST を生成
+- その中で「AST を評価すると 100 になる AST を集める」
+- その AST を文字列化する
+
+という 3 手順で結果を求めた．
+
+#+begin_src elixir
+# 「+, -, 数値を文字列化してつなげたもの」という 3 つの候補についての全ての AST を生成
+candidate_asts = Enum.reduce(1..9, fn(x, acc) ->
+  case acc do
+    y when is_number(y) ->
+      [
+        quote(do: unquote(y) + unquote(x)),
+        quote(do: unquote(y) - unquote(x)),
+        quote do
+          unquote((to_string(y) <> to_string(x)) |> String.to_integer)
+        end
+      ]
+    y when is_list(y) ->
+      Enum.flat_map(y, fn(z) ->
+        [
+          quote(do: unquote(z) + unquote(x)),
+          quote(do: unquote(z) - unquote(x)),
+          case z do
+            {op, _, args} ->
+              last_arg = (to_string(List.last(args)) <> to_string(x)) |> String.to_integer
+              {op, [], List.replace_at(args, -1, last_arg)}
+            a when is_number(a) ->
+              (to_string(a) <> to_string(x)) |> String.to_integer
+          end
+        ]
+      end)
+  end
+end)
+
+# AST を評価すると 100 になる AST を集める
+sum_100_asts = for ast <- candidate_asts,
+                   {v, _} = Code.eval_quoted(ast),
+                   v === 100
+               do
+                 ast
+               end
+
+Enum.each(sum_100_asts, fn (ast) ->
+  # AST を文字列化する
+  IO.puts(Macro.to_string(ast))
+end)
+# => 1 + 2 + 3 - 4 + 5 + 6 + 78 + 9
+# => 1 + 2 + 34 - 5 + 67 - 8 + 9
+# => 1 + 23 - 4 + 5 + 6 + 78 - 9
+# => 1 + 23 - 4 + 56 + 7 + 8 + 9
+# => 12 + 3 + 4 + 5 - 6 - 7 + 89
+# => 12 + 3 - 4 + 5 + 67 + 8 + 9
+# => 12 - 3 - 4 + 5 - 6 + 7 + 89
+# => 123 + 4 - 5 + 67 - 89
+# => 123 + 45 - 67 + 8 - 9
+# => 123 - 4 - 5 - 6 - 7 + 8 - 9
+# => 123 - 45 - 67 + 89
+#+end_src
