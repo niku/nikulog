@@ -1,0 +1,831 @@
+* プログラミング言語Elixir
+
+2015-06-13 [[http://www.ospn.jp/osc2015-do/][オープンソースカンファレンス2015 Hokkaido - オープンソースの文化祭！]] で [[https://www.ospn.jp/osc2015-do/modules/eguide/event.php?eid=37][プログラミング言語 Elxiir]] という内容を発表した．
+
+当日は朝最初の発表にもかかわらず 80 人部屋の席が半分くらい埋まっていてびっくりした．
+
+スライドは [[http://slide.rabbit-shocker.org/authors/niku/osc15do-elixir/][OSC 2015 Hokkaido Elixir - niku - Rabbit Slide Show]] にあがっている．
+
+スライドのベースにした org ファイルをここに残す．だいたい 45 分普通に話して分量は丁度よかった．
+
+またブースにも出展してみた．こちらも含めたOSCふりかえりをここに書く
+
+- K
+  - ともかく発表してみたこと
+  - 余裕をもって現地入りした
+  - (ブース)店番を別の人におねがいもできて無理なく過ごせた
+  - (ブース)ちょっとしたデモも見せられた
+  - (ブース)近隣のブースの中の人と交流できた
+- P
+  - 資料が当日までできていなかった
+  - ディスプレイをつなぐケーブルが合わなくて急遽お借りした
+  - org から (Rabbitで扱える) md への変換が少し面倒だった
+  - 今回しなかった ErlangVM のプロセス話の方がおもしろかったのでは
+- T
+  - これからもチャンスがあれば発表する
+  - いざというときにサッとまとめられるように資料の元になるような情報を整備しておく
+  - アナログケーブルを買おう
+  - Elixir と ErlangVM のプロセスの話を半々で混ぜてできるとニーズみたせるかも
+  - Rabbit で Elixir シンタックスを扱えるようにしたい
+  - Rabbit で org ファイルを扱えるようにしたい
+  - (ブース)見栄えのするデモがあると人をひきつけやすい
+  - (ブース)ノベルティがあると人をひきつけやすい．sapporo.cppではチロルチョコを配っていた
+
+** 資料の目的
+
+- Elixir を触ってみることができるよな気分になること
+- Elixir でやりたいことがあったとき，どの辺を眺めたり探せばよいか，推測できるようになること
+
+** Elixirの特徴
+
+Elixir のトップページに載っている特徴について紹介と簡単にまとめる
+
+[[http://qiita.com/niku/items/7c61d6a6af38896ac603][Elixir の特徴 - Qiita]]
+
+** Elixirの特徴
+
+- スケールしやすさ
+- 対障害性
+- 関数型プログラミング
+- 拡張しやすさと DSL
+- 成長するエコシステム
+- 対話型開発
+- Erlang 互換
+
+** ぼくがえりくさーですきなとこ
+
+- なじみのある文面 <- [今日これ]
+- ErlangVMで処理
+
+** インストール
+
+[[http://elixir-lang.org/install.html][Installing Elixir - Elixir]]
+
+- OSX
+- Unix
+- Windows
+
+** iexコマンド
+
+- これから紹介することを簡単に試すための REPL の使いかたを書く
+- 評価を中断させるための =#iex:break= について書く
+- =def= がトップレベルに書けないことについて言う
+
+[[http://elixir-lang.org/docs/stable/iex/IEx.html][IEx]]
+
+- =iex= というコマンドで REPL が使える
+- =iex= 内で打ち間違えたとき =#iex:break= と打つとやりなおせる
+
+** 値
+
+- プログラミングによくある要素/操作が普通にあることを示す
+- 値と，値を操作する主要なモジュールについて書く
+
+[[http://elixir-lang.org/getting-started/basic-types.html][Basic types - Elixir]]
+
+代表的なものを軽く紹介する
+
+#+begin_src elixir
+1          # 整数
+0x1F       # 整数
+1.0        # 小数
+true       # ブーリアン
+:atom      # アトム
+"elixir"   # 文字列
+[1, 2, 3]  # リスト
+{1, 2, 3}  # タプル
+#+end_src
+
+** 整数
+
+#+begin_src elixir
+1          # 整数 <-
+0x1F       # 整数 <-
+1.0        # 小数
+true       # ブーリアン
+:atom      # アトム
+"elixir"   # 文字列
+[1, 2, 3]  # リスト
+{1, 2, 3}  # タプル
+#+end_src
+
+#+begin_src elixir
+1          # => 1
+0x1F       # => 31
+1 + 2      # => 3
+5 * 5      # => 25
+10 / 2     # => 5.0
+div(10, 2) # => 5
+rem(10, 3) # => 1
+#+end_src
+
+=1 + 2= を題材に，中置演算子は一部の演算子だけのシンタックスシュガーであることを伝える．
+ついでに，括弧が省略できることも伝える．
+
+#+begin_src elixir
+同じものを指す
+div(10, 2)        # => 5
+div 10, 2         # => 5
+Kernel.div(10, 2) # => 5
+同じものを指す
+1 + 2             # => 3
+Kernel.+(1, 2)    # => 3
+Kernel.+ 1, 2     # => 3
+#+end_src
+
+** Elixirの関数
+
+よりみち．
+ErlangVM では関数は =モジュール名.関数名/引数の数= という形式で一意に表される．
+例えば =IO.inspect/1= の場合， =IO= モジュールの =inspect= という関数で，引数の数は =1= つのもの．
+つまり =IO.inspect("hello")= のように使うもののこと．
+
+- Elixir では(ErlangVMでは) =モジュール名.関数名/引数の数= で関数を指定する
+- 例えば =Kernel.div(10, 2)= は =Kernel.div/2=
+
+** 関数の調べかた
+
+なぜ最初にこんな面倒そうなことを伝えるかというと，皆が自分でドキュメントを引けるようにするため．
+
+=1 + 1= の =+= について知りたい場合
+
+- =1 + 1= は =Kernel.+(1, 1)= のこと
+- モジュールは =Kernel= 関数は =+= 引数の数は =2= つだから =Kernel.+/2= だな
+- iex から =h Kernel.+/2= とするとドキュメントが引ける
+
+#+begin_src
+iex(1)> h Kernel.+/2
+
+                        def +(left, right)
+
+Arithmetic plus.
+
+Allowed in guard tests. Inlined by the compiler.
+
+Examples
+
+┃ iex> 1 + 2
+┃ 3
+#+end_src
+
+ちなみに引数の数を省略するとマッチする全てを返す
+
+=h Kernel.+= と引数の数を省略すると， =Kernel.+= で，引数の数を問わないで探す
+
+#+begin_src
+iex(3)> h Kernel.+
+                           def +(value)
+(省略)
+                        def +(left, right)
+(省略)
+#+end_src
+
+web からは
+
+[[http://elixir-lang.org/docs/stable/elixir/][Elixir v1.0.4 Documentation]]
+
+をみるとよい．
+
+web のドキュメントは日本語版を作ってくれた人もいる( @k1complete さん作)
+
+[[http://ns.maqcsa.org/elixir/docs/][elixirリファレンスのぺーじ]]
+
+h で表示する内容を日本語にもできるみたい(試していない)
+
+[[http://qiita.com/k1complete/items/511ef32b63869bc48d02][Elixir - iexでの日本語版ヘルプの使い方 - Qiita]]
+
+** 整数を操作する関数
+
+整数を操作する関数もっぱら以下の 2 つモジュールにまとまっていそう
+
+- [[http://elixir-lang.org/docs/stable/elixir/Kernel.html][Kernel]] に =+/2= =-/2= =div/2= などがある
+- [[http://elixir-lang.org/docs/stable/elixir/Integer.html][Integer]] に =is_odd/1= などがある
+
+** 小数
+
+#+begin_src elixir
+1          # 整数
+0x1F       # 整数
+1.0        # 小数 <-
+true       # ブーリアン
+:atom      # アトム
+"elixir"   # 文字列
+[1, 2, 3]  # リスト
+{1, 2, 3}  # タプル
+#+end_src
+
+#+begin_src elixir
+1.0                # => 1.0
+1.0e-5             # => 1.0e-5
+1.0e-5 === 0.00001 # => true
+round(3.58)        # => 4
+trunc(3.58)        # => 3
+#+end_src
+
+** 小数を操作する関数
+
+- [[http://elixir-lang.org/docs/stable/elixir/Kernel.html][Kernel]] に =round/1= =trunc/1= などがある
+- [[http://elixir-lang.org/docs/stable/elixir/Float.html][Float]] に =ceil/1= や =foor/1= などがある
+
+** ブーリアン
+
+#+begin_src elixir
+1          # 整数
+0x1F       # 整数
+1.0        # 小数
+true       # ブーリアン <-
+:atom      # アトム
+"elixir"   # 文字列
+[1, 2, 3]  # リスト
+{1, 2, 3}  # タプル
+#+end_src
+
+ブーリアンには特に =Boolean= モジュールというものは用意されていない
+
+#+begin_src elixir
+true  # => true
+false # => false
+!true # => false
+#+end_src
+
+** ブーリアンを操作する関数
+
+みつからなかった！
+
+** アトム
+
+#+begin_src elixir
+1          # 整数
+0x1F       # 整数
+1.0        # 小数
+true       # ブーリアン
+:atom      # アトム <-
+"elixir"   # 文字列
+[1, 2, 3]  # リスト
+{1, 2, 3}  # タプル
+#+end_src
+
+自分の名前が自分の値を表すような定数．他の言語だとシンボルと呼ばれるようなもの．
+
+#+begin_src elixir
+:foo             # => :foo
+:"foo-bar"       # => :"foo-bar"
+ブーリアン値はアトムでした
+:true === true   # => true
+:false === false # => true
+#+end_src
+
+** アトムを操作する関数
+
+- [[http://elixir-lang.org/docs/v1.0/elixir/Atom.html][Atom]] にシンボルから文字列に変換する関数がある
+
+** 文字列
+
+#+begin_src elixir
+1          # 整数
+0x1F       # 整数
+1.0        # 小数
+true       # ブーリアン
+:atom      # アトム
+"elixir"   # 文字列 <-
+[1, 2, 3]  # リスト
+{1, 2, 3}  # タプル
+#+end_src
+
+[[http://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html][Binaries, strings and char lists - Elixir]]
+
+- Elixir では " でくくった文字列と ' でくくった文字列がある
+- ほぼ全ての場合において " の方を利用する
+
+#+begin_src elixir
+"abc"                      # => "abc"
+"こんにちは"               # => "こんにちは"
+"1 + 2 は #{ 1 + 2 } です" # => "1 + 2 は 3 です"
+Elixir では文字列はバイナリとして扱われる
+is_binary("abc")           # => true
+#+end_src
+
+** 文字列を操作する関数
+
+#+begin_src elixir
+byte_size("日本語")     # => 9
+String.length("日本語") # => 3
+String.at("日本語", 1)  # => "本"
+#+end_src
+
+- [[http://elixir-lang.org/docs/stable/elixir/Kernel.html][Kernel]] にバイナリを操作する関数がある
+- [[http://elixir-lang.org/docs/v1.0/elixir/String.html][String]] モジュールに，UTF-8 エンコードされているバイナリをうまく扱う関数がある
+
+** 複数の値を格納する値
+
+ここまでは，値について話してきた．
+次に，値を格納する値について話す．
+つまり，俗に言う配列やハッシュマップなどのこと．
+
+#+begin_src elixir
+1          # 整数
+0x1F       # 整数
+1.0        # 小数
+true       # ブーリアン
+:atom      # アトム
+"elixir"   # 文字列
+[1, 2, 3]  # リスト <-
+{1, 2, 3}  # タプル <-
+#+end_src
+
+[[http://elixir-lang.org/getting-started/basic-types.html#%28linked%29-lists][Basic types - Elixir]]
+
+[[http://elixir-lang.org/getting-started/maps-and-dicts.html][Keywords, maps and dicts - Elixir]]
+
+** 複数の値を格納する値
+
+#+begin_src elixir
+[1, 2, 3]                   # リスト <-
+{1, 2, 3}                   # タプル
+%{foo: "hoge", bar: "fuga"} # マップ
+[{:foo, "hoge"},
+ {:bar, "fuga"},
+ {:foo, "moge"}]            # キーワードリスト
+#+end_src
+
+** リスト
+
+#+begin_src elixir
+[1,2,3]          # => [1, 2, 3]
+[:a, "b", 'c']   # => [:a, "b", 'c']
+[[:x], [:y, :z]] # => [[:x], [:y, :z]]
+#+end_src
+
+- =[]= でくくる
+- いわゆる配列．値はなんでも，何個でも入る
+
+** リストを操作する関数
+
+#+begin_src elixir
+Enum.map([1,2,3], fn(x) -> x * 2 end) # => [2, 4, 6]
+List.last([4,5,6])                    # => 6
+#+end_src
+
+- [[http://elixir-lang.org/docs/stable/elixir/Enum.html][Enum]] には，繰り返しについての関数がある
+- [[http://elixir-lang.org/docs/stable/elixir/List.html][List]] には，List特有の関数がある
+
+経験上まず Enum を探すのがよい
+
+** タプル
+
+#+begin_src elixir
+[1, 2, 3]                   # リスト
+{1, 2, 3}                   # タプル <-
+%{foo: "hoge", bar: "fuga"} # マップ
+[{:foo, "hoge"},
+ {:bar, "fuga"},
+ {:foo, "moge"}]            # キーワードリスト
+#+end_src
+
+#+begin_src elixir
+{:a, 1}         # => {:a, 1}
+{"x", "y", "z"} # => {"x", "y", "z"}
+#+end_src
+
+- ={}= でくくる
+- 中に入る個数が決まった入れ物
+
+** タプルを操作する関数
+
+#+begin_src elixir
+elem({:a, "abc"}, 1)                # => abc
+Tuple.delete_at({"x", "y", "z"}, 1) # => {"x", "z"}
+#+end_src
+
+- [[http://elixir-lang.org/docs/stable/elixir/Kernel.html][Kernel]] にはタプルの値を取得する関数がある
+- [[http://elixir-lang.org/docs/stable/elixir/Tuple.html][Tuple]] にはタプル特有な関数がある
+
+** マップ
+
+#+begin_src elixir
+[1, 2, 3]                   # リスト
+{1, 2, 3}                   # タプル
+%{foo: "hoge", bar: "fuga"} # マップ <-
+[{:foo, "hoge"},
+ {:bar, "fuga"},
+ {:foo, "moge"}]            # キーワードリスト
+#+end_src
+
+#+begin_src elixir
+%{:a => 1, :b => 2}          # => %{a: 1, b: 2}
+%{a: 1, b: 2}                # => %{a: 1, b: 2}
+%{:a => 1, :b => 2, :a => 3} # => %{a: 3, b: 2}
+#+end_src
+
+- =%{}= でくくる
+- キーと，それに対応する値を一組に持ついわゆるキーバリューストア
+- キーは重複して定義できず，上書きされる
+
+** マップを操作する関数
+
+#+begin_src elixir
+Enum.any?(%{a: 1, b: 2}, fn({k,_v}) -> k === :b end) # => true
+Dict.update!(%{a: 1, b: 2}, :a, fn(v) -> v + 10 end) # => %{a: 11, b: 2}
+Map.new                                              # => %{}
+#+end_src
+
+- [[http://elixir-lang.org/docs/stable/elixir/Enum.html][Enum]] には，繰り返しについての関数がある
+- [[http://elixir-lang.org/docs/stable/elixir/Dict.html][Dict]] には，とあるキーととある値が関連づいているようなデータについての関数がある
+- [[http://elixir-lang.org/docs/stable/elixir/Map.html][Map]] には，Map 特有の関数がある
+
+Enum -> Dict -> Map の順番で探すとよい
+
+** キーワードリスト
+
+#+begin_src elixir
+[1, 2, 3]                   # リスト
+{1, 2, 3}                   # タプル
+%{foo: "hoge", bar: "fuga"} # マップ
+[{:foo, "hoge"},
+ {:bar, "fuga"},
+ {:foo, "moge"}]            # キーワードリスト <-
+#+end_src
+
+#+begin_src elixir
+[{:foo, "x"}, {:bar, "y"}]              # => [foo: "x", bar: "y"]
+[foo: "x", bar: "y"]                    # => [foo: "x", bar: "y"]
+[{:foo, "x"}, {:bar, "y"}, {:foo, "z"}] # => [foo: "x", bar: "y", foo: "z"]
+#+end_src
+
+- 1 つめの要素がアトム，2 つめの要素が任意の値になっているタプルを持つ配列
+- Map とは異なり，同じ名前のキーを 2 つ保持することができる
+- キーワード引数としての利用が多い
+
+** キーワードリストを操作する関数
+
+#+begin_src elixir
+Keyword.get_values([foo: "x", bar: "y", foo: "z"], :foo) # => ["x", "z"]
+#+end_src
+
+特定のユースケースで多用されるため， Keyword モジュールにある関数で処理することが多い
+
+- [[http://elixir-lang.org/docs/stable/elixir/Enum.html][Enum]] / [[http://elixir-lang.org/docs/stable/elixir/List.html][List]] / [[http://elixir-lang.org/docs/stable/elixir/Dict.html][Dict]] 利用可能
+- [[http://elixir-lang.org/docs/stable/elixir/Keyword.html][Keyword]] には，キーワードリスト特有の処理がある
+
+** モジュールと関数の定義
+
+主要な値の紹介が終わったので，それを操作する関数の定義と，関数をグループ化するモジュールの定義について話す
+
+[[http://elixir-lang.org/getting-started/modules.html][Modules - Elixir]]
+
+#+begin_src elixir
+defmodule MyOperand do
+  def plus(x, y) do
+    x + y
+  end
+
+  def minus(x, y) do
+    x - y
+  end
+end
+MyOperand.plus(1, 2)  # => 3
+MyOperand.minus(5, 3) # => 2
+#+end_src
+
+- モジュールは，関数をあるグループにまとめて，探しやすくするためにある
+- 自分達でモジュールを定義するには =defmodule= を使う
+- 関数の定義は =def= を使う
+
+** do-endはキーワードリストで実装されている
+
+[[http://elixir-lang.org/getting-started/case-cond-and-if.html#do%2Fend-blocks][case, cond and if - Elixir]]
+
+#+begin_src elixir
+if true do
+  "foo"
+else
+  "bar"
+end
+if(true, do: "foo", else: "bar")
+if(true, [{:do, "foo"}, {:else, "bar"}])
+#+end_src
+
+- Elixir の do xxx end は do: xxx というキーワード引数のシンタックスシュガー
+
+#+begin_src elixir
+defmodule SingleLine
+  def bar do: "hoge"
+  def baz do: "fuga"
+end
+#+end_src
+
+- 簡単な関数定義のときは =def= を 1 行で書くこともできる
+
+** |>
+
+自分で定義する関数でも，第一引数には subject がくるようにする
+大きな理由の一つに，多用する =|>= の流れを壊さないようにするというものがある
+
+#+begin_src ruby
+[1,2,3,4,5,6]            # => [1,2,3,4,5,6]
+  .map { |e| e + 1 }     # => [2,3,4,5,6,7]
+  .select { |e| e.odd? } # => [3,5,7]
+  .select { |e| 3 < e }  # => [5,7]
+#+end_src
+
+- データに対して処理を連続して行う(Rubyの場合)
+- オブジェクトに関係つけている関数をオブジェクト経由で呼び出している
+
+#+begin_src elixir
+array  = [1,2,3,4,5,6]                                    # => [1,2,3,4,5,6]
+mapped = Enum.map(array,     fn(x) -> x + 1 end)          # => [2,3,4,5,6,7]
+odd    = Enum.filter(mapped, fn(x) -> rem(x, 2) == 1 end) # => [3,5,7]
+over3  = Enum.filter(odd,    fn(x) -> 3 < x end)          # => [5,7]
+over3                                                     # => [5,7]
+#+end_src
+
+- Elixir では，データに対しては関数が関係ついていない
+- データに対して処理を連続して行いたいときは，返り値を次の関数へ引数として渡すことになる
+
+#+begin_src elixir
+Enum.filter(
+  Enum.filter(
+    Enum.map([1,2,3,4,5,6], fn(x) -> x + 1 end),
+    fn(x) -> rem(x, 2) == 1 end
+  ),
+  fn(x) -> 3 < x end
+) # => [5,7]
+#+end_src
+
+- インライン化して変数を消すことができた
+- しかし処理順が上から下ではなく括弧の内側から外側になってしまった……
+
+#+begin_src elixir
+[1,2,3,4,5,6]
+|> Enum.map(fn(x) -> x + 1 end)
+|> Enum.filter(fn(x) -> rem(x, 2) == 1 end)
+|> Enum.filter(fn(x) -> 3 < x end)
+=> [5,7]
+#+end_src
+
+- Elixirには =|>= という演算子がある
+- =|>= は，左(上)側の評価結果を，右側の関数の第一引数へと代入してくれる
+
+#+begin_src elixir
+"hoge" |> String.upcase |> String.replace("H", "M") # => MOGE
+
+x1 = "hoge"
+x2 = String.upcase(x1)
+x3 = String.replace(x2, "H", "M") # => MOGE
+#+end_src
+
+- 「subject は第一引数に取る」という鉄則があるので， =|>= でデータを繋いでいくことができる
+- 自分で関数を定義するときは，操作対象を第一引数に取るようにすると，Elixir Way に乗って =|>= を使いやすい
+
+** 束縛
+
+Elixir では以下のような形式で値を変数に結びつけることができる．
+=y= の例では，同じ名前で 2 回値を結びつけているように見えるが，
+実際にはコンパイル時には =y1= と =y2= のように別の変数名に変えられているそうだ．
+だけど，あんまりいいことはないので，やめた方がいい．
+
+#+begin_src elixir
+x = 1
+x        # => 1
+y = :abc
+y        # => :abc
+↑実質y1
+y = :def
+y        # => :def
+↑実質y2
+#+end_src
+
+** パターンマッチング
+
+#+begin_src elixir
+[h|t] = [1,2,3]
+h # => 1
+t # => [2,3]
+{x, y} = {123, 456}
+x # => 123
+y # => 456
+%{i: a} = %{i: "あい", j: "じぇい", k: "けい"}
+a # => "あい"
+%{i: b} = %{j: "じぇい", k: "けい"}
+=> (MatchError) no match of right hand side value: %{j: "じぇい", k: "けい"}
+#+end_src
+
+- 複数の値を格納している値を，複数の変数に結びつけることができる
+
+[[http://elixir-lang.org/getting-started/pattern-matching.html][Pattern matching - Elixir]]
+
+** 文字へのパターンマッチング
+
+#+begin_src elixir
+<<h, t :: binary>> = "abcdef"
+h              # => 97
+t              # => "bcdef"
+<<97>> === "a" # => true
+#+end_src
+
+- 文字にも同じようにパターンマッチングできる
+
+=97= という数字が出てしまった．これが何を表しているかというと，文字コードポイントの値である．
+Elixir の文字はバイナリとして扱っている．バイナリの 97 は， a という文字を表す．
+この場合は 97 と表示した方がいいか，a と表示した方がいいかを
+コンピュータで判断がつけられないので =97= と表示してしまっている．
+=<<97>>= と ="a"= は同じ内容を指しているけど，表示が異なるという認識でよい．
+
+ここは今さらっといく．
+デバッグのときに文字をいじっていたはずなのに数字が出てきたらなんとなく思い出すとやくに立つ．
+詳しく知りければ [[http://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html][Binaries, strings and char lists - Elixir]] を読むとよい．
+
+ともかく，文字も"複数の値を格納している値"とみなして，
+分解して変数を割り当てられている．
+
+** 匿名関数
+
+[[http://elixir-lang.org/getting-started/basic-types.html#anonymous-functions][Basic types - Elixir]]
+
+モジュール内に名前つきの関数を定義する方法は説明した
+その他，名前をつけずに関数を使い捨てで利用する方法
+
+#+begin_src elixir
+add = fn(x, y) -> x + y end
+add.(2, 3) # => 5
+#+end_src
+
+匿名関数はこんな感じで書くことができる．
+呼び出すときには =.= をつけるのを忘れないようにすること．
+実のところ匿名関数を変数へ束縛して使うことはほとんどない．
+
+#+begin_src elixir
+x1 = Enum.map([1,2,3], fn (x) -> x + 5 end)
+x1 # => [6, 7, 8]
+x2 = Enum.map([1,2,3], &(&1 + 5))
+x2 # => [6, 7, 8]
+#+end_src
+
+- 上のように関数(今回の例だと =Enum.map= )へ匿名関数を渡して，やりたい事を書くときに使うことがほとんど
+- =fn(x) -> x + 5 end= は =&(&1 + 5)= と書ける
+
+関数(今回の例だと =Enum.map= )に匿名関数を渡して，やりたい事を書くときに使うことが多い．
+よく使うので省略した書き方もできるようになっている．
+
+** 制御構造
+
+[[http://elixir-lang.org/getting-started/case-cond-and-if.html][case, cond and if - Elixir]]
+
+*** if式
+
+#+begin_src elixir
+if true do
+  "true"
+else
+  "false"
+end
+=> "true"
+#+end_src
+
+- Elixir で =false= として扱われるのは， =false= と =nil= だけ
+
+#+begin_src elixir
+x = if true do
+      "**true**"
+    else
+      "**false**"
+    end
+x # => **true**
+#+end_src
+
+- IF 式は返り値を持つので，結果を変数に束縛することもできる
+
+*** case式
+
+#+begin_src elixir
+x = 2
+case x do
+  1 -> "x => 1"
+  2 -> "x => 2"
+end
+=> "x => 2"
+#+end_src
+
+- =true= / =false= 以外で分岐させたい場合は =case= を使う
+
+#+begin_src elixir
+x = 2; y = 3; z = 2
+case x do
+  y -> "x === y, #{y}"
+  z -> "x === z, #{z}"
+end
+=> "x === y, 2"
+#+end_src
+
+- =x= と =z= が等しいので "x === z" の方を期待していた
+- 先に y の値に 2 が束縛されてしまうのでうまく動作しない
+
+#+begin_src elixir
+x = 2; y = 3; z = 2
+case x do
+  ^y -> "x === y, #{y}"
+  ^z -> "x === z, #{z}"
+end
+=> "x === z, 2"
+#+end_src
+
+- =y= の値が変わってほしくないという意思を伝える書き方 =^y= がある
+
+#+begin_src elixir
+x = 3
+case x do
+  1 -> "x => 1"
+  2 -> "x => 2"
+end
+** (CaseClauseError) no case clause matching: 3
+    elixir_src.exs:2: (file)
+    (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+- =x= に 3 がきたときはエラーでプロセスが落ちてしまった
+
+#+begin_src elixir
+x = 3
+case x do
+  1 -> "x => 1"
+  2 -> "x => 2"
+  _ -> "another x"
+end
+=> "another x"
+#+end_src
+
+- 最後に =true= か =_= を使ってマッチングすると未知の値も拾える
+
+しかし！ErlangVM では "Let it crash" という哲学があり，
+未知の値は無理にハンドリングせずに落としてしまう方が好ましい．
+
+プロセスは落ちてしまう．プロセスが落ちるとプログラム自体が終わる！と思うかもしれないが
+ErlangVM ではプロセスが落ちてもプログラム自体を終わらせない方法が標準で用意されている．
+
+今回は取り上げないが OTP や Supervisor について調べるとよい．
+ひとまずここでは「予想できていること，状態についてだけ扱う」ということだけ覚えておいてほしい．
+
+=case= 式でもパターンマッチングが利用できる
+
+#+begin_src elixir
+x = 2
+y = 3
+result = case {x, y} do
+           {1, 2} -> :a
+           {1, 3} -> :b
+           {2, a} -> a
+           {3, _} -> :c
+         end
+result # => 3
+#+end_src
+
+*** ガード
+
+- =guard= という方法を使えば，異なる型，例えば整数の =1= と小数点つきの数 =1.1= ，文字列 "1" を 1 つの case 式で扱うこともできる
+
+[[http://elixir-lang.org/getting-started/case-cond-and-if.html#expressions-in-guard-clauses][case, cond and if - Elixir]]
+
+#+begin_src elixir
+x = 1
+result = case x do
+            a when is_integer(x) -> a
+            a when is_float(x)   -> trunc(a)
+            a when is_binary(x)  -> String.to_integer(a)
+          end
+result # => 1
+#+end_src
+
+#+begin_src elixir
+x = 1.1
+result = case x do
+            a when is_integer(x) -> a
+            a when is_float(x)   -> trunc(a)
+            a when is_binary(x)  -> String.to_integer(a)
+          end
+result # => 1
+#+end_src
+
+#+begin_src elixir
+x = "1"
+result = case x do
+            a when is_integer(x) -> a
+            a when is_float(x)   -> trunc(a)
+            a when is_binary(x)  -> String.to_integer(a)
+          end
+result # => 1
+#+end_src
+
+** 今日やったこと
+
+- インタラクティブシェル iex
+- ドキュメントの調べかた
+- さまざまな値と，値を操作する関数
+- パイプ演算子 ｜>
+- パターンマッチング
+- 制御構造
+
+** 簡単なElixirのはじめかた
+
+- 毎週木曜日にやっているsapporo.beamで聞こう
+- http://sapporo-beam.github.io/
+- オンライン参加も歓迎しているよ！
