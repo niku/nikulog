@@ -1,0 +1,158 @@
+* すごいE本をElixirでやる(8)
+
+** 2.1 モジュール
+
+erlang の場合は BIF が最初からインポートされているようだ．
+
+Elixir の場合は Kernel が最初からインポートされている．
+
+#+begin_src iex
+iex(2)> elem({:a, :b, :c}, 2)
+:c
+iex(3)> Kernel.elem({:a, :b, :c}, 2)
+:c
+iex(4)> Enum.map(0..3, &(&1 + 1))
+[1, 2, 3, 4]
+iex(5)> map(0..3, &(&1 + 1))
+ ** (RuntimeError) undefined function: map/2
+#+end_src
+
+** 2.2 モジュールを作る
+
+モジュール名も属性だったんだ．なるほど．
+
+Erlang だと，関数，属性，の2つを宣言でき，モジュール名も属性として定義すると書いてある．
+
+Elixir だと，モジュールを宣言して，その中に関数と属性を宣言するような形になる．
+
+あと Elxir では モジュール名とファイル名は一致しなくてもコンパイルできるみたい．
+
+#+begin_src elixir
+# コメントは # から始まる
+# モジュール定義
+defmodule Useless do
+  # export はなくて，def と defp で公開/非公開を切り替える
+  def add(a, b), do: a + b
+
+  # add のように 1 行にも，hello のように複数行にも書ける
+  def hello do
+    IO.puts "Hello, world!"
+  end
+
+  def greet_and_add_two(x) do
+    hello
+    add(x, 2)
+  end
+end
+#+end_src
+
+** 2.3 コードをコンパイルする
+
+Elixir だと elixirc でコンパイルできる．
+
+Elixir のシェル =iex= からも =c= でコンパイルできるみたい．
+=/tmp= に =useless.ex= を置いて試した．
+
+#+begin_src iex
+iex(6)> cd "/tmp"
+/tmp
+:ok
+iex(7)> h c
+
+                           def c(files, path \\ ".")
+
+Expects a list of files to compile and a path to write their object code to. It
+returns the name of the compiled modules.
+
+When compiling one file, there is no need to wrap it in a list.
+
+Examples
+
+┃ c ["foo.ex", "bar.ex"], "ebin"
+┃ #=> [Foo,Bar]
+┃
+┃ c "baz.ex"
+┃ #=> [Baz]
+
+iex(8)> c("useless.ex")
+[Useless]
+iex(9)> Useless.add(7,2)
+9
+iex(10)> Useless.hello
+Hello, world!
+:ok
+iex(11)> Useless.greet_and_add_two(-3)
+Hello, world!
+-1
+iex(12)> Useless.not_a_real_function()
+ ** (UndefinedFunctionError) undefined function: Useless.not_a_real_function/0
+    Useless.not_a_real_function()
+#+end_src
+
+beamfile 生成先ディレクトリを決める outdir は，Elixir では c の第二引数に指定するとよい．
+
+その他コンパイルフラグを与えたコンパイルを Elixir の関数から行う方法は見つけられなかった．知ってたら教えてほしい．
+
+** 2.4 マクロを宣言する
+
+Erlang でマクロと呼んでいるものは，Elixir のマクロとは **違う**
+
+Elixir ではモジュールの中に =@= つきの属性(attribute)を書ける．
+これが Erlang におけるマクロの代わりになるかもしれない．
+
+#+begin_src elixir
+defmodule Foo do
+  @hour 3600
+
+  def hour_in_sec do
+    @hour
+  end
+
+  # ?MODULE は __MODULE__ で取れる
+  def module, do: __MODULE__
+
+  # ?FILE は見つけられなかったけど，__ENV__から取れる
+  def file, do: __ENV__.file
+
+  # ?LINE は見つけられなかったけど，__ENV__から取れる
+  def line, do: __ENV__.line
+end
+
+Foo.hour_in_sec # => 3600
+Foo.module      # => Foo
+Foo.file        # => "iex"
+Foo.line        # => 15
+#+end_src
+
+ファイル名や行番号は Elixir のマクロでは取れていたのに，それっぽい変数がないからソースを読んだ．
+
+[[https://github.com/elixir-lang/elixir/blob/v1.0.4/lib/elixir/lib/kernel.ex#L2825][elixir/kernel.ex at v1.0.4 · elixir-lang/elixir]] で =__ENV__= から取得していた．
+
+Elixir でコンパイル前に何かやりたい場合は [[http://elixir-lang.org/docs/stable/elixir/Module.html][Module]] の =@before_compile= あたりを使えばよさそう．
+
+ふだんはこれを直接使うことなくて [[http://elixir-lang.org/docs/stable/elixir/Kernel.html#use/2][Kernel.use/2]] あたりに任せるのではないか．
+
+** 2.5 モジュールについてもっと詳しく
+
+#+begin_src elixir
+defmodule Foo do
+  @my_attr "a"
+
+  def public_func, do: "x"
+  defp private_func, do: "y"
+end
+
+Foo.module_info
+# =>
+# [exports: [public_func: 0, module_info: 1, module_info: 0, __info__: 1],
+#  imports: [], attributes: [vsn: [32915519144309961064275613523052452902]],
+#  compile: [options: [:debug_info], version: '5.0.4',
+#   time: {2015, 6, 18, 11, 33, 6},
+#   source: '/Users/niku/tmp/foo.exs']]
+
+Foo.module_info(:attributes) # => [vsn: [32915519144309961064275613523052452902]]
+#+end_src
+
+Elixir の =@my-attr= はコンパイル時にだけ有効で，コンパイルすると消えてしまうので， =attributes= に含まれていない．
+
+[[http://elixir-lang.org/getting-started/module-attributes.html][Module attributes - Elixir]] を読むと少しわかるかも．
