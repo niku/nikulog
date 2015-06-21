@@ -1,0 +1,205 @@
+* すごいE本をElixirでやる(9)
+** 3.1 パターンマッチ
+
+#+begin_src elixir
+defmodule X do
+  def greet(gender, name) do
+    if(gender === :male) do
+      IO.puts "Hello, Mr. #{name}!"
+    else
+      if(gender === :female) do
+        IO.puts "Hello, Mrs. #{name}!"
+      else
+        IO.puts "Hello, #{name}!"
+      end
+    end
+  end
+end
+
+X.greet(:male, "太郎")      # => Hello, Mr. 太郎!
+X.greet(:female, "花子")    # => Hello, Mrs. 花子!
+X.greet(:unknown, "ななし") # => Hello, ななし!
+#+end_src
+
+Elixir でも Erlang と同じようにパターンマッチを関数の定義に使える．これ好き．
+
+事前条件を関数定義のところ書けるから関数の中に書くことを減らせて見通しがよくなる．
+
+#+begin_src elixir
+defmodule X do
+  def greet(:male, name), do: IO.puts "Hello, Mr. #{name}!"
+  def greet(:female, name), do: IO.puts "Hello, Mrs. #{name}!"
+  def greet(_, name), do: IO.puts "Hello, #{name}!"
+end
+
+X.greet(:male, "太郎")      # => Hello, Mr. 太郎!
+X.greet(:female, "花子")    # => Hello, Mrs. 花子!
+X.greet(:unknown, "ななし") # => Hello, ななし!
+#+end_src
+
+Erlang だと同じ名前の関数定義をセミコンでつないで，最後はピリオドで終わらせるそうだ．
+Elixir はそういった制限がなく，いつもの関数定義と何もかえなくてよい．
+
+#+begin_src elixir
+defmodule X do
+  def head([h|_]), do: h
+  def second([_,x|_]), do: x
+end
+
+X.head([1,2,3,4])   # => 1
+X.second([1,2,3,4]) # => 2
+#+end_src
+
+Erlang は変数の再束縛ができないようになっているようだ．
+Elixir は変数の再束縛ができるので，これとは少し話が異なる．
+ただし Elixir でも変数の束縛時に =^= をつけると「再束縛しない」という振舞いになる．
+
+#+begin_src elixir
+x = 1
+x = 2
+x # => 2
+^x = 3
+#> ** (MatchError) no match of right hand side value: 3
+#>   orgmode_elixir_src.exs:4: (file)
+#>   (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+日付の束縛もみてみる．
+
+#+begin_src elixir
+defmodule X do
+  def valid_time({date={y,m,d}, time={h,min,s}}) do
+    IO.puts "The Date tuple #{inspect date} says today is: #{y}/#{m}/#{d}"
+    IO.puts "The time tuple #{inspect time} indicates: #{h}:#{min}:#{s}"
+  end
+
+  def valid_time(_), do: IO.puts "Stop feeding me wrong data!"
+end
+
+X.valid_time({{2013,12,12},{09,04,43}})
+#> The Date tuple {2013, 12, 12} says today is: 2013/12/12
+#> The time tuple {9, 4, 43} indicates: 9:4:43
+X.valid_time({{2013,09,06},{09,04}})
+#> Stop feeding me wrong data!
+#+end_src
+
+ところでオーム社 PDF 1.0 版だと P37 にあるコード例の
+
+#+begin_src erl
+5> functions:valid_time({{2013,12,12},{09,04,43}}).
+The Date tuple ({2013,9,6}) says today is: 2013/9/6,
+The time tuple ({9,4,43}) indicates: 9:4:43.
+ok
+#+end_src
+
+は ={2013,12,12}= を引数に渡しているけど，それと結果が合っていないように見えた．既知かもしれないが報告してみよう．
+
+** 3.2 ガードだ、ガード！
+
+Elixir でも Erlang のガードを利用できる．
+
+#+begin_src elixir
+defmodule X do
+  def old_enough(age) when age >= 16, do: true
+  def old_enough(_), do: false
+
+  def right_age(age) when age >= 16 and age <= 104, do: true
+  def right_age(_), do: false
+
+  def wrong_age(age) when age < 16 or age > 104, do: false
+  def wrong_age(_), do: true
+end
+
+X.old_enough(15) # => false
+X.old_enough(16) # => true
+X.right_age(15)  # => false
+X.right_age(16)  # => true
+X.right_age(104) # => true
+X.right_age(105) # => false
+X.wrong_age(104) # => true
+X.wrong_age(105) # => false
+#+end_src
+
+Erlang と同様に，Elixir でもガードの中で利用できる関数には限りがある．
+利用できる関数は [[http://elixir-lang.org/getting-started/case-cond-and-if.html#expressions-in-guard-clauses][case, cond and if - Elixir]] に記載がある．一般的には =is_= で始まる関数はガード節の中で利用できるようだ．
+
+** 3.3 Ifってなんだ？！
+
+Erlang の If とは異なり，Elixir の If はまあまあ普通の If と似ており，評価がマッチしなくてもかまわない．
+もしマッチしなかった場合は nil が返る．
+
+Erlang の If と似ているのは Elixir の case [[http://elixir-lang.org/getting-started/case-cond-and-if.html#case][case, cond and if - Elixir]] かなあ．
+
+#+begin_src elixir
+defmodule WhatTheIf do
+  def heh_fine_if do
+    if 1 === 2 do
+      "never match"
+    end
+  end
+
+  def heh_fine_case(x) do
+    case x do
+      1 -> "works"
+    end
+  end
+
+  def oh_god(x) do
+    case x do
+      2 -> :might_succeed
+      _ -> :always_does
+    end
+  end
+
+  def help_me(animal)
+    talk = case animal do
+  end
+end
+
+WhatTheIf.heh_fine_if      # => nil
+WhatTheIf.heh_fine_case(1) # => "works"
+WhatTheIf.heh_fine_case(2)
+#> warning: this check/guard will always yield the same result
+#> ** (CaseClauseError) no case clause matching: 2
+#>     orgmode_elixir_src.exs:9: WhatTheIf.heh_fine_case/1
+#>     orgmode_elixir_src.exs:17: (file)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+WhatTheIf.oh_god(2)        # => :might_succeed
+WhatTheIf.oh_god(3)        # => :always_does
+WhatTheIf.help_me(:dog)        # => {:dog, "says bark!"}
+WhatTheIf.help_me("It hurts!") # => {"It hurts!", "says fgdafgna!"}
+#+end_src
+
+** 3.4 もしも…の場合（In Case ... of）
+
+Elixir では Erlang の case ... of に相当するものを cond [[http://elixir-lang.org/getting-started/case-cond-and-if.html#cond][case, cond and if - Elixir]] で書くといいのかなあ(自信なし)
+
+場合によっては普通に case でも書けそう．
+
+#+begin_src elixir
+defmodule X do
+  def insert(x, set) do
+    cond do
+      Enum.empty?(set) -> [x]
+      Enum.member?(set, x) -> set
+      !Enum.member?(set, x) -> [x|set]
+    end
+  end
+end
+
+X.insert(1, [])        # => [1]
+X.insert(1, [2, 3])    # => [1,2,3]
+X.insert(1, [1, 2, 3]) # => [1,2,3]
+#+end_src
+
+** 3.5 どれを使えばいいの？
+
+Elixir だとどうしたらいいのかなあ．
+
+個人的な感覚としては 関数 > case = if > cond くらいな感じ．
+
+- 関数内に場合分けを書きたくないので，まずは関数宣言部分で場合分けする
+- case と if は場合によって使いわける．else がちゃんとある場合は if で，そうではなければ case かなあ
+- cond は自由すぎて網羅の漏れを考慮しにくいので最後の手段とする
+
+何か良い指針があれば教えてもらいたい．
