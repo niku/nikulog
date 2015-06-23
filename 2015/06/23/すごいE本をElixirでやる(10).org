@@ -1,0 +1,55 @@
+* すごいE本をElixirでやる(10)
+** 4.1 動的で強い型付け
+
+#+begin_quote
+たいていの言語や型システムはプログラムからエラーを取り除くことを目標としている一方で、
+Erlang は、エラーはどうせ起きるのだからエラーから確実に回復するようにしようという戦略に立っているということです。
+#+end_quote
+
+Elixir は素直に ErlangVM を利用しているので，Erlang と同じ戦略，堅牢さを利用できる．
+
+「念のため，未知のことに対応させる」ようなコードは書かなくてよい．
+
+#+begin_src elixir
+6 + "1"
+#>  ** (ArithmeticError) bad argument in arithmetic expression
+#>     orgmode_elixir_src.exs:1: (file)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+** 4.2 型変換
+
+#+begin_src elixir
+String.to_integer("54")  # => 54
+Integer.to_string(54)    # => 54
+String.to_integer("54.32")
+#> ** (ArgumentError) argument error
+#>     orgmode_elixir_src.exs:3: (file)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+String.to_float("54.32") # => 54.32
+Atom.to_string(true)     # => :true
+String.to_char_list("hi there") # => 'hi there'
+List.to_string('hi there')      # => "hi there"
+#+end_src
+
+見てわかるように Elixir の場合 =変換元の型= がモジュール名， =to_変換先の型= が関数で用意されていることが多い．
+
+** 4.3 データ型を守るために
+
+Elixir でも =is_= で型を分けることができる．
+
+#+begin_src elixir
+defmodule X do
+  def my_function(exp) when is_binary(exp), do: "expression1"
+  def my_function(exp) when is_list(exp), do: "expression2"
+end
+
+X.my_function("binary")    # => expression1
+X.my_function('char list') # => expression2
+#+end_src
+
+** 4.4 型ジャンキーのために
+
+Elixir からも静的型解析を行うツール Dialyzer を利用することができる．
+
+以前 [[http://qiita.com/niku/items/826f3c39c2b8bd99eb5a][静的型チェックツールDialyzerをElixirから使う - Qiita]] に調べたことを書いた．
