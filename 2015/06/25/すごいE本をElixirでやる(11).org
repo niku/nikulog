@@ -1,0 +1,106 @@
+* すごいE本をElixirでやる(11)
+** 5.1 再帰の動き
+
+Elixir でも Erlang と同じように再帰を記述することができる．
+
+#+begin_src elixir
+defmodule Recursive do
+  def fac(0), do: 1
+  def fac(n) when n > 0, do: n * fac(n-1)
+
+  def len([]), do: 0
+  def len([_|t]), do: 1 + len(t)
+
+  # Elixir では Erlang とは異なり \\ でデフォルト引数を宣言できる
+  def tail_fac(0, acc), do: acc
+  def tail_fac(n, acc \\ 1) when n > 0, do: tail_fac(n-1, n*acc)
+
+  # もちろん Erlang の例と似たように，公開する関数と，内部で再帰する関数を分けることもできる
+  # デフォルト引数は引数の数が異なる同名の関数がある場合に
+  # どの呼び出しにマッチするか考えないといけないので，この公開用と内部用を分ける方が好き
+  def tail_len(l), do: tail_len(l, 0)
+  defp tail_len([], acc), do: acc
+  defp tail_len([_|t], acc), do: tail_len(t, acc+1)
+end
+
+Recursive.fac(4) # => 24
+Recursive.len([1,2,3,4]) # => 4
+Recursive.tail_fac(4) # => 24
+Recursive.tail_len([1,2,3,4]) # => 4
+#+end_src
+
+** 5.2 さらに末尾関数
+
+#+begin_quote
+再帰関数というのはErlang に存在する唯一のループ構造であり
+#+end_quote
+
+はい．
+
+複製 (duplicate) する関数は，Erlang の場合と異なり，引数の順序を「複製対象」「複製回数」とした．
+Elixir の API 設計では第一引数に subject をもってくるというベストプラクティスのためである．
+
+#+begin_src elixir
+defmodule X do
+  # duplicate
+  def duplicate(term, 0), do: []
+  def duplicate(term, n) when n > 0, do: [term|duplicate(term, n-1)]
+
+  def tail_duplicate(term, n), do: tail_duplicate(term, n, [])
+  defp tail_duplicate(term, 0, list), do: list
+  defp tail_duplicate(term, n, list) when n > 0, do: tail_duplicate(term, n-1, [term|list])
+
+  # reverse
+  def reverse([]), do: []
+  def reverse([h|t]), do: reverse(t) ++ [h]
+
+  def tail_reverse(l), do: tail_reverse(l, [])
+  defp tail_reverse([], acc), do: acc
+  defp tail_reverse([h|t], acc), do: tail_reverse(t, [h|acc])
+
+  # sublist
+  def sublist(_, 0), do: []
+  def sublist([], _), do: []
+  def sublist([h|t], n) when n > 0, do: [h|sublist(t, n-1)]
+
+  def tail_sublist(l, n), do: tail_reverse(tail_sublist(l, n, []))
+  defp tail_sublist(_, 0, sl), do: sl
+  defp tail_sublist([], _, sl), do: sl
+  defp tail_sublist([h|t], n, sl) when n > 0, do: tail_sublist(t, n-1, [h|sl])
+
+  # zip
+  def zip([], []), do: []
+  def zip([x|xs], [y|ys]), do: [{x, y}|zip(xs, ys)]
+
+  def tail_zip(xs, ys), do: tail_reverse(tail_zip(xs, ys, []))
+  defp tail_zip([], [], acc), do: acc
+  defp tail_zip([x|xs], [y|ys], acc), do: tail_zip(xs, ys, [{x, y}|acc])
+
+  # lenient_zip
+  def lenient_zip([], _), do: []
+  def lenient_zip(_, []), do: []
+  def lenient_zip([x|xs], [y|ys]), do: [{x, y}|lenient_zip(xs, ys)]
+
+  def tail_lenient_zip(xs, ys), do: tail_lenient_zip(xs, ys, [])
+  defp tail_lenient_zip([], _, acc), do: acc
+  defp tail_lenient_zip(_, [], acc), do: acc
+  defp tail_lenient_zip([x|xs], [y|ys], acc), do: [{x, y}|tail_lenient_zip(xs, ys, acc)]
+end
+
+X.duplicate(:hoge, 0) # => []
+X.duplicate(:hoge, 4) # => [:hoge, :hoge, :hoge, :hoge]
+X.tail_duplicate(:hoge, 4) # => [:hoge, :hoge, :hoge, :hoge]
+
+X.reverse([]) # => []
+X.reverse([1,2,3,4]) # => [4, 3, 2, 1]
+X.tail_reverse([1,2,3,4]) # => [4, 3, 2, 1]
+
+X.sublist([1,2,3,4,5,6], 3) # => [1, 2, 3]
+X.tail_sublist([1,2,3,4,5,6], 3) # => [1, 2, 3]
+
+X.zip([:a,:b,:c], [1,2,3]) # => [a: 1, b: 2, c: 3]
+X.tail_zip([:a,:b,:c], [1,2,3]) # => [a: 1, b: 2, c: 3]
+
+X.lenient_zip([:a,:b,:c], [1,2,3,4,5]) # => [a: 1, b: 2, c: 3]
+X.tail_lenient_zip([:a,:b,:c], [1,2,3,4,5]) # => [a: 1, b: 2, c: 3]
+#+end_src
