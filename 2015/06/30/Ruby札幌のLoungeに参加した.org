@@ -1,0 +1,11 @@
+* Ruby札幌のLoungeに参加した
+
+[[http://ruby-sapporo.org/news/2015/06/23/lounge.html][Ruby札幌 | Lounge(2015-06-30)]]
+
+はじめて参加した．やった(やろうとした)こと．
+
+- [[http://infracode-sapporo.connpass.com/event/16476/][Infrastructure as Code Casual 札幌 #0 - connpass]] の資料作り
+- エクストリームプログラミング第一版，第二版旧訳，第二版新訳の差分を見比べて話した
+- [[http://lotusrb.org/guides/getting-started/][Lotus - Guides - Getting Started]] を眺めて Rails とどう違うんだろうねえという話をした
+
+楽しかったのでまたこよう．
