@@ -1,0 +1,49 @@
+* ヽ（´・肉・｀）ノログとDocker
+
+[[http://infracode-sapporo.connpass.com/event/16476/][Infrastructure as Code Casual 札幌 #0 - connpass]] で発表する予定なのでコンテンツをここに置く．書きかけ．
+
+** モチベーション
+
+サーバー管理するのは僕には面倒である．できるだけアプリケーションだけ弄って遊んでいたい！
+
+プロビジョニングツールはいいものだけど，手数をかけたくないところに，プロビジョニングツールの選定や知識のアップグレードの時間を投資し続けることができるだろうか？
+
+** nikulog
+
+[[https://github.com/niku/nikulog][niku/nikulog]]
+
+全てのコンテンツは git に格納されている．github がバックアップとして機能している．
+
+それ github pages でいいんじゃ
+
+=> はい．今はそうです．将来にわたって拡張の余地を残したかった，あとは(この発表のように)色々弄って遊んでみたかった．
+
+これ github から dockerhub に webhook して build してもらえばアプリケーションだけ弄って遊べるのでは．
+
+** Packer
+
+Docker の元になるイメージは誰かから貰っている．せっかくなので OS イメージを自分で作った．
+
+[[http://niku.name/articles/Packer%E3%82%92%E4%BD%BF%E3%81%A3%E3%81%A6Vagrant%E3%81%AEBox%E3%82%92%E4%BD%9C%E3%82%8B%E6%96%B9%E6%B3%95%E3%82%92%E4%B8%80%E3%81%A4%E3%81%9A%E3%81%A4%E8%AA%AC%E6%98%8E%E3%81%99%E3%82%8B/index][Packerを使ってVagrantのBoxを作る方法を一つずつ説明する/index - ヽ（´・肉・｀）ノログ]]
+
+** Docker
+
+*** 構成
+
+面倒なので一つのイメージで動かしたい
+
+niku/debian => niku/nwiki => niku/nikulog
+
+*** デバッグ
+
+Vagrant と Docker と docer exec
+
+vagrant_vagrantfile について
+
+*** 更新
+
+[[https://github.com/niku/yobirinex][niku/yobirinex]]
+
+webhook を受けてコマンドを実行する．
+
+Elixir 製で，Erlang を同梱しているから，展開先の環境に Erlang をインストールしていなくても動く．
