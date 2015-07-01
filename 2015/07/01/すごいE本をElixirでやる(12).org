@@ -1,0 +1,112 @@
+* すごいE本をElixirでやる(12)
+
+** 5.2 さらに末尾関数
+
+つづき．クイックソートから．
+
+Elixir では subject を第一引数に取ることが多いので，
+=partition= の引数の順序を =リスト，ピヴォット対象 ...= といった形式になるように変更した．
+
+#+begin_src elixir
+defmodule Recursive do
+  def quicksort([]), do: []
+  def quicksort([pivot|rest]) do
+    {smaller, larger} = partition(rest, pivot, [], [])
+    quicksort(smaller) ++ [pivot] ++ quicksort(larger)
+  end
+
+  def partition([], _pivot, smaller, larger), do: {smaller, larger}
+  def partition([h|t], pivot, smaller, larger) do
+    if h <= pivot do
+      partition(t, pivot, [h|smaller], larger)
+    else
+      partition(t, pivot, smaller, [h|larger])
+    end
+  end
+
+  def lc_quicksort([]), do: []
+  def lc_quicksort([pivot|rest]) do
+    lc_quicksort(for smaller <- rest, smaller <= pivot, do: smaller)
+    ++ [pivot] ++
+    lc_quicksort(for larger <- rest, larger > pivot, do: larger)
+  end
+end
+
+Recursive.quicksort([5, 4, 9, 7, 1, 8, 3, 2, 6]) # => [1, 2, 3, 4, 5, 6, 7, 8, 9]
+Recursive.lc_quicksort([5, 4, 9, 7, 1, 8, 3, 2, 6]) # => [1, 2, 3, 4, 5, 6, 7, 8, 9]
+#+end_src
+
+** 5.3 リストを超えて
+
+Elixir では subject を第一引数に取ることが多いので，
+API の引数の順序を =木構造，キー，値= といった形式になるように変更した．
+
+#+begin_src elixir
+defmodule Tree do
+  def empty, do: {:node, nil}
+
+  def insert({:node, nil}, key, val) do
+    {:node, {key, val, {:node, nil}, {:node, nil}}}
+  end
+  def insert({:node, {key, val, smaller, larger}}, new_key, new_val) when new_key < key do
+    {:node, {key, val, insert(smaller, new_key, new_val), larger}}
+  end
+  def insert({:node, {key, val, smaller, larger}}, new_key, new_val) when new_key > key do
+    {:node, {key, val, smaller, insert(larger, new_key, new_val)}}
+  end
+  def insert({:node, {key, _val, smaller, larger}}, new_key, new_val) when new_key === key do
+    {:node, {key, new_val, smaller, larger}}
+  end
+
+  def lookup({:node, nil}, _key), do: :undefined
+  def lookup({:node, {key, val, _smaller, _lager}}, key), do: {:ok, val}
+  def lookup({:node, {node_key, _val, smaller, _lager}}, key) when key < node_key do
+    lookup(smaller, key)
+  end
+  def lookup({:node, {node_key, _val, _smaller, lager}}, key) when key > node_key do
+    lookup(lager, key)
+  end
+end
+
+t1 = Tree.insert(Tree.empty, "Jim Woodland", "jim.woodland@gmail.com")
+# {:node, {"Jim Woodland", "jim.woodland@gmail.com", {:node, nil}, {:node, nil}}}
+
+t2 = Tree.insert(t1, "Mark Anderson", "i.am.a@hotmail.com")
+# {:node,
+#  {"Jim Woodland", "jim.woodland@gmail.com", {:node, nil},
+#   {:node, {"Mark Anderson", "i.am.a@hotmail.com", {:node, nil}, {:node, nil}}}}}
+
+
+addresses = t2
+            |> Tree.insert("Wilson Longbrow", "longwil@gmail.com")
+            |> Tree.insert("Kevin Robert", "myfairy@yahoo.com")
+            |> Tree.insert("Anita Bath", "abath@someuni.edu")
+# {:node,
+#  {"Jim Woodland", "jim.woodland@gmail.com",
+#   {:node, {"Anita Bath", "abath@someuni.edu", {:node, nil}, {:node, nil}}},
+#   {:node,
+#    {"Mark Anderson", "i.am.a@hotmail.com",
+#     {:node, {"Kevin Robert", "myfairy@yahoo.com", {:node, nil}, {:node, nil}}},
+#     {:node,
+#      {"Wilson Longbrow", "longwil@gmail.com", {:node, nil}, {:node, nil}}}}}}}
+
+Tree.lookup(addresses, "Anita Bath")
+# {:ok, "abath@someuni.edu"}
+
+Tree.lookup(addresses, "Jacques Requin")
+# :undefined
+#+end_src
+
+P63 にある図の =新= と =旧= は
+
+#+begin_quote
+次の図では、「E」を含むノードが追加され、これによって「E」より上のすべての親を更新する必要が出てきます。
+#+end_quote
+
+という説明とは逆になっているように思える．
+
+英語版を眺めてみたが， [[http://learnyousomeerlang.com/recursion#more-than-lists][Recursion | Learn You Some Erlang for Great Good!]] だとこの挿絵はみつけられなかった．
+
+** 5.4 再帰的に考える
+
+よんだ
