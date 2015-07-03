@@ -1,0 +1,365 @@
+* ElixirでHTTPのやりとりをする
+
+Elixir で Web サーバー( Cowboy ) を動かし，ミドルウェア ( Plug )を利用して HTTP リクエストとレスポンスを捌く．
+
+** 用意するもの
+
+- Erlang 18.0
+- Elixir 1.0.5
+
+** プロジェクト作成
+
+#+begin_src
+% mix new builtinplug --sup
+#+end_src
+
+=mix new プロジェクト名= でプロジェクトが作れる．
+
+今回は，後で説明する [[https://github.com/bitwalker/exrm][bitwalker/exrm]] というパッケージングの仕組みで
+=Application= というものを利用するため =--sup= というフラグをつけた．
+
+#+begin_src
+A --sup option can be given to generate an OTP application skeleton including a supervision tree.
+#+end_src
+
+らしい．
+
+Application や Supervisor については [[http://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html][Supervisor and Application - Elixir]] にまとまっているが，今回直接はこれらの概念が重要になることがない．
+ひとまずは「そういものがある」くらいにとどめて先に進む．
+
+[[https://github.com/niku/builtinplug/commit/d1625ea61e443d7b6f16adc9b269d9f5dd20da2d][First import · niku/builtinplug@d1625ea]]
+
+** PlugとCowboyを依存関係に追加
+
+- Cowboy :: Erlang 界のデファクトスタンダードといえる Web サーバー [[https://github.com/ninenines/cowboy][ninenines/cowboy]]
+- Plug :: Elixir 製 Web ミドルウェア．Ruby の Rack，Python の WSGI のようなもの [[https://github.com/elixir-lang/plug#installation][elixir-lang/plug]]
+
+Plug の [[https://github.com/elixir-lang/plug#installation][Installation]] に従って， =mix.exs= に deps を追記する．
+
+Ruby だと =gemspec= や =Gemfile= に書くような，
+ライブラリの依存関係を Elixir では =mix.exs= へと書く．
+
+[[https://github.com/niku/builtinplug/commit/9119d5d358181fd8fde363115b5671b616d877cc][Add dependency · niku/builtinplug@9119d5d]]
+
+** ライブラリを取得
+
+依存関係に書いただけでは，まだライブラリを手元へとダウンロードしていない．
+
+Ruby だと =bundle install= に相当するような，
+依存関係に書いたライブラリをダウンロードするには =mix deps.get= する．
+
+すると，ライブラリのダウンロードと同時にRuby だと =Gemfile.lock= に相当するような，
+動作させるライブラリのバージョンを固定するための =mix.lock= が生成される．
+
+[[https://github.com/niku/builtinplug/commit/ef4b7fdfa78525c2e38d074f23331a50ebc3c280][Get depent packages · niku/builtinplug@ef4b7fd]]
+
+** HTTPリクエストがきたらレスポンスを返す
+
+ライブラリが手元に揃ったので，HTTP リクエストにレスポンスを返すモジュールを書く．
+
+内容は Plug の [[https://github.com/elixir-lang/plug#hello-world][Hello world]] をほぼ流用する．
+
+- =init/1= 関数はサーバー起動のときに呼ばれる．返り値は =call= 関数に渡される，つまりリクエスト毎に利用することができる．
+- =call/2= 関数はリクエストが来たら呼ばれる．第一引数にリクエストの内容，第二引数には =init/1= の返り値が渡される．
+
+早速試してみる．
+
+まず =iex -S mix= で，REPL を起動 (Ruby の irb のようなものだ)．
+このとき，依存ライブラリでまだコンパイルされていないものは自動的にコンパイルされていく．
+
+その後 iex 内で ={:ok, _} = Plug.Adapters.Cowboy.http Builtinplug.Worker, []= と書くとサーバーが起動する．
+
+#+begin_src
+builtinplug% iex -S mix
+Erlang/OTP 17 [erts-6.4] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false] [dtrace]
+
+==> ranch (compile)
+(略)
+Generated plug app
+==> builtinplug
+Compiled lib/builtinplug/worker.ex
+Compiled lib/builtinplug.ex
+Generated builtinplug app
+Interactive Elixir (1.0.4) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> {:ok, _} = Plug.Adapters.Cowboy.http Builtinplug.Worker, []
+{:ok, #PID<0.487.0>}
+#+end_src
+
+デフォルトの Port は 4000 だ．ブラウザで http://localhost:4000 にアクセスすれば， "Hello world" の文字が見られる．
+
+[[https://github.com/niku/builtinplug/commit/e72a6e48a7b83fa9157d4a9b21b4b391d6e79cf5][Hello world! · niku/builtinplug@e72a6e4]]
+
+** デバッグ
+
+=call= の第一引数や第二引数に何がきているのか，想像で作業するのは非常に困難だ．
+
+サーバーのリクエストを受けとると，レスポンスを返さずに一旦止まって色々試せるようなデバッグの方法がある．
+
+[[http://elixir-lang.org/docs/v1.0/iex/IEx.html#pry/1][IEx.pry/1]] というものを利用する． Ruby の =binding.pry= のようなものだ．
+=IEx.pry= を利用するには，その前に =require IEx= という宣言が必要だ．覚えていてもらいたい．
+
+ついでに =init/1= の返り値も変えて =call/2= に渡ってくるところを観察してみよう．
+
+一度 =iex= をとめて，再び起動する．そして http://localhost:4000 へアクセスすると，ブラウザは読み込み中のまま止まるはずだ．
+
+そこで iex をみてみると， =Request to pry #PID<0.246.0> at lib/builtinplug/worker.ex:12. Allow? [Yn]= と表示されている．
+
+=Y= を押すか，単にリターンを押すと再び iex が起動する．
+
+この iex は先程 =IEx.pry= と書いた部分での環境を覗きみられるようになっている．
+
+そこで =call= の第一引数として宣言した =conn= を眺めたり，第二引数として宣言した =_opts= を眺めることができる．
+
+色々試してわかったら =respawn/0= すると IEx.pry が終わって元の処理が続く．ブラウザにも "Hello world" と表示されているだろう．
+
+#+begin_src
+builtinplug% iex -S mix
+Erlang/OTP 17 [erts-6.4] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false] [dtrace]
+
+Compiled lib/builtinplug/worker.ex
+Generated builtinplug app
+Interactive Elixir (1.0.4) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> {:ok, _} = Plug.Adapters.Cowboy.http Builtinplug.Worker, []
+{:ok, #PID<0.141.0>}
+Request to pry #PID<0.246.0> at lib/builtinplug/worker.ex:12. Allow? [Yn]
+
+Interactive Elixir (1.0.4) - press Ctrl+C to exit (type h() ENTER for help)
+pry(1)> conn
+%Plug.Conn{adapter: {Plug.Adapters.Cowboy.Conn, :...}, assigns: %{},
+ before_send: [], body_params: %Plug.Conn.Unfetched{aspect: :body_params},
+ cookies: %Plug.Conn.Unfetched{aspect: :cookies}, halted: false,
+ host: "localhost", method: "GET", owner: #PID<0.246.0>,
+ params: %Plug.Conn.Unfetched{aspect: :params}, path_info: [],
+ peer: {{127, 0, 0, 1}, 52537}, port: 4000, private: %{},
+ query_params: %Plug.Conn.Unfetched{aspect: :query_params}, query_string: "",
+ remote_ip: {127, 0, 0, 1}, req_cookies: %Plug.Conn.Unfetched{aspect: :cookies},
+ req_headers: [{"host", "localhost:4000"},
+  {"user-agent",
+   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:38.0) Gecko/20100101 Firefox/38.0"},
+  {"accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"},
+  {"accept-language", "en-US,en;q=0.5"}, {"accept-encoding", "gzip, deflate"},
+  {"dnt", "1"},
+  {"cookie", "__utma=111872281.1920459714.1404793310.1404793310.1414686645.2"},
+  {"connection", "keep-alive"}], resp_body: nil, resp_cookies: %{},
+ resp_headers: [{"cache-control", "max-age=0, private, must-revalidate"}],
+ scheme: :http, script_name: [], secret_key_base: nil, state: :unset,
+ status: nil}
+pry(2)> _opts
+" (ノ-_-)ノ~┻┻"
+pry(3)> respawn
+Interactive Elixir (1.0.4) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)>
+#+end_src
+
+[[https://github.com/niku/builtinplug/commit/45ad715e3177dcf6c5f9870a456aa1332b5585a6][We can pry like this code with `iex -S mix` · niku/builtinplug@45ad715]]
+
+デバッグは元に戻しておくことを忘れないように．そうしないと全てのリクエストで IEx の起動待ちになってしまう……
+
+[[https://github.com/niku/builtinplug/commit/5612ec981c243568b959a04ed1e39ac8ab09ada2][Revert "We can pry like this code with `iex -S mix`" · niku/builtinplug@5612ec9]]
+
+まあ普通はデバッグ状態のものをコミットしないか．
+
+** Applicationとして動作させる
+
+これまでは =iex= コマンドで REPL を起動して，モジュールを実行してサーバーを動かす．という2ステップを踏んでいた．
+
+ここではコマンド =mix run --no-halt= で直接サーバーを起動できるようにする．
+
+=--no-halt= は =mix help run= すると
+
+#+begin_src
+--no-halt       - do not halt the system after running the command
+#+end_src
+
+と表示されているように， =mix run= コマンド実行後に終わらせない．
+
+平たく言うと何かを待ちうけるサーバーを起動させておくために必要なオプションだ．
+今回は Web サーバーを動かすので， =--no-halt= が必要である．
+
+以下に書いたコマンドからの起動の説明は，最初から理解するのが大変なので，
+HTTP リクエストを扱う Worker を呼び出すための定型のテンプレートとして考えてしまってかまわないだろう．
+
+どういうことをしているのか興味が出てきたり，サーバーの起動/設定をカスタマイズしたくなったら調べるとよい．
+
+=mix run= すると， =mix.exs= に =mod: {Builtinplug, []}= と書いてあるので， =Builtinplug.start/2= を呼びだす．
+
+=Builtinplug.start/2= では
+
+- 実際に働くプロセス (Worker) を指定する
+- 監視 (Supervisor) つきでその Worker を起動する
+
+ということをしている．
+
+Worker に監視がつくと，どういうときに良いかはここでは説明しない．
+面白いし，ErlangVM の特徴の一つだと思えるので [[http://amazon.jp/o/ASIN/4274069125/0x1d-22][すごいErlangゆかいに学ぼう!]] を読むか，
+本のもとになった [[http://www.ymotongpoo.com/works/lyse-ja/ja/20_wsts.html][20. 誰がスーパバイザを監視するのか?]] を見るのがいいだろう．
+
+ともかく，ここでは Worker を =Plug.Adapters.Cowboy.child_spec(:http, Builtinplug.Worker, [], [])= と宣言することで，
+Worker が HTTP リクエストを待ちうけてレスポンスを返すようになっている．
+
+また，この Worker を動かすためには，あらかじめ =cowboy= と =plug= が初期化されて起動していなければいけない．
+プログラム内で呼び出してもよいのだが， =mix.exs= の =applications= に宣言しておくと，これらをあらかじめ起動しておいてくれるのでこちらを利用する．
+
+[[Introduction | Learn You Some Erlang for Great Good!][Start server from command · niku/builtinplug@f10060f]]
+
+** ログをファイルに残す
+
+Elixir のログをファイルに残す方法は，標準のライブラリだけでやろうとすると，標準出力をリダイレクトさせるしかないようだ(違っていたら教えてほしい)
+
+幸い，Log 出力先の拡張が簡単なように設計されているので，ログをファイルに残す拡張 [[https://github.com/onkel-dirtus/logger_file_backend][logger_file_backend]] を作っている人がいた．これを利用させてもらう．
+
+1. ログの拡張ライブラリを依存関係に追加する
+2. =mix deps.get= コマンドを打ちライブラリを取得する
+3. ログの拡張設定を =config/config.exs= に書く
+4. ログ出力させるコードを書く
+
+の 4 つを行えば完了だ．
+
+[[https://github.com/niku/builtinplug/commit/68caf1173f3bc277df683f7b3be0a75c96d3918a][Log to disk · niku/builtinplug@68caf11]]
+
+=config/config.exs= にある
+
+#+begin_src
+config :logger, backends: [{LoggerFileBackend, :file}]
+#+end_src
+
+は， =:logger= に関する設定で，バックエンドに =LoggerFileBackend= というものを =:file= という名前で利用するという宣言だ．
+
+次の
+
+#+begin_src elixir
+config :logger, :file,
+  path: "log/builtinplug.log",
+  level: :debug
+#+end_src
+
+は， =:logger= の =:file= に関する ( つまり =LoggerFileBackend= の ) 設定で，ファイルの出力先を log/builtinplug.log に，出力ログレベルを debug に設定している．
+
+それでは試してみよう．
+
+=mix run --no-halt= でサーバーを起動して，ブラウザで
+
+- http://localhost:4000/
+- http://localhost:4000/foo?bar=baz
+
+へ順番にアクセスする．そのときのログはこのようになった
+
+#+begin_src
+builtinplug% cat log/builtinplug.log
+12:36:30.527 [info] init options: []
+12:36:57.273 [debug] call conn.path_info: [], conn.query_string: ""
+12:36:57.720 [debug] call conn.path_info: ["favicon.ico"], conn.query_string: ""
+12:36:57.737 [debug] call conn.path_info: ["favicon.ico"], conn.query_string: ""
+12:37:07.417 [debug] call conn.path_info: ["foo"], conn.query_string: "bar=baz"
+#+end_src
+
+うまくいったようだ．(favicon.ico へのアクセスはブラウザが自動的に行っているものだ)
+
+** システムにErlang環境がなくても動作するようにVMを同梱する
+
+動作させる先のシステムに Erlang 環境がなくても起動させられるよう，パッケージに ErlangVM を同梱して，その VM を利用して動かすという方法がある．
+
+Erlang では relx というものを使うとできると [[https://twitter.com/voluntas][@voluntas]] さんに教えていただいた．
+
+Elixir では mix のタスクとして mix release 実行するとパッケージが作れる [[https://github.com/bitwalker/exrm][bitwalker/exrm]] というものを作っている人がいる．
+exrm も裏では relx を利用しているようだ [[https://github.com/bitwalker/exrm/blob/master/mix.exs#L17][exrm/mix.exs at master · bitwalker/exrm]] ．
+
+今回はこれを利用して，同じプラットフォームの別環境に持っていっても動作させられるようにパッケージを作る．
+
+やることは少ない．
+
+1. exrm の依存関係を =mix.exs= の =dependency= に記述する [[https://github.com/bitwalker/exrm#add-exrm-as-a-dependency-to-your-project][Add exrm as a dependency to your project]]
+2. 明記されていない依存関係を =mix.exs= の =:included_applications= に記述する [[https://github.com/bitwalker/exrm#common-issues][Common Issues]]
+
+#+begin_quote
+Ensure all dependencies for your application are defined in either the :applications or :included_applications block of your mix.exs file.
+#+end_quote
+
+の 2 つをコードに書く．
+
+[[https://github.com/niku/builtinplug/commit/c5b220fcf49ac44d880d4a8a12e98540d9e219f0][Create release package including ErlangVM · niku/builtinplug@c5b220f]]
+
+そして以下の 3 つのコマンドを打つだけだ．
+
+#+begin_src
+% mix deps.get
+% mix deps.compile
+% mix release
+#+end_src
+
+すると =rel= ディレクトリというものができているだろう．
+
+その中の =rel/builtinplug/releases/0.0.1/builtinplug.tar.gz= が VM が同梱されたパッケージになる．
+
+*** パッケージを動かしてみる
+
+それでは [[https://github.com/bitwalker/exrm#deployment][Deployment]] と同じようにパッケージを動かしてみよう．
+
+もし可能なら Erlang と Elixir をアンインストールしておくと，よりわかりやすいだろう．
+
+#+begin_src
+% mkdir -p /tmp/builtinplug
+% cp rel/builtinplug/releases/0.0.1/builtinplug.tar.gz /tmp/
+% cd /tmp/builtinplug
+% tar -xf /tmp/builtinplug.tar.gz
+% bin/builtinplug start
+#+end_src
+
+ここまでやるとバックグラウンドでサーバーが起動する．実際に http://localhost:4000 にアクセスして動作していることを確かめてみよう．
+
+=cat log/builtinplug.log= すると，期待通りにログにアクセスが記録されているだろうか．
+
+終わらせたいときは =bin/builtinplug stop= するとサーバーが止まる．
+
+*** 制限事項
+
+かなり便利そうなパッケージだが，実はパッケージは動かす先のプラットフォーム(target platform)に合わせていないと動かない [[https://github.com/bitwalker/exrm/issues/96#issuecomment-73559923][Deploy to Ubuntu Dockerfile · Issue #96 · bitwalker/exrm]]
+
+#+begin_quote
+It's necessary to build the release on the target platform,
+#+end_quote
+
+例えば同じディストリビューション Debian で作ったパッケージでも，バージョンが異なると動かない．
+実際に Debian8 で作ったものを Debian7 にもっていくと動かなかった．
+
+[[https://github.com/sapporo-beam/sapporo-beam/issues/50#issuecomment-95573210][sapporo.beam#60 · Issue #50 · sapporo-beam/sapporo-beam]]
+
+#+begin_quote
+結果としては /tmp/test/erts-6.3/bin/escript: /lib/libc.so.6: versionGLIBC_2.14' not found (required by /tmp/test/erts-6.3/bin/escript)` と言われて起動しませんでした．
+libc のバージョンが合ってないとだめみたい．
+#+end_quote
+
+Erlang にはクロスコンパイルの仕組みもあり [[http://www.erlang.org/doc/installation_guide/INSTALL-CROSS.html][Erlang -- Cross Compiling Erlang/OTP]]
+それを使うと動かせるようになりそうだった [[https://github.com/bitwalker/exrm/pull/99#issuecomment-77907623][Cross assemble releases by lexmag · Pull Request #99 · bitwalker/exrm]]
+
+#+begin_quote
+1. Make sure you have the cross-compiled Erlang build available on your machine
+(snip)
+The run mix release and you should be good to go.
+#+end_quote
+
+しかし自分にはまだわからない所が多くて難しかったのであきらめた．
+
+*** VM同梱するとできること
+
+今のところできることをまとめる．
+
+Erlang がインストールされていない環境 (A) で動かしたい場合，
+同じ環境で Erlang をインストールしたもの (B) を用意できるなら，
+B でリリースパッケージを作って，A に持っていくと動かせる．
+
+自分の場合は Erlang をインストールしていない Debian8 環境 (さくらのVPS) で動作させるため，
+Packer と Vagrant で Erlang をインストールした Debian8 環境をローカルで立ち上げられるようにして，
+ローカルでリリースパッケージを作ってから，さくらの VPS へコピーして利用している．
+
+Packer で Debian8 イメージを作るのは [[https://github.com/niku/uti/tree/master/share/lib/server/host][uti/share/lib/server/host at master · niku/uti]] のディレクトリで行っている．
+
+Debian8 イメージに Erlang 環境をインストールして，
+ビルド用の環境を Vagrant で立ち上げるのは [[https://github.com/niku/uti/tree/master/share/lib/server/build-package][uti/share/lib/server/build-package at master · niku/uti]] のディレクトリで行っている．
+
+** まとめ
+
+- Elixir で Web サーバー( Cowboy ) を動かし，ミドルウェア ( Plug )を利用して HTTP リクエストとレスポンスを捌く方法を書いた
+- Elixir で Web サーバーへのリクエストをデバッグする方法を書いた
+- Elixir のログをファイルへと出力する方法を書いた
+- サーバーを動作させる環境に Erlang や Elixir がインストールされていなくても動作させられるよう， VM を同梱して可搬性を上げる方法を書いた
