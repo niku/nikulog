@@ -1,0 +1,37 @@
+* okinawarbに参加させてもらった
+
+たまたま沖縄にいたので [[https://okinawarb.doorkeeper.jp/events/27152][第164回 Okinawa.rb]] に参加させてもらった．
+
+今日はいっぱい発表を聞かせてもらった！
+
+参加して遊んでくださったみなさん，会場を提供してくださった [[http://gfab-okinawa.github.io/][gFab okinawa]] さん．ありがとうございました．
+
+** [[https://twitter.com/mgwsuzuki][@mgwsuzuki]] さん
+
+ハードウェアの設計図 ( テキストになっている ) を作るにあたり，IC の pin を準備しないといけない．1000 個くらいあったりする……
+
+それをあらかじめ提供されている IC の情報 ( テキスト ) から，変換して自動生成できるようにした．
+
+** [[https://twitter.com/tompng][@tompng]] さん
+
+[[https://www.leapmotion.com/][Leap Motion]] を使って，デバイスを通じて指の位置情報を取得，それを websocket 経由でブラウザに表示して音を出す．
+
+テルミンみたいだった．
+
+** ぼく
+
+KawazCatchJS をお見せした． cocos2d-js を使うと簡単にゲームが作れる．
+
+Phoenix framework をお見せした． Rails 風フレームワーク「だけ」(Redis なし) で websocket が使えてソフトリアルタイム処理ができる．
+
+** [[https://twitter.com/_simanman][@_simanman]] さん
+
+[[https://github.com/siman-man/shiritori][siman-man/shiritori]] というメソッドチェーンをできるだけ長くできるようにするゲームができる gem を見せてもらった．
+
+それの web 版を作ろうとしていて，「危ないメソッド」をいかに弾くかに悩まれていた．
+
+** [[https://twitter.com/hanachin_][@hanachin_]] さん
+
+tap でブロック引数を明示しなくてよい [[https://github.com/hanachin/tap_i][hanachin/tap_i]] という gem を見せてもらった．
+
+そのからみで [[https://github.com/esminc/tapp][esminc/tapp]] のことを話した．
