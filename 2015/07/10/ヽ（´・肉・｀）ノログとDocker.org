@@ -1,49 +1,247 @@
 * ヽ（´・肉・｀）ノログとDocker
 
-[[http://infracode-sapporo.connpass.com/event/16476/][Infrastructure as Code Casual 札幌 #0 - connpass]] で発表する予定なのでコンテンツをここに置く．書きかけ．
+[[http://infracode-sapporo.connpass.com/event/16476/][Infrastructure as Code Casual 札幌 #0 - connpass]] で発表する予定のコンテンツの元にしたもの．
+
+** 話すこと
+
+http://niku.name の表示/更新に Github / DockerHub / Docker がどのように利用されているか．
 
 ** モチベーション
 
-サーバー管理するのは僕には面倒である．できるだけアプリケーションだけ弄って遊んでいたい！
+サーバー管理するのは僕には面倒である．
+
+chef や itamae などのプロビジョニングツールでレシピを書いたり適用したり，うまくいかない原因を調べたりチョットできる．
 
 プロビジョニングツールはいいものだけど，手数をかけたくないところに，プロビジョニングツールの選定や知識のアップグレードの時間を投資し続けることができるだろうか？
 
-** nikulog
+ミニマム構成の固いサーバー部分と，気軽にアップデートでき，動作検証しやすいアプリケーション部分が別れていると楽なのでは．
 
-[[https://github.com/niku/nikulog][niku/nikulog]]
+あとなんか新しくてワイワイやってて楽しそう．
 
-全てのコンテンツは git に格納されている．github がバックアップとして機能している．
+最近 Debian8 になったのを機会に試してみた．
 
-それ github pages でいいんじゃ
+** niku.name 表示のしくみ
 
-=> はい．今はそうです．将来にわたって拡張の余地を残したかった，あとは(この発表のように)色々弄って遊んでみたかった．
+#+begin_src
+構成:        Debian - Apache - Rack - 独自アプリケーション nwiki - コンテンツ nikulog
+Docker: niku/debian | niku/nwiki                                 | niku/nikulog
+#+end_src
 
-これ github から dockerhub に webhook して build してもらえばアプリケーションだけ弄って遊べるのでは．
+- Apache :: 言わずとしれた Webサーバー
+- Rack :: Ruby でサーバーとアプリケーションを繋いでくれるミドルウェア
+- nwiki :: おれおれアプリケーション．git のファイルの内容を web に表示する
+- nikulog :: ヽ（´・肉・｀）ノログのコンテンツを登録している単なる git リポジトリ
 
-** Packer
+** niku.name 更新のしくみ
 
-Docker の元になるイメージは誰かから貰っている．せっかくなので OS イメージを自分で作った．
+#+begin_src
+   Push           gitのhookスクリプト
+git -> niku.nameのgit -> github (niku/nikulog)
+#+end_src
+
+構成図はシンプルだったけど，サーバーをクリーンインストールしたいときに面倒だった．
+
+#+begin_src
+   Push                githubのWebhook                      DockerhubのWebhook
+git -> github (niku/nikulog) -> Dockerhub -> (build) -> Dockerimage -> niku.name:とあるポート -> (docker pull して再起動) -> niku.name:80
+#+end_src
+
+構成図は複雑になったけど，いつもやることは git を Push するだけで変わらない．
+サーバーをクリーンインストールしても docker があればすぐにアプリケーション構築できる．
+
+** niku/debian
+
+たまたま簡単にOSイメージを自分で作る方法を知っていたので OS イメージ (niku/debian) は自分で作った．
 
 [[http://niku.name/articles/Packer%E3%82%92%E4%BD%BF%E3%81%A3%E3%81%A6Vagrant%E3%81%AEBox%E3%82%92%E4%BD%9C%E3%82%8B%E6%96%B9%E6%B3%95%E3%82%92%E4%B8%80%E3%81%A4%E3%81%9A%E3%81%A4%E8%AA%AC%E6%98%8E%E3%81%99%E3%82%8B/index][Packerを使ってVagrantのBoxを作る方法を一つずつ説明する/index - ヽ（´・肉・｀）ノログ]]
 
-** Docker
+https://github.com/niku/uti/tree/master/share/lib/server/host
 
-*** 構成
+のディレクトリで =packer build jessie64.json= するとOSイメージができる． =vagrant up= して， =vagrant ssh= して，以下のコマンドを実行．
 
-面倒なので一つのイメージで動かしたい
+https://registry.hub.docker.com/u/niku/debian/
 
-niku/debian => niku/nwiki => niku/nikulog
+#+begin_src dockerfile
+$ uname -a
+Linux packer-virtualbox-iso-1430355314 3.16.0-4-amd64 #1 SMP Debian 3.16.7-ckt9-3~deb8u1 (2015-04-24) x86_64 GNU/Linux
+$ cat /etc/debian_version
+8.0
+$ sudo sh -c 'echo "deb http://ftp.jp.debian.org/debian sid main" > /etc/apt/sources.list.d/sid.list'
+$ sudo apt-get update
+$ sudo apt-get install -y docker.io git debootstrap
+$ git clone https://github.com/docker/docker.git
+$ sudo docker/contrib/mkimage.sh --dir debian-image --tag niku/debian debootstrap --variant=minbase jessie http://ftp.jp.debian.org/debian
+$ cd debian-image
+$ sudo docker login --username="niku" --email="my_email_address@example.com" --password="my_password"
+$ sudo docker push niku/debian
+#+end_src
 
-*** デバッグ
+** niku/nwiki
 
-Vagrant と Docker と docer exec
+- Dockerfile のある github リポジトリを Dockerhub に AutomateBuild で登録
+- github の webhook に Dockerhub を指定
 
-vagrant_vagrantfile について
+リポジトリを更新するたびに Dockerhub が Docker イメージを作ってくれる
 
-*** 更新
+https://registry.hub.docker.com/u/niku/nwiki/
+
+#+begin_src dockerfile
+FROM niku/debian
+MAINTAINER niku
+
+RUN apt-get update && \
+    apt-get -y install build-essential ruby2.1-dev cmake pkg-config git apache2 libapache2-mod-passenger && \
+    echo "<VirtualHost *:80>\n    DocumentRoot /var/www/nwiki/public\n    <Directory /var/www/nwiki/public>\n        Allow from all\n        Options -MultiViews\n    </Directory>\n</VirtualHost>" > /etc/apache2/sites-available/nwiki.conf && \
+    a2dissite 000-default && \
+    a2ensite nwiki && \
+    git clone https://github.com/niku/nwiki.git /var/www/nwiki && \
+    cd /var/www/nwiki && gem install bundler && bundle install
+
+EXPOSE 80 443
+CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
+#+end_src
+
+** niku/nikulog
+
+- Dockerfile のある github リポジトリを Dockerhub に AutomateBuild で登録
+- github の webhook に Dockerhub を指定
+
+リポジトリを更新するたびに Dockerhub が Docker イメージを作ってくれる
+
+https://registry.hub.docker.com/u/niku/nikulog/
+
+#+begin_src dockerfile
+FROM niku/nwiki
+MAINTAINER niku
+
+RUN git clone https://github.com/niku/nikulog /var/www/nikulog && \
+    cd /var/www/nikulog && \
+    git checkout config && \
+    git checkout master && \
+    git fetch && \
+    git reset --hard origin/master && \
+    echo "\$LOAD_PATH << './lib'\nrequire './lib/nwiki'\nrequire 'rack/tracker'\nuse Rack::Tracker do\n  handler :google_analytics, { tracker: 'UA-26456277-1' }\nend\nrun Nwiki::Frontend::App.new File.expand_path('../../nikulog/.git', __FILE__)" > /var/www/nwiki/config.ru && \
+    mkdir -p /var/www/nikulog/tmp && \
+    touch /var/www/nikulog/tmp/restart.txt
+#+end_src
+
+** Dockerイメージのローカルでのデバッグ
+
+OSX から Docker を使うには，boot2docker か，vagrant から Docker を使うとよい
+
+Vagrant に慣れているので Vagrant から Docker を使うことにした． vagrant がこんな感じで起動して Docker を使ってくれる．
+
+#+begin_src
+OSX -> Ubuntu(Dockerコマンド入り) -> Docker
+#+end_src
+
+Dockerプロビジョニングを書いたVagrantfileを =vagrant up= で起動すると，中間のUbuntuサーバーは自動的に起動される．
+
+[[http://deeeet.com/writing/2014/05/08/vagrant-docker-provider/][Vagrant1.6のDocker provider | SOTA]] のブログが詳しい．
+
+#+begin_src ruby
+Vagrant.configure("2") do |config|
+  config.vm.provider "docker" do |d|
+    d.vagrant_vagrantfile = "./vagrant_vagrantfile"
+    d.build_dir = "."
+  end
+  config.vm.network :forwarded_port, guest: 80, host: 80
+  config.vm.network :forwarded_port, guest: 443, host: 443
+end
+#+end_src
+
+Dockerのデバッグは Docker コンテナに ssh で入るのではなく， =docker exec= で行う方が，不要な SSH を Docker イメージに含まないという意味でもよい．
+
+さて =docker exec= は Docker1.3 から導入されている．
+
+Vagrant の Docker プロビジョニングでデフォルトインストールされる Ubuntu サーバーの docker コマンドは 1.2 である．ぎえー><
+
+しかし心配はいらない．中間の Ubuntu サーバーは Vagrantfile によって任意に切り替えられるようになっている．
+
+#+begin_src ruby
+Vagrant.configure("2") do |config|
+  config.vm.box = "yungsang/boot2docker" # これを追加(docker1.4)
+
+  config.vm.provider "virtualbox" do |v|
+    # On VirtualBox, we don't have guest additions or a functional vboxsf
+    # in TinyCore Linux, so tell Vagrant that so it can be smarter.
+    v.check_guest_additions = false
+    v.functional_vboxsf     = false
+    v.memory = 1024
+  end
+
+  ["vmware_fusion", "vmware_workstation"].each do |vmware|
+    config.vm.provider vmware do |v|
+      if v.respond_to?(:functional_hgfs=)
+        v.functional_hgfs = false
+      end
+    end
+  end
+
+  # b2d doesn't support NFS
+  config.nfs.functional = false
+
+  config.vm.network :forwarded_port, guest: 80, host: 80
+  config.vm.network :forwarded_port, guest: 443, host: 443
+end
+#+end_src
+
+** Debian8(jessie) の stable に Docker をインストールする
+
+#+begin_src shell
+sudo update-locale LANG=C.UTF-8
+sudo sh -c "echo 'deb http://ftp.jp.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/jessie-backports.list"
+sudo apt-get update
+sudo apt-get install -y docker.io
+#+end_src
+
+https://github.com/niku/uti/tree/master/share/lib/server/host
+
+で，ローカルにも同じ環境を作れるようにしてある．
+
+** Debian に展開した Docker イメージを更新
+
+[[http://deeeet.com/writing/2015/01/08/dockerhub-hook/][DockerHubのAutomated Buildsをフックして最新のDockerコンテナをデプロイする | SOTA]] で知った [[https://github.com/bketelsen/captainhook][bketelsen/captainhook]] を参考にして
+webhook を受けてあらかじめ設定してあるコマンドを実行するツールを作った．
+
+Elixir 製で，ErlangVM を同梱しているから，
+展開先の環境に Erlang をインストールしていなくても動かせるので，
+クリーンな Docker ホストを維持するのに都合がよい．
 
 [[https://github.com/niku/yobirinex][niku/yobirinex]]
 
-webhook を受けてコマンドを実行する．
+つくりかた
 
-Elixir 製で，Erlang を同梱しているから，展開先の環境に Erlang をインストールしていなくても動く．
+[[http://niku.name/articles/2015/07/03/Elixir%E3%81%A7HTTP%E3%81%AE%E3%82%84%E3%82%8A%E3%81%A8%E3%82%8A%E3%82%92%E3%81%99%E3%82%8B][2015/07/03/ElixirでHTTPのやりとりをする - ヽ（´・肉・｀）ノログ]]
+
+設定している json はこんな感じ
+
+#+begin_src json
+% cat configdir/refresh-nikulog.json
+{
+    "scripts": [
+        {
+            "command": "sudo",
+            "args": ["docker", "pull", "niku/nikulog:latest"]
+        },
+        {
+            "command": "sudo",
+            "args": ["docker", "kill", "nikulog"]
+        },
+        {
+            "command": "sudo",
+            "args": ["docker", "rm", "nikulog"]
+        },
+        {
+            "command": "sudo",
+            "args": ["docker", "run", "--publish", "80:80", "--name", "nikulog", "-d", "niku/nikulog"]
+        }
+    ]
+}
+#+end_src
+
+** その他
+
+- docker-compose使ってない．Vagrant の docker プロビジョンでまだ対応していない
+- Dockerhub のビルド遅くて数分から十数分待つことがある．急いでないので別に問題にしていない
+- Webhook飛んでこないことある．Dockerhubならwebから手動でビルド，niku.nameならローカルからcurlでリクエストしてる
