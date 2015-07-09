@@ -1,0 +1,267 @@
+* Phoenix FrameworkのChannelを使ってTwtter Streamingをbroadcastする
+
+[[./broadcast_streaming.gif]]
+
+Phoenix Framework の Channel を使うと簡単に broadcast できることがわかったのでやり方を書く．
+
+Elixir(~>1.0) と Phoenix Framework(~>0.14) が既にインストールされていることを前提としている．
+
+** 新しく phoenix プロジェクトを作る
+
+今回は DB 不要なので Rails の ActiveRecord 相当な Ecto というものを除いて ( --no-ecto ) 作成する．
+
+サーバーは =mix phoenix.server= で起動できる．
+今回は Ruby の irb のようなコンソールを有効にして起動させたいので =iex -S mix phoenix.server= で起動する．
+
+変更は自動的にリロードされるので，この後明示しない限りサーバー再起動は不要である．
+
+#+begin_src
+% mix phoenix.new broadcast_streaming --no-ecto
+% cd broadcast_streaming
+% mix phoenix.server
+#+end_src
+
+ブラウザから http://localhost:4000/ を開くと以下のような画面になっているだろうか．
+
+今回は console で色々表示させようと思うので，console もあらかじめ開いておいてもらいたい．
+
+[[./Hello_Phoenix_0.png]]
+
+** サーバーに Channel のルーティングを設定する
+
+Rails の routes.rb と似た，ルーティングを取り扱っているファイルに Channel のルーティングを記述する．
+
+broadcast_streaming/web/router.ex を以下のようにする
+
+#+begin_src elixir
+defmodule BroadcastStreaming.Router do
+  use BroadcastStreaming.Web, :router
+
+  pipeline :browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_flash
+    plug :protect_from_forgery
+  end
+
+  pipeline :api do
+    plug :accepts, ["json"]
+  end
+
+  scope "/", BroadcastStreaming do
+    pipe_through :browser # Use the default browser stack
+
+    get "/", PageController, :index
+  end
+
+  # Other scopes may use custom stacks.
+  # scope "/api", BroadcastStreaming do
+  #   pipe_through :api
+  # end
+
+  # **** ADD HERE ****
+  socket "/ws", BroadcastStreaming do
+    channel "rooms:*", RoomChannel
+  end
+end
+#+end_src
+
+トピック =rooms= にきた，全て ( =*= ) のサブトピックを =RoomChannel= というモジュールに送るという意味である．[[http://qiita.com/niku/items/e846c4cbb9f1d15830cc#channel-routes][Channel Routes]] にもうすこし詳しく書いてある．
+
+
+** サーバーに Channel を実装する
+
+Rails の Controller と同じように， Phoenix にも Controller がある．Channel は Controller と同じような役割を担っている．
+
+違いは HTTP リクエストを扱う Controller ，双方向通信を扱う Channel という点である．[[http://qiita.com/niku/items/e846c4cbb9f1d15830cc#channels][Channels]] にもうすこし詳しく書いてある．
+
+broadcast_streaming/web/channels/room_channel.ex を新しく作り，以下のようにする
+
+#+begin_src elixir
+defmodule BroadcastStreaming.RoomChannel do
+  use BroadcastStreaming.Web, :channel
+
+  def join("rooms:lobby", auth_msg, socket), do: {:ok, socket}
+end
+#+end_src
+
+=join= の部分は =rooms:lobby= に繋ぎにきたものは全て認可するということを表している．
+
+[[http://qiita.com/niku/items/e846c4cbb9f1d15830cc#joining-channels][Joining Channels]] にもうすこし詳しく書いてある．
+
+** ブラウザから Channel に接続する
+
+サーバーは接続を受けつけるようになったので，ブラウザから繋げるようにしよう．
+
+broadcast_streaming/web/static/js/app.js を以下のようにする．
+
+#+begin_src javascript
+import {Socket} from "phoenix"
+
+// let socket = new Socket("/ws")
+// socket.connect()
+// let chan = socket.chan("topic:subtopic", {})
+// chan.join().receive("ok", chan => {
+//   console.log("Success!")
+// })
+
+// **** ADD HERE ****
+let socket = new Socket("/ws")
+socket.connect()
+let chan = socket.chan("rooms:lobby", {})
+
+chan.join().receive("ok", chan => {
+  console.log("Welcome to Phoenix Chat!")
+})
+
+chan.on("new_msg", payload => {
+  console.log(payload.body)
+})
+
+let App = {
+}
+
+export default App
+#+end_src
+
+- Socket というものを作る
+- Socket をサーバーに繋ぐ
+- どの Channel に繋ぐか設定する
+- Channel に繋ぎ，認可 ("ok") されたら，ブラウザのコンソールに "Welcome to Phoenix Chat!" と表示する
+- Channel から "new_msg" というイベントがきたら，イベントと同時にくるデータ (payload) の body というプロパティをブラウザのコンソールに表示する
+
+ということを宣言している．
+
+このファイルを更新して保存すると，ブラウザの内容が切り変わって "Welcome to Phoenix Chat!" という文字が表示されているだろうか．
+
+[[./Hello_Phoenix_1.png]]
+
+Phoenix はファイル監視をしており，デフォルトの Channel 経由でブラウザに更新を伝えているそうだ．
+
+** サーバーからブラウザへ broadcast する
+
+これでブラウザの console に文字を表示する準備は整った．試そう．
+
+サーバーのコンソールに =BroadcastStreaming.Endpoint.broadcast! "rooms:lobby", "new_msg", %{body: "こんにちは！"}= を打ちこんでみる．
+
+#+begin_src iex
+[info] Running BroadcastStreaming.Endpoint with Cowboy on http://localhost:4000
+Interactive Elixir (1.0.5) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> [info] GET /ws
+09 Jul 20:42:39 - info: compiled 3 files into 2 files, copied 3 in 1999ms
+[info] JOIN rooms:lobby to BroadcastStreaming.RoomChannel
+  Transport:  Phoenix.Transports.WebSocket
+  Parameters: %{}
+[info] Replied rooms:lobby :ok
+
+nil
+iex(2)> BroadcastStreaming.Endpoint.broadcast! "rooms:lobby", "new_msg", %{body: "こんにちは！"}
+:ok
+#+end_src
+
+するとブラウザの console にも "こんにちは！" と表示されるだろう．
+
+[[./Hello_Phoenix_2.png]]
+
+サーバーから broadcast する方法は [[http://hexdocs.pm/phoenix/Phoenix.Channel.html][Phoenix.Channel]] の "Broadcasting to an external topic" に書いてある．
+
+** Twitter Streaming を broadcast する
+
+メッセージを流す経路は確保できたので，あとはそこに Twitter Streaming を流しこめばよい．
+
+Elixir で Twitter を扱うには [[https://github.com/parroty/extwitter][parroty/extwitter]] がよいだろう．
+
+外部のライブラリを依存関係に足すには mix.exs へと追記する．Rails でいうところの Gemfile 相当の部分になる．
+
+サーバーのコンソールで =Ctrl+C= を押して一度サーバーを終了させた後， mix.exs を以下のようにする．
+
+=defp deps do= のところに oauth と extwitter を足しただけである．
+
+#+begin_src elixir
+defmodule BroadcastStreaming.Mixfile do
+  use Mix.Project
+
+  def project do
+    [app: :broadcast_streaming,
+     version: "0.0.1",
+     elixir: "~> 1.0",
+     elixirc_paths: elixirc_paths(Mix.env),
+     compilers: [:phoenix] ++ Mix.compilers,
+     build_embedded: Mix.env == :prod,
+     start_permanent: Mix.env == :prod,
+     deps: deps]
+  end
+
+  # Configuration for the OTP application
+  #
+  # Type `mix help compile.app` for more information
+  def application do
+    [mod: {BroadcastStreaming, []},
+     applications: [:phoenix, :phoenix_html, :cowboy, :logger]]
+  end
+
+  # Specifies which paths to compile per environment
+  defp elixirc_paths(:test), do: ["lib", "web", "test/support"]
+  defp elixirc_paths(_),     do: ["lib", "web"]
+
+  # Specifies your project dependencies
+  #
+  # Type `mix help deps` for examples and options
+  defp deps do
+    [{:phoenix, "~> 0.14"},
+     {:phoenix_html, "~> 1.1"},
+     {:phoenix_live_reload, "~> 0.4", only: :dev},
+     {:cowboy, "~> 1.0"},
+     {:oauth, github: "tim/erlang-oauth"},
+     {:extwitter, "~> 0.4"}]
+  end
+end
+#+end_src
+
+依存関係を追記したら，Rails でいうところの Bundle install を行う．
+
+Phoenix では mix deps.get である．すると依存ライブラリがダウンロードされる．
+
+また，Twitter Streaming を利用するには Twitter の API トークンが必要である．今回は簡単にするためあらかじめ環境変数へと設定しておく．
+
+設定が終わったら，またサーバーを起動し，ブラウザから http://localhost:4000/ へとアクセス，ブラウザのコンソールも開いておく．
+
+#+begin_src
+% mix deps.get
+% export TWITTER_CONSUMER_KEY=xxxxxxxxxxxxxxxx
+% export TWITTER_CONSUMER_SECRET=xxxxxxxxxxxxxxxx
+% export TWITTER_ACCESS_TOKEN=xxxxxxxxxxxxxxxx
+% export TWITTER_ACCESS_SECRET=xxxxxxxxxxxxxxxx
+% iex -S mix phoenix.server
+#+end_src
+
+サーバーのコンソールへ， [[https://github.com/parroty/extwitter#streaming][parroty/extwitter#streaming]] とほぼ同じ以下のコードを打ち込む．
+
+これでブラウザのコンソールへ，サーバーのコンソールに出力されている内容と同じものがほぼ同時のタイミングで表示されるだろう．
+
+また，別のブラウザで http://localhost:4000/ へとアクセスしてみると，そちらのコンソールにも表示が出るはずだ．
+
+#+begin_src elixir
+ExTwitter.configure(
+   consumer_key: System.get_env("TWITTER_CONSUMER_KEY"),
+   consumer_secret: System.get_env("TWITTER_CONSUMER_SECRET"),
+   access_token: System.get_env("TWITTER_ACCESS_TOKEN"),
+   access_token_secret: System.get_env("TWITTER_ACCESS_SECRET")
+)
+
+pid = spawn(fn ->
+  stream = ExTwitter.stream_filter(track: "apple")
+  for tweet <- stream do
+    IO.puts tweet.text
+    BroadcastStreaming.Endpoint.broadcast! "rooms:lobby", "new_msg", %{body: tweet.text}
+  end
+end)
+#+end_src
+
+Streaming を止めたくなった場合は =ExTwitter.stream_control(pid, :stop)= と打つと止まる．
+
+** まとめ
+
+- Phoenix Framework の Channel の簡単な使いかたがわかった
+- Phoenix Framework の Channel を使うと複数のブラウザへ遅延少なく情報を送れることがわかった
+- サーバーから複数のブラウザへの broadcast の方法がわかった
