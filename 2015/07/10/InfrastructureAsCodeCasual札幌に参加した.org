@@ -1,0 +1,110 @@
+* Infrastructure as Code Casual 札幌に参加した
+
+[[http://infracode-sapporo.connpass.com/event/16476/][Infrastructure as Code Casual 札幌 #0]] に参加した．
+togetter に [[http://togetter.com/li/845463][Infrastructure as Code Casual 札幌 #0 Tweetまとめ]] もある．
+
+「[[http://slide.rabbit-shocker.org/authors/niku/nikulog-with-docker/][ヽ（´・肉・｀）ノログとDocker]]」という発表もさせてもらった．
+
+初めてな集まりで，会場の雰囲気も手探りだったと思うのだけど，お酒を飲みながらたらーんと話すのも楽しかった．
+
+あの雰囲気なら「こうやった．できたから話します」という完成された発表もいいけど，
+「こういうことやりたいんだけど，ここで悩んでる，つまづいている．これでいいんだっけ？」
+といった未完成で途上な発表を出してみんなにツッコんでもらうスタイルも面白いかもしれないなあ．と思った．
+こいわさんのはそんな感じだった．
+
+会場を提供してくださったジグソー株式会社さん，
+オーガナイズしてくださった [[https://twitter.com/marcy_terui][@marcy_terui]] さん， [[https://twitter.com/hokkai7go][@hokkai7go]] さん
+参加してくださったみなさん．ありがとうございました．
+
+** [[https://twitter.com/marcy_terui][@marcy_terui]] 開催趣旨とInfra as Codeのオススメ実践フロー（簡易版）
+
+[[http://www.slideshare.net/marcyterui/infra-as-code-sapppro][Infra as Code Sapppro Casual 札幌の開催趣旨とTest-Kitchenの話]]
+
+Chef をやっていたころ Test-Kitchen の話題をチラチラと目にしていたのだけど，
+どういうものなのか，どういった構造なのかは面倒で調べていなかった．
+はじめて概要とTest-Kitchenの構成要素がわかった！
+
+** [[https://twitter.com/hokkai7go][@hokkai7go]] 日本OSS推進フォーラム主催 第5回アプリケーション部会勉強会で話した内容
+
+[[https://speakerdeck.com/hokkai7go/jopf-seminar-chef-and-ansible][Chef・Ansible等を用いた環境の自動構築方法]]
+
+もちろん自動化の導入も大変なことがあるけど，自動化をメンテし続けるのも大変なんですよ．
+だから導入の前に「どういったいいことを期待して導入するのか」をやる人/使う人達で合わせておこうね．
+みんなが自動化に期待しているものは揃っているとは限らなくて，その自動化で期待が満たせるか確認できてる？
+
+という話だった．
+
+これこそ自動化プロセスの始めにやることかもしれない．
+
+** [[https://twitter.com/niku_name][@niku_name]] さくらVPSにDockerサーバー立てて，そこでコンテナを動かして自分のWebサイトを公開している話
+
+[[http://slide.rabbit-shocker.org/authors/niku/nikulog-with-docker/][ヽ（´・肉・｀）ノログとDocker]]
+
+[[%E3%83%BD%EF%BC%88%C2%B4%E3%83%BB%E8%82%89%E3%83%BB%EF%BD%80%EF%BC%89%E3%83%8E%E3%83%AD%E3%82%B0%E3%81%A8Docker][ヽ（´・肉・｀）ノログとDocker]] にもスライドの元にした下書きがある．
+
+http://niku.name/ を Docker で動かしている．なぜ Docker にしたのか．更新は？という話をした．
+
+- Go 製だったらバイナリ置けばよくね？
+- Debian の backport は pinning しないと意図しないパッケージも入っちゃうよ
+- 富豪的だ
+- ここまでやると逆にめんどくさそう
+
+などの反応や意見をいだたいた．
+
+確かに計算機資源の無駄遣いなところ多いし，構成するの面倒だったけど，運用はすごい楽になった．
+
+- イニシャルコスト
+- ランニングコスト
+
+でわけると，ランニングコストを軽減するためにイニシャルコストを多くさいた．
+
+そしてランニングコストを負担する対象を
+
+- ユーザー
+- マシン
+
+にわけてみると，ユーザーの負担を軽減するためにマシンには頑張ってもらう構成になっている．
+
+つまり(僕は)(運用からは)身軽になった！
+
+発表してよかった．つっこみくれたみなさんありがとう．
+
+** [[https://twitter.com/kn1kn1][@kn1kn1]] heroku dockerでcfdg playground作った話
+
+[[https://gist.github.com/kn1kn1/d702e397dd88ee25b141][infracode_sap.md]]
+
+Context Free Art という，プログラミングでグラフィックを描くたのしみがあるそうだ．
+しかしそのコマンド(cfdg)は一般的ではないので，今までは heroku などに載せるのがつらかった．
+(もちろん buildpack があることは承知しているけど，
+せっかく buildpack を覚えても，heroku に適用する以外では役だてにくい知識になる)
+
+今回 heroku で docker を使えるようになったので，
+cfdg コマンドを heroku で動かせるようにした  [[infracode_sap.md][Context Free Art Playground]] を作った．
+という話を聞いた．
+
+まず Context Free Art 自体がおもしろそうだった．興味があるひとは Playground を眺めてみるとよい．
+
+あと Dockerfile はアプリケーションを主に使っている人でも弄るような共通の基盤になっているのかもしれないなあと思った．
+
+Makefile のような感じになるのかな．そういえば名前が似ている．
+
+** [[https://twitter.com/smokeymonkey][@smokeymonkey]] AWSとDockerで実現するInfrastructure as Code
+
+[[https://speakerdeck.com/smokeymonkey/awstodockerdeshi-xian-suru-infrastructure-as-code][AWSとDockerで実現する Infrastructure as Code]]
+
+偉そうな肩書クソ野郎ではないすもけによるInfrastructure as Codeのおさらい．
+僕のようなアプリケーションを作っている人からみると環境を何回も作りなおすためのものだったけど，
+インフラを整えている人からみると「全く同じ環境を新規に構築する」ために使うときにも便利だということがわかった．
+
+できることは同じなのだけど，立場によってうれしさのところが違うものもあるのだなあ．もちろんうれしさが同じところもある．
+
+CloudFormation よさそうだったけど 1000 行の JSON というのはすこし恐ろしい感じがした．
+
+** [[https://twitter.com/koiwa][@koiwa]] インフラテストへのTDD的アプローチと今後やりたいこと
+
+(スライドみつからなかった)
+
+TDD 的なアプローチでインフラを構築してみているけど，これでよいのか？というのに悩んでいる．という話だった．
+悩みを話す形式の発表というのはいいなあ．
+
+発表が終わったあとの質疑応答話がもりあがった．
