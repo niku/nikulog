@@ -1,0 +1,7 @@
+* Githubのフィルターで否定したい場合は-を使う
+
+[[https://help.github.com/articles/search-syntax/#filter-qualifiers-based-on-exclusion][Search Syntax - User Documentation]]
+
+とあるマイルストーン =Foo= にない，open していて issue な (pull request ではない) ものを拾うには =is:open is:issue -milestone:Foo= という形で検索するとよい．
+
+これで =Foo= に含めたかったけど，マイルストーン設定し忘れていたものがないか探すことができる．
