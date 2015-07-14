@@ -1,0 +1,12 @@
+* Ruby札幌のLoungeに参加した
+
+[[http://ruby-sapporo.org/news/2015/07/07/lounge.html][Ruby札幌 | Lounge(2015-07-14)]]
+
+今日は
+
+- 手作りしてくれたアーモンドタルトを頂いた
+- [[http://docs.justyo.co/docs][Yo の API]] を眺めた
+- スレッドとは……という話をした
+- [[http://railsguides.jp/association_basics.html#touch][ActiveRecord の touch]] について話した
+- Emacs だけで markdown をリアルタイムプレビューするライブラリ [[https://github.com/niku/realtime-preview.el][realtime-preview.el]] を直した
+- Rails でのモジュールについてのテスト談義をした
