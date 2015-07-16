@@ -1,0 +1,257 @@
+* すごいE本をElixirでやる(13)
+
+** 6.1 関数型っぽくいこう！
+
+Elixir で無名関数を評価するときは =f.()= という形式にする．
+=f()= ではなく =.= がついた形であることに注意すること．
+
+#+begin_src elixir
+defmodule Hhfuns do
+  def one, do: 1
+  def two, do: 2
+
+  def add(x, y), do: x.() + y.()
+end
+
+Hhfuns.add(Hhfuns.one, Hhfuncs.two)
+#> ** (BadFunctionError) expected a function, got: 1
+#>     orgmode_elixir_src.exs:5: Hhfuns.add/2
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+
+Hhfuns.add(1, 2)
+#> ** (BadFunctionError) expected a function, got: 1
+#>     orgmode_elixir_src.exs:5: Hhfuns.add/2
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+
+Hhfuns.add(&Hhfuns.one/0, &Hhfuns.two/0) # => 3
+#+end_src
+
+#+begin_quote
+関数をモジュールの外から渡すための新しい記述
+#+end_quote
+
+Elixir だと =&(モジュール).(関数)/(アリティ)= という形式になる．
+
+#+begin_src elixir
+defmodule Hhfuns do
+  def increment([]), do: []
+  def increment([h|t]), do: [h+1|increment(t)]
+
+  def decrement([]), do: []
+  def decrement([h|t]), do: [h-1|decrement(t)]
+
+  def map(_, []), do: []
+  def map(f, [h|t]), do: [f.(h)|map(f,t)]
+
+  def incr(x), do: x + 1
+  def decr(x), do: x - 1
+end
+
+l = [1,2,3,4,5]
+Hhfuns.increment(l) # => [2, 3, 4, 5, 6]
+Hhfuns.decrement(l) # => [0, 1, 2, 3, 4]
+Hhfuns.map(&Hhfuns.incr/1, l) # => [2, 3, 4, 5, 6]
+Hhfuns.map(&Hhfuns.decr/1, l) # => [0, 1, 2, 3, 4]
+#+end_src
+
+** 6.2 無名関数
+
+#+begin_src elixir
+defmodule Hhfuns do
+  def increment([]), do: []
+  def increment([h|t]), do: [h+1|increment(t)]
+
+  def decrement([]), do: []
+  def decrement([h|t]), do: [h-1|decrement(t)]
+
+  def map(_, []), do: []
+  def map(f, [h|t]), do: [f.(h)|map(f,t)]
+
+  def incr(x), do: x + 1
+  def decr(x), do: x - 1
+end
+
+f = fn() -> :a end
+f.() # => :a
+
+l = [1,2,3,4,5]
+Hhfuns.map(fn(x) -> x + 1 end, l) # =>  [2, 3, 4, 5, 6]
+Hhfuns.map(fn(x) -> x - 1 end, l) # =>  [0, 1, 2, 3, 4]
+
+# Elixir ではこんな風にも書ける
+Hhfuns.map(&(&1 + 1), l) # =>  [2, 3, 4, 5, 6]
+Hhfuns.map(&(&1 - 1), l) # =>  [0, 1, 2, 3, 4]
+#+end_src
+
+Elixir での無名関数は
+
+#+begin_src elixir
+f = fn
+  (0) -> "ぜろ"
+  (1) -> "いち"
+  (_) -> "そのた"
+end
+
+f.(0) # => "ぜろ"
+f.(1) # => "いち"
+f.(2) # => "そのた"
+#+end_src
+
+となる．(今調べるまで Elixir でも無名関数のパターンマッチができることを知らなかった！)
+
+また無名関数を =&(...)= とも書ける．
+この場合無名関数の中では引数 1 は =&1= ，引数 2 は =&2= のように表されている．
+
+#+begin_src elixir
+prepare_alarm = fn(room) ->
+  IO.puts("Alarm set in #{room}")
+  fn() ->
+    IO.puts("Alarm tripped in #{room}! Call Batman!")
+  end
+end
+
+alarm_ready = prepare_alarm.("bathroom") # => Alarm set in bathroom
+alarm_ready.()                           # => Alarm tripped in bathroom! Call Batman!
+#+end_src
+
+関数のスコープとクロージャは同じ
+
+#+begin_src elixir
+defmodule Hhfuns do
+  def a do
+    secret = "pony"
+    fn -> secret end
+  end
+
+  def b(f) do
+    "a/0's password is " <> f.()
+  end
+end
+
+Hhfuns.b(Hhfuns.a) # => a/0's password is pony
+#+end_src
+
+#+begin_src elixir
+defmodule Hhfuns do
+  def map(_, []), do: []
+  def map(f, [h|t]), do: [f.(h)|map(f,t)]
+end
+
+:math.pow(5, 2) # => 25.0
+base = 2
+power_of_two = fn(x) -> :math.pow(base, x) end
+
+Hhfuns.map(power_of_two, [1,2,3,4]) # => [2.0, 4.0, 8.0, 16.0]
+#+end_src
+
+Elixir でのスコープの再定義はこんな感じ．
+Elixir の場合は =^= がないと再束縛できる(できてしまう)のでエラーにならないことに注意すること．
+
+#+begin_src elixir
+fn ->
+  a = 1
+  fn -> ^a = 2 end
+end.().()
+#> orgmode_elixir_src.exs:6: warning: the result of the expression is ignored (suppress the warning by assigning the expression to the _ variable)
+#> orgmode_elixir_src.exs:14: warning: no clause will ever match
+#> ** (MatchError) no match of right hand side value: 2
+#>     orgmode_elixir_src.exs:14: anonymous fn/0 in :elixir_compiler_0.__FILE__/1
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+
+fn ->
+  a = 1
+  fn(a) -> ^a = 2 end
+end.().(2) # => 2
+#+end_src
+
+** 6.3 map、filter、foldなど
+
+#+begin_src elixir
+defmodule Hhfuns do
+  # 偶数だけを保持する
+  def even(l), do: Enum.reverse(even(l, []))
+  defp even([], acc), do: acc
+  defp even([h|t], acc) when rem(h, 2) === 0, do: even(t, [h|acc])
+  defp even([_|t], acc), do: even(t, acc)
+
+  # 60歳以上の男性だけ保持する
+  def old_men(l), do: Enum.reverse(old_men(l, []))
+  defp old_men([], acc), do: acc
+  defp old_men([person = {:male, age} | people], acc) when age > 60 do
+    old_men(people, [person|acc])
+  end
+  defp old_men([_|people], acc), do: old_men(people, acc)
+
+  def filter(pred, l), do: Enum.reverse(filter(pred, l, []))
+  defp filter(_, [], acc), do: acc
+  defp filter(pred, [h|t], acc) do
+    case pred.(h) do
+      true  -> filter(pred, t, [h|acc])
+      false -> filter(pred, t, acc)
+    end
+  end
+end
+
+numbers = Enum.to_list(1..10)
+Hhfuns.filter(&(rem(&1, 2) === 0), numbers) # => [2, 4, 6, 8, 10]
+Hhfuns.even(numbers)                        # => [2, 4, 6, 8, 10]
+
+people = [{:male, 45}, {:female, 67}, {:male, 66}, {:female, 12}, {:unknown, 174}, {:male, 74}]
+Hhfuns.filter(fn ({gender, age}) -> gender === :male && age > 60 end, people) # => [{:male, 66}, {:male, 74}]
+Hhfuns.old_men(people)                                                        # => [{:male, 66}, {:male, 74}]
+#+end_src
+
+pred は predicate (述語) の略．
+
+ちなみに Lisp で =evenp= みたいに最後が =p= になっているのもこれと同じ意味で，
+Ruby での =?= マークで終わるメソッドと同じような慣例だ．
+
+Fold について．
+
+#+begin_src elixir
+defmodule Hhfuns do
+  # リストの最大値を見つける
+  def max([h|t]), do: max2(t, h)
+  defp max2([], max), do: max
+  defp max2([h|t], max) when h > max, do: max2(t, h)
+  defp max2([_|t], max), do: max2(t, max)
+
+  # リストの最小値を見つける
+  def min([h|t]), do: min2(t, h)
+  defp min2([], min), do: min
+  defp min2([h|t], min) when h < min, do: min2(t, h)
+  defp min2([_|t], min), do: min2(t, min)
+
+  # リストの全要素の合計を出す
+  def sum(l), do: sum(l, 0)
+  defp sum([], s), do: s
+  defp sum([h|t], s), do: sum(t, h + s)
+
+  def fold(_, start, []), do: start
+  def fold(f, start, [h|t]), do: fold(f, f.(h, start), t)
+end
+
+list = [1,7,3,5,9,0,2,3]
+[h|t] = list
+
+Hhfuns.fold(fn(a, b) when a > b -> a
+              (_, b) -> b
+            end,
+            h, t) # => 9
+Hhfuns.max(list) # => 9
+
+Hhfuns.fold(fn(a, b) when a < b -> a
+              (_, b) -> b
+            end,
+            h, t) # => 0
+Hhfuns.min(list) # => 0
+
+Hhfuns.fold(fn(a, b) -> a + b end, 0, Enum.to_list(1..6)) # => 21
+Hhfuns.sum(Enum.to_list(1..6)) # => 21
+#+end_src
+
+引数の順番が Elixir の慣例とは異なっていることに気づいたが，実装したあとだったのでそのまま書いておく．
+
+=def fold([h|t], start, f)= が Elixir Way だと思う．第一引数に subject，最後に function がくるはず．
+
+Elixir で fold に相当する [[http://elixir-lang.org/docs/v1.0/elixir/Enum.html#reduce/3][Enum.reduce/3]] の引数をみたら，予想通りだった．うむ．
