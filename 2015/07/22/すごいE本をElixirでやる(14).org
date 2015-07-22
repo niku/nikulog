@@ -1,0 +1,271 @@
+* すごいE本をElixirでやる(14)
+
+第7章 エラーと例外
+
+から．
+
+#+begin_quote
+Erlang には関数型と並行性という 2 つのパラダイムがある
+#+end_quote
+
+#+begin_quote
+関数型の側面については巻頭から説明してきました。参照透過性、再帰、高階関数などです。
+Erlangを有名にしたものの 1 つは、並行性の側面です。アクター、何千もの並行プロセス、監視ツリーなどがあります。
+#+end_quote
+
+なるほど．関数型のパラダイムについては Ruby や Haskell で目にした覚えがある．
+並行性のパラダイムについてはほぼ初めてな感じがするのは，今までそれを掲げた言語/フレームワークを触ってこなかったせいだろう．
+
+** 7.1 エラー大集合
+
+*** コンパイル時エラー
+
+#+begin_src
+module.beam: Module name 'madule' does not match file name 'module'
+    -module属性内に書いたモジュール名がファイル名と一致していません。
+#+end_src
+
+Elixir ではモジュール名とファイル名が一致していなくてもよいので上のコンパイル時エラーは出ないだろう．
+
+#+begin_src elixir
+# 関数を公開していない、あるいはその関数が使われている場所が間違った関数名やアリティになっています。
+defmodule X do
+  defp foo, do: "foo"
+end
+#> qr_1202Hxm.exs:2: warning: function foo/0 is unused
+#+end_src
+
+#+begin_src elixir
+# 関数が存在していません。
+defmodule X do
+  def bar, do: baz
+end
+#> ** (CompileError) orgmode_elixir_src.exs:4: function baz/0 undefined
+#>     (stdlib) lists.erl:1336: :lists.foreach/2
+#>     (stdlib) erl_eval.erl:657: :erl_eval.do_apply/6
+#+end_src
+
+#+begin_src elixir
+# シンタックスエラー
+# エラーメッセージで「2 行目で始まった `"` の終わりが見つからない」と書いてある
+defmodule X do
+  def bar, do: "bar
+end
+#> ** (TokenMissingError) orgmode_elixir_src.exs:3: missing terminator: " (for string starting at line 2)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+Erlang でのシンタックスエラーのメッセージより少し親切に思えるが，
+全ての場合でこういった形でエラー表記してくれるかはわからない．
+( 対応する end をつけ忘れた場合はしてくれた )
+
+#+begin_src elixir
+# 型付けに失敗する数式を見つけてくれます。
+defmodule X do
+  def bar, do: :bar + 5
+end
+#> qr_1202iNu.exs:2: warning: this expression will fail with ArithmeticError
+#+end_src
+
+#+begin_src elixir
+# 使っていない変数を宣言しています。
+defmodule X do
+  def bar do
+    baz = "a"
+    nil
+  end
+end
+#> qr_120271P.exs:3: warning: variable baz is unused
+#+end_src
+
+#+begin_src elixir
+defmodule X do
+  def bar do
+    {:a, :b}
+    nil
+  end
+end
+#+end_src
+
+#+begin_src elixir
+# この警告は、何か必要ないことをしていたり間違えている場合、それを知らせます。
+# ./module.erl:5: Warning: a term is constructed, but never used
+defmodule X do
+  def bar do
+    fn -> nil end
+    {:a, :b}
+    nil
+  end
+end
+#+end_src
+
+Elixir での出し方がわからなかった．上の式では出ない．もし Elixir でこれを出せたら教えてほしい．
+
+#+begin_src elixir
+# あるアリティを持つ関数の宣言と、別のアリティを持つ関数の宣言をまぜこぜにはできません。
+# ある関数を別の関数のヘッドの節の間で定義したときも起きます。
+# ./module.erl:5: head mismatch
+defmodule X do
+  def bar, do: "bar"
+  def baz, do: "baz"
+  def bar(name), do: "bar " <> name
+end
+#+end_src
+
+これも Elixir では出ないんじゃないかなあ．上の式では出なかった．
+Erlang だと複数の関数を一繋ぎに宣言できるけど，Elixir では一つずつしか宣言できないので，「宣言のグループ」のような概念がたぶんない．
+もし Elixir で出せた人がいたら教えてほしい．
+
+#+begin_src elixir
+# catch-all 節のあとに節があります。
+defmodule X do
+  def bar(0), do: "bar0"
+  def bar(_), do: "bar"
+  def bar(1), do: "bar1"
+end
+#> qr_1202jVp.exs:5: warning: this clause cannot match because a previous clause at line 4 always matches
+#+end_src
+
+#+begin_src elixir
+# case ... of ブランチの中で宣言されている変数を、その外側で使っている場合に起きます。
+# ./module.erl:9: variable 'A' unsafe in 'case' (line 5)
+defmodule X do
+  def bar(arg) do
+    cond do
+      {:a, x} = arg -> x
+      true -> "OTHER"
+    end
+    IO.inspect x
+  end
+end
+#> ** (CompileError) orgmode_elixir_src.exs:8: function x/0 undefined
+#>     (stdlib) lists.erl:1336: :lists.foreach/2
+#>     (stdlib) erl_eval.erl:657: :erl_eval.do_apply/6
+#+end_src
+
+これも再現できなかった．cond の中で宣言した変数は，cond の外からは見えないようになっている．
+Erlang と Elixir で変数のスコープが異なるのかもしれない．
+もし Elixir で出せた人がいたら教えてほしい．
+
+#+begin_quote
+たいていの場合、いちばん難しいのは、多くのエラーの根本原因となっているエラーがどれかを見つけるところです。
+コンパイル時エラーは表示された順に解決していくことをおすすめします。
+#+end_quote
+
+はい．
+
+*** ランタイムエラー
+
+#+begin_src elixir
+# 関数内のすべてのガード節で失敗する、あるいはすべてのパターンマッチで失敗することです。
+defmodule X do
+  def foo(1), do: "foo1"
+  def foo(2), do: "foo2"
+end
+
+X.foo(3)
+#> ** (FunctionClauseError) no function clause matching in X.foo/1
+#>     orgmode_elixir_src.exs:2: X.foo(3)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+#+begin_src elixir
+# 特定の条件を書くのを忘れたか、間違った種類のデータを送ったか、catch-all 節が必要かのどれかです。
+defmodule X do
+  def foo(arg) do
+    case arg do
+      1 -> "foo1"
+      2 -> "foo2"
+    end
+  end
+end
+
+X.foo(3)
+#> ** (CaseClauseError) no case clause matching: 3
+#>     orgmode_elixir_src.exs:4: X.foo/1
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+#+begin_src elixir
+# true と評価される節が見つからないときに、このエラーが起きます
+defmodule X do
+  def foo do
+    cond do
+      2 > 4 -> :ok
+      0 > 1 -> :ok
+    end
+  end
+end
+
+X.foo
+#> orgmode_elixir_src.exs:4: warning: this check/guard will always yield the same result
+#> orgmode_elixir_src.exs:5: warning: this check/guard will always yield the same result
+#> ** (CondClauseError) no cond clause evaluated to a true value
+#>     X.foo/0
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+上の式は Erlang の if と似た Elixir の cond で試した．
+=true= と評価される節が見つからないときは =no cond clause evaluated to a true value= というエラーになるようだ．
+
+#+begin_src elixir
+# 間違ったマッチに関するエラーはパターンマッチが失敗したときに起きます。
+[a, b] = {4, 5}
+#> orgmode_elixir_src.exs:1: warning: variable a is unused
+#> orgmode_elixir_src.exs:1: warning: variable b is unused
+#> orgmode_elixir_src.exs:1: warning: no clause will ever match
+#> ** (MatchError) no match of right hand side value: {4, 5}
+#>     orgmode_elixir_src.exs:1: (file)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+#+begin_src elixir
+# 関数を間違った引数で呼び出しているという点で、関数節のエラーに似ています。
+elem({1,2}, 0) # => 1
+elem([1,2], 0)
+#> orgmode_elixir_src.exs:2: warning: the result of the expression is ignored (suppress the warning by assigning the expression to the _ variable)
+#> orgmode_elixir_src.exs:3: warning: this expression will fail with ArgumentError
+#> ** (ArgumentError) argument error
+#>     orgmode_elixir_src.exs:3: (file)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+Erlang だと =bad argument= であるものは，Elixir だと =argument error= のようだ．
+
+#+begin_src elixir
+# 存在しない関数を呼び出したときに起きます。
+foo(123)
+#> ** (CompileError) orgmode_elixir_src.exs:1: undefined function foo/1
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+#+begin_src elixir
+# 存在しない算術演算をしようとしたときに起きます。
+5 + :llama
+#> orgmode_elixir_src.exs:1: warning: this expression will fail with ArithmeticError
+#> ** (ArithmeticError) bad argument in arithmetic expression
+#>     orgmode_elixir_src.exs:1: (file)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+#+begin_src elixir
+# 値が関数でない変数を関数として使ってしまうことです。
+defmodule X do
+  def foo(f), do: f.()
+end
+
+X.foo(fn -> :done end) # => :done
+X.foo(1)
+#> ** (BadFunctionError) expected a function, got: 1
+#>     orgmode_elixir_src.exs:2: X.foo/1
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+#+begin_src elixir
+# 高階関数を使っていて、必要な数の引数よりも多いあるいは少ない引数を渡したときに起きます。
+f = fn(_) -> :ok end
+f.(:a, :b)
+#> ** (BadArityError) #Function<0.131248289 in file:orgmode_elixir_src.exs> with arity 1 called with 2 arguments (:a, :b)
+#>     orgmode_elixir_src.exs:3: (file)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
