@@ -1,0 +1,255 @@
+* すごいE本をElixirでやる(15)
+
+第7章 エラーと例外 - 7.2 例外を上げる
+
+から．
+
+** 7.2 例外を上げる
+
+#+begin_quote
+Erlangには3種類の例外があります。エラー（error）、終了（exit）、スロー（throw）です。すべて異なった用途があります。
+#+end_quote
+
+ふむふむ．
+
+Elixir での例外処理機構については公式サイトの GETTING STARTED にある [[http://elixir-lang.org/getting-started/try-catch-and-rescue.html][try, catch and rescue]] にまとまっている．
+
+*** エラー例外
+
+#+begin_quote
+エラーは、いま起きたことを制御するコードを呼び出せないときに、関数にその実行を止めさせるための手段です。
+#+end_quote
+
+エラーは制御できない動作の実行を止めるためのもの．なるほど．
+
+#+begin_src elixir
+defmodule X do
+  def doit do
+    raise(ArithmeticError)
+  end
+
+  def doit2 do
+    raise("custom error")
+  end
+end
+
+X.doit
+#> ** (ArithmeticError) bad argument in arithmetic expression
+#>     orgmode_elixir_src.exs:3: X.doit/0
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+
+X.doit2
+#> ** (RuntimeError) custom error
+#>     orgmode_elixir_src.exs:7: X.doit2/0
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+Elixir でエラーを発生させるには =Kernel.raise/1= や =Kernel.raise/2= を使う．
+
+*** 終了例外
+
+#+begin_quote
+内部終了はexit/1 関数を呼び出すことで発生し、いま走っているプロセスの動作を止めます。
+
+外部終了はexit/2 関数を呼び出すことで発生し、Erlang の並行な面で起こるマルチプロセスと関係があります。
+#+end_quote
+
+ほうほう．内部終了はエラーと似ていて，歴史的には両方とも同じもの．
+
+#+begin_quote
+非常に似たような使い方ができますが、本当の違いはその意図にあります。
+単なるエラーを手にしたのか、それともいまのプロセスを殺すに足る状況なのか。
+#+end_quote
+
+どこかで扱われるかもしれないことを期待しているならエラー，
+もうプロセス殺すしかない慈悲はないなら内部終了．
+なるほど．
+
+Elixir で =exit= するには =Kernel.exit/1= を使う．
+
+#+begin_src elixir
+exit("もうだめだ！")
+#> ** (exit) "もうだめだ！"
+#>     orgmode_elixir_src.exs:1: (file)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+
+*** 例外を投げる
+
+#+begin_quote
+意図は、終了やエラーのように「プロセスをクラッシュしろ！」と伝えることではなく、フローの制御です。
+#+end_quote
+
+なるほど，フローの制御のために大域脱出をする場合に使う．
+
+Elixir では =Kernel.throw/1= を使う．
+
+#+begin_src elixir
+throw("スロー")
+#> ** (throw) "スロー"
+#>     orgmode_elixir_src.exs:1: (file)
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+** 7.3 例外を処理する
+
+Elixir での例外は =Kernel.SpecialForms.try/1= で取り扱える．
+
+try のドキュメントに例があるのでそのまま貼る．
+
+#+begin_src elixir
+try do
+  do_something_that_may_fail(some_arg)
+rescue
+  ArgumentError ->
+    IO.puts "Invalid argument given"
+catch
+  value ->
+    IO.puts "caught #{value}"
+else
+  value ->
+    IO.puts "Success! The result was #{value}"
+after
+  IO.puts "This is printed regardless if it failed or succeed"
+end
+#+end_src
+
+- =rescue= 節は exception を扱う
+- =catch= 節は throw された値を扱う．終了 exit もこちらで扱う
+- =else= 節は try の結果をパターンマッチングさせることができる
+- =after= 節は必ず実行され，もっぱら try で開いたリソースの後始末に用いられる
+
+#+begin_src elixir
+defmodule Exceptions do
+  def throws(f) do
+    try do
+      f.()
+    catch
+      thrown -> {:throw, :caught, thrown}
+    end
+  end
+end
+
+Exceptions.throws(fn -> throw(:thrown) end) # => {:throw, :caught, :thrown}
+Exceptions.throws(fn -> raise("pang") end)
+#> ** (RuntimeError) pang
+#>     orgmode_elixir_src.exs:12: anonymous fn/0 in :elixir_compiler_0.__FILE__/1
+#>     orgmode_elixir_src.exs:4: Exceptions.throws/1
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+Exceptions.throws(fn -> exit("goodbye") end)
+#> ** (exit) "goodbye"
+#>     orgmode_elixir_src.exs:17: anonymous fn/0 in :elixir_compiler_0.__FILE__/1
+#>     orgmode_elixir_src.exs:4: Exceptions.throws/1
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+=catch= 節で明示的に指定しなければ =exit= は無視して =throw= だけを受けとるようだ．
+また，例外を発生させたもの( =raise= させたもの ) も受けとっていない．
+
+#+begin_src elixir
+defmodule Exceptions do
+  def errors(f) do
+    try do
+      f.()
+    rescue
+      error -> {:error, :caught, error}
+    end
+  end
+end
+
+# Exceptions.errors(fn -> throw(:thrown) end)
+#> ** (throw) :thrown
+#>     orgmode_elixir_src.exs:11: anonymous fn/0 in :elixir_compiler_0.__FILE__/1
+#>     orgmode_elixir_src.exs:4: Exceptions.errors/1
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+Exceptions.errors(fn -> raise("pang") end) # => {:error, :caught, %RuntimeError{message: "pang"}}
+Exceptions.errors(fn -> exit("goodbye") end)
+#> ** (exit) "goodbye"
+#>     orgmode_elixir_src.exs:17: anonymous fn/0 in :elixir_compiler_0.__FILE__/1
+#>     orgmode_elixir_src.exs:4: Exceptions.errors/1
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#+end_src
+
+前述の通り Elixir で =error= を受けとるには =rescue= 節を利用する．
+=rescue= 節では =throw= や =exit= を受けとらない．
+
+#+begin_src elixir
+defmodule Exceptions do
+  def exits(f) do
+    try do
+      f.()
+    catch
+      :exit, exit -> {:exit, :caught, exit}
+    end
+  end
+end
+
+#Exceptions.exits(fn -> throw(:thrown) end)
+#> ** (throw) :thrown
+#>     orgmode_elixir_src.exs:11: anonymous fn/0 in :elixir_compiler_0.__FILE__/1
+#>     orgmode_elixir_src.exs:4: Exceptions.exits/1
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+#Exceptions.exits(fn -> raise("pang") end)
+#> ** (RuntimeError) pang
+#>     orgmode_elixir_src.exs:16: anonymous fn/0 in :elixir_compiler_0.__FILE__/1
+#>     orgmode_elixir_src.exs:4: Exceptions.exits/1
+#>     (elixir) lib/code.ex:307: Code.require_file/2
+Exceptions.exits(fn -> exit("goodbye") end) # => {:exit, :caught, "goodbye"}
+#+end_src
+
+=exit= を受けとるには =catch= 節で =:exit= を明示する．
+
+実際は，例外 ( =raise= で発生させたもの ) も =catch= 節で =:error= と明示すれば受けとれる．
+
+=rescue= 節の意味とは……となりそうだが，3つの例外のうち最もよく使うものだけ特別扱いして読みやすくしているのだろう．
+
+=Kernel.SpecialForms.try/1= のドキュメントにも
+
+#+begin_quote
+Besides relying on pattern matching, rescue clauses provides some conveniences around exceptions that allows one to rescue an exception by its name.
+#+end_quote
+
+意訳すると「パターンマッチングに加えて， =rescue= 節では便利なように例外の名前で rescue できるようになっています」と書いてある．
+
+#+begin_src elixir
+defmodule CutArm do
+  defexception [:message]
+end
+
+defmodule Exceptions do
+  def sword(1), do: throw(:slice)
+  def sword(2), do: raise(CutArm)
+  def sword(3), do: exit(:cut_leg)
+  def sword(4), do: throw(:punch)
+  def sword(5), do: exit(:cross_bridge)
+
+  def black_knight(attack) when is_function(attack, 0) do
+    try do
+      attack.()
+    rescue
+      CutArm -> "I've had worse."
+    catch
+      :throw, :slice   -> "It is but a scratch."
+      :exit, :cut_leg  -> "Come on you pansy!"
+      _, _ -> "Just a flesh wound"
+    else
+      _ -> "None shall pass."
+    end
+  end
+
+  def talk, do: "blah blah"
+end
+
+Exceptions.talk # => "blah blah"
+Exceptions.black_knight(&Exceptions.talk/0) # => "None shall pass."
+Exceptions.black_knight(fn -> Exceptions.sword(1) end) # => "It is but a scratch."
+Exceptions.black_knight(fn -> Exceptions.sword(2) end) # => "I've had worse."
+Exceptions.black_knight(fn -> Exceptions.sword(3) end) # => "Come on you pansy!"
+Exceptions.black_knight(fn -> Exceptions.sword(4) end) # => "Just a flesh wound"
+Exceptions.black_knight(fn -> Exceptions.sword(5) end) # => "Just a flesh wound"
+#+end_src
+
+Elixir では try と一緒に使わない =catch= はなさそう．整理して全部 =try/1= にまとめちゃったんじゃないかな．
+
+Erlang の =erlang:get_stacktrace/0= は Elixir だと =System.stacktrace/0= に相当するみたい．
