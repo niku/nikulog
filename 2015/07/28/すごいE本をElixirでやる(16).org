@@ -1,0 +1,82 @@
+* すごいE本をElixirでやる(16)
+
+第7章 エラーと例外 - 7.4 二分木でtryをトライする
+
+から．
+
+** 7.4 二分木でtryをトライする
+
+#+begin_src elixir
+defmodule Tree do
+  def empty, do: {:node, nil}
+
+  def insert({:node, nil}, key, val) do
+    {:node, {key, val, {:node, nil}, {:node, nil}}}
+  end
+  def insert({:node, {key, val, smaller, larger}}, new_key, new_val) when new_key < key do
+    {:node, {key, val, insert(smaller, new_key, new_val), larger}}
+  end
+  def insert({:node, {key, val, smaller, larger}}, new_key, new_val) when new_key > key do
+    {:node, {key, val, smaller, insert(larger, new_key, new_val)}}
+  end
+  def insert({:node, {key, _val, smaller, larger}}, new_key, new_val) when new_key === key do
+    {:node, {key, new_val, smaller, larger}}
+  end
+
+  def lookup({:node, nil}, _key), do: :undefined
+  def lookup({:node, {key, val, _smaller, _lager}}, key), do: {:ok, val}
+  def lookup({:node, {node_key, _val, smaller, _lager}}, key) when key < node_key do
+    lookup(smaller, key)
+  end
+  def lookup({:node, {node_key, _val, _smaller, lager}}, key) when key > node_key do
+    lookup(lager, key)
+  end
+
+  # 木の中から値 val を探す
+  def has_value({:node, nil}, _val), do: false
+  def has_value({:node, {_key, val, _smaller, _larger}}, val), do: true
+  def has_value({:node, {_key, _val, smaller, larger}}, val)  do
+    has_value(smaller, val) || has_value(larger, val)
+  end
+
+  # throw - catch を用いた has_value の実装
+  def has_value2(tree, val) do
+    try do
+      has_value_with_throw(tree, val)
+    catch
+      true -> true
+    else
+      _ -> false
+    end
+  end
+  def has_value_with_throw({:node, nil}, _val), do: false
+  def has_value_with_throw({:node, {_key, val, _smaller, _larger}}, val), do: throw(true)
+  def has_value_with_throw({:node, {_key, _val, smaller, larger}}, val) do
+    has_value_with_throw(smaller, val)
+    has_value_with_throw(larger, val)
+  end
+end
+
+t1 = Tree.insert(Tree.empty, "Jim Woodland", "jim.woodland@gmail.com")
+t2 = Tree.insert(t1, "Mark Anderson", "i.am.a@hotmail.com")
+addresses = t2
+            |> Tree.insert("Wilson Longbrow", "longwil@gmail.com")
+            |> Tree.insert("Kevin Robert", "myfairy@yahoo.com")
+            |> Tree.insert("Anita Bath", "abath@someuni.edu")
+
+Tree.has_value(addresses, "abath@someuni.edu")  # => true
+Tree.has_value2(addresses, "abath@someuni.edu") # => true
+
+Tree.has_value(addresses, "for@example.com")    # => false
+Tree.has_value2(addresses, "for@example.com")   # => false
+#+end_src
+
+この例だと =throw= を使う意義があんまり感じられないな，
+むしろ =throw= を使わないほうが見通しがよくみえるんだけど
+もうちょっと条件が加わると違うのかもしれない．
+
+大域ジャンプをすると読みにくくなる．だからできるだけ避けたい．
+という僕の知識と経験とは別の「大域ジャンプを上手に使って，速度と可読性を上げよう」ということが書いてあり，
+速度については，処理する所が減るので異論ないものの，可読性について今はまだは少し戸惑っている．
+
+そのうち「何でこんなこと書いたのかな」と思う日がくるだろうか．
