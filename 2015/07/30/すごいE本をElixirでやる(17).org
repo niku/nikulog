@@ -1,0 +1,111 @@
+* すごいE本をElixirでやる(17)
+
+第 8 章 関数型っぽく問題を解くから
+
+** 8.1 逆ポーランド記法計算機
+
+普段，計算では
+
+#+begin_quote
+演算子を数字の間に書く(2 + 2) / 5 のような書き方
+#+end_quote
+
+をしている．他にもいくつか算術演算の記法がある．
+
+前置表記法（ポーランド記法）と呼ばれるものは
+
+#+begin_quote
+演算子がオペランドの前にきます。この記法では、(2 + 2) / 5 は(/ (+ 2 2) 5) になります
+#+end_quote
+
+となる．
+
+逆ポーランド記法(RPN: Reverse Polish Notation)と呼ばれるものは
+
+#+begin_quote
+前置表記法の逆で、演算子がオペランドに続く形になります。先ほどの例はRPN では2 2 + 5 /となります
+#+end_quote
+
+となる．
+
+今回はこの RPN で計算を行う電卓を書く．Elixir で文字をトークンに分けるには =String.split/1= が簡単だ．
+
+#+begin_src elixir
+String.split("10 4 3 + 2 * -") # => ["10", "4", "3", "+", "2", "*", "-"]
+#+end_src
+
+スタックを用意する，畳み込むのは Erlang と同じだ．
+畳み込みには =List.foldl/3= を使おう．
+
+実際には =Enum.reduce/3= というのがあって，List 以外にも Map や Set などの Enumerable に適用できるので良く使われる．
+
+実は =Enum.reduce/3= は第一引数が List の場合は =List.foldl/3= を呼んでいる．
+ただ，今回は「左(文字の先頭)から」ということを強調したいので =List.foldl/3= を指定した．
+「右から畳み込んでいく」 =List.foldr/3= というのもある．
+
+#+begin_src elixir
+defmodule Calc do
+  def rpn(x) when is_bitstring(x) do
+    [result] = List.foldl(String.split(x), [], &rpn/2)
+    result
+  end
+
+  defp rpn("+", [n1, n2 | stack]), do: [n2 + n1 | stack]
+  defp rpn("-", [n1, n2 | stack]), do: [n2 - n1 | stack]
+  defp rpn("*", [n1, n2 | stack]), do: [n2 * n1 | stack]
+  defp rpn("/", [n1, n2 | stack]), do: [n2 / n1 | stack]
+  defp rpn("^", [n1, n2 | stack]), do: [:math.pow(n2, n1) | stack]
+  defp rpn("ln", [n | stack]), do: [:math.log(n) | stack]
+  defp rpn("log10", [n | stack]), do: [:math.log10(n) | stack]
+  defp rpn("sum", [n1, n2 | stack]) when is_number(n2), do: rpn("sum", [n1 + n2 | stack])
+  defp rpn("sum", stack), do: stack
+  defp rpn("prod", [n1, n2 | stack]) when is_number(n2), do: rpn("prod", [n1 * n2 | stack])
+  defp rpn("prod", stack), do: stack
+  defp rpn(x, stack), do: [read(x) | stack]
+
+  defp read(x) do
+    # try do
+    #   String.to_float(x)
+    # rescue
+    #   ArgumentError -> String.to_integer(x)
+    # end
+    char_list = String.to_char_list(x)
+    case :string.to_float(char_list) do
+      {:error, :no_float} -> :erlang.list_to_integer(char_list)
+      {float_value, _} -> float_value
+    end
+  end
+
+  def rpn_test do
+    5 = rpn("2 3 +")
+    87 = rpn("90 3 -")
+    -4 = rpn("10 4 3 + 2 * -")
+    -2.0 = rpn("10 4 3 + 2 * - 2 /")
+    :ok = try do
+            rpn("90 34 12 33 55 66 + * - +")
+          rescue
+            MatchError -> :ok
+          end
+    4037 = rpn("90 34 12 33 55 66 + * - + -")
+    8.0 = rpn("2 3 ^")
+    true = :math.sqrt(2) == rpn("2 0.5 ^")
+    true = :math.log(2.7) == rpn("2.7 ln")
+    true = :math.log10(2.7) == rpn("2.7 log10")
+    50 = rpn("10 10 10 20 sum")
+    10.0 = rpn("10 10 10 20 sum 5 /")
+    1000.0 = rpn("10 10 20 0.5 prod")
+    :ok
+  end
+end
+
+Calc.rpn("3 5 +")     # => 8
+Calc.rpn("7 3 + 5 +") # => 15
+Calc.rpn_test         # => :ok
+Calc.rpn("1 2 ^ 2 2 ^ 3 2 ^ 4 2 ^ sum 2 -") # => 28.0
+#+end_src
+
+あれ =String.to_integer("+")= が =0= になるのは意図通りなのかな？
+=:string.to_integer('+')= が ={:error, :no_integer}= になるのとは振舞いが異なるようだ．
+
+[[https://groups.google.com/d/msg/elixir-lang-talk/U-cKQyWqwTY/Y9RgkfOeHgAJ][elixir-talk で聞いてみた]] 返事がきたらアップデートする．
+今は =Calc.read/1= では Erlang の =to_float= や =to_charlist= を使うことにする．
