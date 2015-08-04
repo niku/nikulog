@@ -1,0 +1,123 @@
+* すごいE本をElixirでやる(18)
+
+第 8 章 関数型っぽく問題を解く - 8.2 ヒースローからロンドンへ から
+
+** 8.2 ヒースローからロンドンへ
+
+#+begin_quote
+入力として使うファイルを準備しましょう。ファイル操作には file モジュールが最適です。
+#+end_quote
+
+Elixir でも =File= モジュールが用意されている．
+
+だいたいの場合は =File= モジュールで完結させられるが，
+凝ったことをやりたいなら =File.open/2= で ={:ok, io_device}= が返るので，
+この =io_device= を =IO= モジュールの第一引数として渡すと細かい制御を行える．
+
+コードを読み込んだり，実行するなら =Code= モジュールを探すとよい．
+
+- ファイルを開く :: =File.open/2=
+- ファイルを閉じる :: =File.close/1=
+- ファイルの中身を取得する :: =File.read/1=
+- ファイルの一行を読み込む :: =File.stream!/3= や =IO.gets/2=
+- ポインタの位置を指定された場所に移動させる :: Elixir には見つからなかったので，Erlang の =:file.position/2= を使う？
+- ファイルを開いて、Erlang項としてパースする :: =Code.eval_file/2=
+- 書き込む場所を変更して書き込む :: Elixir には見つからなかったので，Erlang の =:file.pwrite/2= を使う？
+
+こんな感じかなあ．Elixir のモジュールで
+
+- ポインタの位置を指定された場所に移動させる
+- 書き込む場所を変更して書き込む
+
+関数があれば教えてほしい．
+
+#+begin_quote
+一度にリストから3 つの要素を取り出す一般的で簡単な方法
+#+end_quote
+
+Elixir では =Enum.chunk/2= で N 個ずつの List へと変換でき，
+また =List.to_tuple/1= で List を Tuple へと変換できる．
+
+#+begin_src elixir
+defmodule Road do
+  def main([file_name]) do
+    doc = File.read!(file_name)
+    parse_map(doc)
+    |> optimal_path
+  end
+
+  # 文字列を読みやすい 3 要素のタプルのマップに変換する
+  def parse_map(x) when is_list(x), do: List.to_string(x) |> parse_map
+  def parse_map(x) when is_binary(x) do
+    x
+    |> String.split
+    |> Enum.map(&String.to_integer/1)
+    |> Enum.chunk(3)
+    |> Enum.map(&List.to_tuple/1)
+  end
+
+  # 実際に問題を解く部分
+  def shortest_step({a, b, x}, {{dist_a, path_a}, {dist_b, path_b}}) do
+    opt_a1 = {dist_a + a, [{:a, a} | path_a]}
+    opt_a2 = {dist_a + b + x, [{:x, x}, {:b, b} | path_b]}
+    opt_b1 = {dist_b + b, [{:b, b} | path_b]}
+    opt_b2 = {dist_a + a + x, [{:x, x}, {:a, a} | path_a]}
+    # すべての Erlang 項は比較可能なことを思い出してください！
+    # タプルの最初の要素が長さなので、このようにして並び替えできます。
+    {min(opt_a1, opt_a2), min(opt_b1, opt_b2)}
+  end
+
+  # すごい Erlang 本方式，最適な経路を選ぶ
+  def optimal_path(map) do
+    {a, b} = List.foldl(map, {{0, []}, {0, []}}, &shortest_step/2)
+    {_dist, path} = cond do
+                      elem(a, 1) |> hd !== {:x, 0} -> a
+                      elem(b, 1) |> hd !== {:x, 0} -> b
+                    end
+    Enum.reverse(path)
+  end
+
+  # optimal_path と同じ結果になるけど，こっちの方が僕にはわかりやすい
+  def my_optimal_path(map) do
+    {{dist_a, path_a}, {dist_b, path_b}} = List.foldl(map, {{0, []}, {0, []}}, &shortest_step/2)
+    path = cond do
+             dist_a < dist_b -> path_a
+             dist_a > dist_b -> path_b
+             # 同じ距離のときは {:x, 0} の含まれていない方を表示する
+             dist_a === dist_b -> if Enum.member?(path_a, {:x, 0}), do: path_b, else: path_a
+           end
+    Enum.reverse(path)
+  end
+end
+#+end_src
+
+今回は作業の都合上ファイル名は orgmode_elixir_src.exs となっている．
+
+#+begin_src bash
+/Users/niku/projects/nikulog/2015/08/04% elixir -e 'IO.inspect Road.main(["road.txt"])' orgmode_elixir_src.exs
+elixir -e 'IO.inspect Road.main(["road.txt"])' orgmode_elixir_src.exs
+[b: 10, x: 30, a: 5, x: 20, b: 2, b: 8]
+#+end_src
+
+うむ．うまくいった．
+
+Elixir でも，実行できるバイナリを作成する escript を利用できる．
+作り方/使い方は [[http://elixir-lang.org/docs/v1.0/mix/Mix.Tasks.Escript.Build.html][Mix.Tasks.Escript.Build]] を見るのが一番正確だ．
+
+[[http://niku.name/articles/2014/07/17/Elixir%E3%81%A7%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89%E3%83%A9%E3%82%A4%E3%83%B3%E3%83%84%E3%83%BC%E3%83%AB%E3%82%92%E4%BD%9C%E3%82%8B][2014/07/17/Elixirでコマンドラインツールを作る]] という簡単な解説を書いたこともある．
+
+=Road.optimal_path/1= の ={:x, 0}= と比較する方法が奇妙だなあと感じたけど，
+Tuple の 1 番目の要素 =distance= で判断する方式だと，経路 A と B が同じ距離のときに，
+「 ={:x, 0}= が入っていない方」という判定をしなくて良いというメリットがあるようだ．
+
+だけど僕には =my_optimal_path= のようなロジックの方がわかりやすかった．結果は同じ……になるよね？
+
+107 ページに
+
+#+begin_quote
+最短経路を選んだら、逆順に並び替えます（末尾再帰のお作法です。逆順にしなければいけません）
+#+end_quote
+
+と書いてある．ここの =foldl= による式も末尾再帰と呼ぶのだろうか．
+
+末尾再帰というのは，関数の最後に関数を呼び出して，スタックを増やさないような処理のことだと思っていた．
