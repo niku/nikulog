@@ -1,0 +1,32 @@
+* ElixirでStreamではないものをStream化するイディオム
+
+ストリームではないものをストリーム化したい場合，一定時間ごとにポーリングして値を取得することになる．
+
+その場合 [[http://elixir-lang.org/docs/v1.0/elixir/Stream.html#interval/1][Stream.interval/1]] と，[[http://elixir-lang.org/docs/v1.0/elixir/Stream.html#zip/2][Stream.zip/2]] と [[http://elixir-lang.org/docs/v1.0/elixir/Stream.html#resource/3][Stream.resource/3]] を組み合わせるとほとんどの場合にやりたいことに対応できるだろう．
+
+これはフルコースなので，もうちょっと簡単に使いたいときは Stream.resource/3 を [[http://elixir-lang.org/docs/v1.0/elixir/Stream.html#repeatedly/1][Stream.repeatedly/1]] に変えたりするとよい．
+
+Stream.resource/3 については
+
+- [[http://qiita.com/HirofumiTamori/items/abf9a9478bfc1161000c][Elixirのストリーム - Qiita]]
+- [[http://benjamintan.io/blog/2015/02/05/how-to-build-streams-in-elixir-easily-with-stream-resource-awesomeness/][Benjamin Tan's Learnings & Writings - How to build Streams in Elixir easily with Stream.resource/3 Awesomeness]]
+
+などで実例をみることができる．
+
+「例えば 1 秒毎に 5 回現在時刻を表示する」は以下のように書ける．
+
+#+begin_src elixir
+Stream.repeatedly(fn -> :erlang.time end)
+|> Stream.each(&IO.inspect/1)
+|> Stream.zip(Stream.interval(1000))
+|> Enum.take(5)
+#> {21, 44, 46}
+#> {21, 44, 47}
+#> {21, 44, 48}
+#> {21, 44, 49}
+#> {21, 44, 50}
+#+end_src
+
+21 時 44 分 46 秒に始まって，21 時 44 分 50 秒に終わっていることがわかるだろう．
+
+この 1 行目を「HTTP 経由で RSS を取得する」や「File の監視」にすると，簡単に一定間隔時間でポーリングした結果を流してくれる Stream になる．
