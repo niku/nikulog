@@ -1,0 +1,35 @@
+* EmacsでSVGを埋め込み表示する
+
+Emacs を brew でインストールするときに =--with-librsvg= をつけておくと SVG を表示できることを知った．
+
+org-mode でも
+
+#+begin_src
+[[./rectangle.svg]]
+#+end_src
+
+などと書けば SVG を埋め込める．
+
+もしただの文字にしかなっていない場合は =org-toggle-inline-images= コマンドを実行するとよい．
+デフォルトでは =C-c C-x C-v= に割りあてられているようだ．
+
+[[./rectangle.svg]]
+
+上の SVG は
+
+#+begin_src svg
+<svg version="1.1"
+     baseProfile="full"
+     xmlns="http://www.w3.org/2000/svg"
+     width="400"
+     height="180">
+  <rect x="50" y="20" rx="20" ry="20" width="150" height="150"
+        style="fill:red;stroke:black;stroke-width:5;opacity:0.5" />
+</svg>
+#+end_src
+
+を表示させたもの．
+
+Emacs だとこんな感じに表示される
+
+[[./emacs.png]]
