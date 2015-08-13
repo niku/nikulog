@@ -1,0 +1,278 @@
+* Mithril本をやる(2)
+
+** 4章 Mithrilのビュー
+
+*** 4.1 コンポーネントの中のビュー関数
+
+ビューとは
+
+- 仮想 DOM をバックグラウンドで使うテンプレートシステム
+- 引数を(最低)1つとる関数として定義される．この引数にコントローラーオブジェクトが渡される
+
+*** 4.2 ビューの基本的な書き方
+
+- =m()= 関数を利用してテンプレートを構築する
+- =m()= 関数は仮想 DOM を作成する
+
+#+begin_src javascript
+// <br>
+m("br");
+
+// <div>Hello World</div>
+m("div", "Hello World");
+
+// <div class="button">Hello</div>
+m("div", {class: "button"}, "Hello");
+
+// <span class="glyphicon glyphicon-align-left" area-hidden="true"></span>
+m("span", {class: "glyphicon glyphicon-align-left", "area-hidden": "true"});
+
+// <div>&lt;h1&gt;Hello&lt;/h1&gt;</div>
+m("div", "<h1>Hello</h1>");
+
+//
+// スタイルを生成
+//
+
+// <div style="text-align:center"></div>
+m("div", {style: {textAlign: "center"}});
+
+// <div style="css-float:left"></div>
+m("div", {style: {cssFloat: "left"}});
+
+// 文字でもよく，文字のほうが速い
+// <div style="display: none;"></div>
+m("div", {style: "display: none;"});
+
+//
+// CSS 構文でも定義できる
+//
+
+// <div class="container"></div>
+m(".container");
+
+// <div id="layout"></div>
+m("#layout");
+
+// <input type="password">
+m("input[type=password]");
+
+// <div contenteditable></div>
+m("[contenteditable]");
+
+// <a id="google" href="http://google.com" class="external">Google</a>
+m("a#google.external[href='http://google.com']", "Google");
+
+//
+// 子要素
+//
+
+// 配列
+// <ul><li>レジスタンス</li><li>エンライトメント</li></ul>
+m("ul", [m("li", "レジスタンス"), m("li", "エンライトメント")]);
+
+// 可変長引数
+// <ul><li>ADA</li><li>JARVIS</li></ul>
+m("ul", m("li", "ADA"), m("li", "JARVIS"));
+#+end_src
+
+*** 4.3 バインディング
+
+2 つのバインディングがある
+
+- モデルからビュー
+- ビューからモデル
+
+Mithril においては 1 つのアクションでは双方向バインディングを実現できない．
+もし双方向にしたいなら 2 つ書く．
+
+**** 4.3.1 モデルからビューへのバインディング
+
+todo オブジェクトの description プロパティの値を取りたい場合
+
+#+begin_src javascript
+m("td", todo.description());
+#+end_src
+
+かんたん．
+
+**** 4.3.2 ビューからモデルへのバインディング
+
+=m.withAttr()= 関数を使う
+
+- 第一引数 :: エレメントにアクセスするための(DOMの)プロパティ名
+- 第二引数 :: その結果を格納する(モデルの)プロパティ
+
+#+begin_src javascript
+m("input[type=checkbox]", {onclick: m.withAttr("checked", task.done), value: task.done()});
+#+end_src
+
+基本的な部品では 1 つのタグにつき 1 つのプロパティのバインディングしかできない．
+1 つのタグにある複数のプロパティのバインディングをしたい場合は以下のようなヘルパ関数を用意する．
+
+#+begin_src javascript
+// multiヘルパー
+function multi() {
+    var handlers = [].slice.call(arguments);
+
+    return function execute() {
+        var args = [].slice.call(arguments);
+        var ctxt = this;
+
+        handlers.forEach(function applyCtxt(fn) {
+            fn.apply(ctxt, args);
+        });
+    };
+}
+
+// inputタグの3つのプロパティに情報を格納
+m("input", {
+    value: valueProp(),
+    oninput: multi(
+        m.withAttr("value", valueProp),
+        m.withAttr("selectionStart", selection.start),
+        m.withAttr("selectionEnd", selection.end)
+    )
+});
+#+end_src
+
+**** 4.4 再生成を避けるためのTipsとkey擬似属性
+
+=m()= 関数の2番目の引数にオブジェクト形式で渡す属性には特殊な属性が2つある
+
+1. =key=
+2. =config=
+
+ここでは =key= について書く．次の 4.5 で =config= について書く．
+
+DOM を破棄して再生成するかの判断基準
+
+- タグ名が変更されていない
+- HTML の属性のリストが変更されていない
+- エレメントの id 属性が変更されていない
+
+リストをソートやシャッフルするような場合には順番が変わってしまうので，破棄するか，再利用するかの判定が難しくなる．その場合に =key= を使う．
+
+#+begin_src javascript
+m("ul", [
+    items.map(function(item) {
+        return m("li", {key: item.id}, [
+            m("input", {value: item.value})
+        ]);
+    })
+]);
+#+end_src
+
+- =key= は兄弟エレメントの中では一意にしなければならない
+- =key= には数値か文字列を設定できる
+
+**** 4.5 config擬似属性によるビューのカスタマイズ
+
+=config= について．描画エンジンが生成した DOM を =config= に設定した関数の引数に渡して呼び出してくれる．
+
+- 第一引数 :: 生成した DOM 要素
+- 第二引数 :: 初めてオブジェクトが生成されたとき =false= それ以外 =true=
+- 第三引数 :: 空のオブジェクト(再描画しても同じオブジェクトが渡ってくる)
+
+ここでの第一引数が，Mithril 世界で唯一現実の DOM を扱う接点になっている．
+
+よく使われるのはシングルページアプリケーションのページ遷移
+
+#+begin_src javacscipt
+m("a", {href="/home", config: m.route});
+#+end_src
+
+***** 4.5.1 context.onunload
+
+第三引数の =context= には 2 つ特別な属性がある
+
+1. =onunload=
+2. =retain=
+
+=onunload= は DOM が削除されるときに呼ばれるので，イベントハンドラやタイマーの解除を設定してメモリリークを防ぐのに使える．
+
+#+begin_src javascript
+function unloadable(element, isInit, context) {
+   context.timer = setTimeout(function() {
+       alert("タイムアウト!");
+   }, 1000);
+
+   context.onunload = function() {
+       clearTimeout(context.timer);
+       console.log("divがアンロードされました");
+   }
+};
+
+// ここでタグ生成，タイマーがセットされる
+m.render(document, m("div", {config: unloadable}));
+
+// ここでタグが削除される
+// "divがアンロードされました" とログに出力される
+m.render(document, m("a"));
+#+end_src
+
+***** 4.5.2 context.retain
+
+#+begin_quote
+ページ切り替えによるページの再描画が行われるときに、HTMLエレメントを再生成するかどうかを決定する判断基準を変更
+#+end_quote
+
+=true= か =false= を設定する．デフォルトは =false= で， =true= にあうると既に作成されている HTML エレメントをなるべく残そうとする．
+
+**** 4.6 どこまでをビューにするか
+
+任意． =html= タグから全てを Mithril にすることもできるし，ヘッダーやフッターを除いたメインコンテンツ部分だけを Mthril にすることもできる．
+
+**** 4.7 テンプレートの条件分岐、ループ、構造化
+
+Mithril におけるテンプレートは普通の JavaScript であるので
+
+- 三項演算子や OR  演算子を使える
+- =Array.prototype.map()= といった普通のメソッドを使える
+- ヘルパー関数を用意して使える
+
+**** 4.8 安全でないコンテンツの挿入
+
+Mirhril のテンプレートは XSS 防止のためにデフォルトではエスケープするようになっている．
+
+エスケープさせたくない場合は =m.trust()= 関数を使う．
+
+#+begin_src javascript
+var m = require("./mithril.js");
+var render = require("./mithril-node-render");
+
+console.log(render(
+    m("div", "<button onclick=\"alert('hello');\">test</button>")
+));
+// '<div>&lt;button onclick="alert(\'hello\');"&gt;test&lt;/button&gt;</div>'
+
+console.log(render(
+    m("div", m.trust("<button onclick=\"alert('hello');\">test</button>"))
+));
+// <div><button onclick="alert('hello');">test</button></div>
+#+end_src
+
+=m.trust()= 関数では，
+通常利用している，ダブルクォートで生成したプリミティブな文字列ではなく，
+=new String= で生成したオブジェクトな文字列の性質を利用している．
+(詳しくは本参照)
+
+=m.trust()= 関数で返した値に対して文字列操作すると，
+プリミティブな文字列へと戻ってしまうので， =m.trust()= は最終的に出力される文字列に対して行うこと．
+
+**** 4.9 ビューの変換補助ツール
+
+HTML を Mirhril の =m= 形式に変換してくれるツールがある
+
+[[http://lhorie.github.io/mithril/tools/template-converter.html][http://lhorie.github.io/mithril/tools/template-converter.html]]
+
+**** 4.10 本章のまとめ
+
+- ビューは =m()= 関数を利用して構築する
+- モデルからビューへのバインディングは =m("div", model.prop())= で行える
+- ビューからのモデルへのバインディングは =m.withAttr= を利用する
+- HTML 要素再生成が行われる基準と，避けるためのヒントに利用される =key= 属性
+- 現実の DOM を触るための =config= 属性に設定する関数
+- =context.onunload= による削除時の処理
+- =context.retain= による HTML 要素の再利用設定
+- =m.trust()= でのエスケープ抑止
