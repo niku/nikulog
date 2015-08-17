@@ -1,0 +1,59 @@
+* ElixirでFizzBuzzをMacroで読みやすくする
+
+こんな感じで書ける．
+
+無名関数でもパターンマッチできることはすごいE本をElixirでやっていて知った．
+
+#+begin_src elixir
+Stream.iterate(1, &(&1 + 1))
+|> Stream.map(fn (n) when rem(n, 3) === 0 and rem(n, 5) === 0 -> "FizzBuzz"
+                 (n) when rem(n, 3) === 0 -> "Fizz"
+                 (n) when rem(n, 5) === 0 -> "Buzz"
+                 (n) -> Integer.to_string(n)
+              end)
+|> Enum.take(16)
+|> IO.inspect
+
+#> ["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz", "16"]
+#+end_src
+
+#+begin_src elixir
+when rem(n, 3) === 0
+#+end_src
+
+のあたりが少し読みにくいので =fizz?= のような関数にまとめたくなるだろう．
+しかし =when ...= の部分 ( Guard 節という ) には[[http://elixir-lang.org/getting-started/case-cond-and-if.html#expressions-in-guard-clauses][決まった関数しか利用できない]]．
+そこで Macro で記述してやると，関数の組合せを上手に表現できる．
+
+Elixir では，通常の問い合わせは =xxx?= ，Guard 節で使えるものの場合は =is_xxx= ，とする命名規則がある．
+そこで今回の場合は =is_fizz= や =is_buzz= という Macro を用意する．
+
+#+begin_src elixir
+defmodule FizzBuzz do
+  defmacrop is_fizz(n) do
+    quote do: rem(unquote(n), 3) === 0
+  end
+
+  defmacrop is_buzz(n) do
+    quote do: rem(unquote(n), 5) === 0
+  end
+
+  def stream do
+    Stream.iterate(1, &(&1 + 1))
+    |> Stream.map(fn (n) when is_fizz(n) and is_buzz(n) -> "FizzBuzz"
+                     (n) when is_fizz(n) -> "Fizz"
+                     (n) when is_buzz(n) -> "Buzz"
+                     (n) -> Integer.to_string(n)
+                  end)
+  end
+end
+
+FizzBuzz.stream
+|> Enum.take(16)
+|> IO.inspect
+
+#> ["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz", "16"]
+#+end_src
+
+関数を組合せた Macro でより高い抽象度の記述をする例として，
+標準ライブラリの [[http://elixir-lang.org/docs/stable/elixir/Integer.html#is_odd/1][Integer.is_odd/1]] がある．
