@@ -1,0 +1,13 @@
+* Ruby札幌のLoungeに参加した
+
+[[http://ruby-sapporo.org/news/2015/08/18/lounge.html][Ruby札幌 | Lounge(2015-08-18)]]
+
+今日は
+
+- [[https://github.com/niku/phoenix_chat_sandbox][PhoenixFrameworkとMithrilで作ったチャット]]を元にソフトリアルタイム通信部分(Channel)の話
+- まだ出ていない Sprokets4.0 では [[https://github.com/rails/sprockets/blob/3b811fa15c1c2d1cea8673b1639dfa9e352adfb3/lib/sprockets/autoload/babel.rb][babel が使える]] という話
+- [[http://ngauthier.com/2013/02/rails-4-sse-notify-listen.html][Postgresql の Listen / Notify と Rails の SSE で通知しちゃう話]]
+- Ruby の Thread と Fiber とグリーンスレッド，ネイティブスレッド，GVL の話
+- [[http://qiita.com/t2y/items/0a604384e18db0944398][GradualTyping の話]]
+
+などをしました．
