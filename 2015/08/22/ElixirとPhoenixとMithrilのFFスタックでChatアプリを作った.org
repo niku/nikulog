@@ -1,0 +1,172 @@
+* ElixirとPhoenixとMithrilのFFスタックでChatアプリを作った
+
+[[./ff_stack_chat_example.gif]]
+
+- [[http://elixir-lang.org/][Elixir]] という言語
+- [[http://www.phoenixframework.org/][Phoenix]] という Elixir で書かれた Web フレームワーク
+- [[http://mithril-ja.js.org/][Mithril]] という JavaScript フレームワーク
+
+で Chat アプリケーション ( の原型 ) が書けたので記録する．
+
+「FF スタック」という名称は rebuild.fm の [[http://rebuild.fm/105/][Fullstack Final Fantasy Framework]] のタイトルから借りた．
+
+クライアント側の実装は [[http://www.oreilly.co.jp/books/9784873117447/][Mithril]] 本の 11 章に書いてある Chat アプリケーションを元にしている．
+
+- [[https://github.com/oreilly-japan/mithril-book-sample/blob/a47a46ab601032cfcb47279322e7261f3d05d18e/chapter11_ajax/chat/client/app.js][Mithril 本のサンプルコード]]
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/static/js/app.js][今回作ったチャットのクライアント]]
+
+を見比べると
+
+- ES6 に書き換えた
+- ChatSocket を socket.io から phoenix 対応に書き換えた
+
+くらいの違いしかないことがわかるだろう．
+
+** PhoenixFramework へ js ライブラリを加える
+
+PhoenixFramework のクライアント側でサードパーティ製の JavaScript ライブラリ，
+今回だと Mithril.js を使いたい場合にどうするか？
+
+フロントエンドに慣れていない僕のような人は [[http://bower.io/%0A][Bower]] を使い，依存関係を設定するだけで済ませるのがよさそうだった．
+
+なぜなら，JavaScript や CSS などを管理するため，PhoenixFramework には [[http://brunch.io/][Brunch]] というツールが組み込まれている．
+その Brunch は Bower を統合した状態での動作をサポートしている (See [[https://github.com/brunch/brunch/blob/b8b25bc2c0e6dd21a8ad3d2a8e0157e770f3d3d2/docs/faq.md#how-to-use-bower][How to use Bower?]] ) ためである．
+
+実際に Bower を使って Mithril を利用するには
+
+1. =bower.json= を作る
+2. =bower.json= に Mithril の依存関係を足す
+
+の 2 つを行えばよい．
+
+1 を達成するために =bower init= コマンドでも =bower.json= を生成できる．しかし様々な設定が書きこまれている．
+=bower.json= に最低限必要なのは =name= だけなので，今回は手動でファイルを作成した．
+
+2 は，bower.json がある状態で =bower install mithril --save= とコマンドを打つと，
+Mithril パッケージを手元へダウンロードするのと，bower.json へ依存関係の記述を同時に行ってくれる．
+
+この [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/bower.json%0A][2 つを行う]]だけで Phoenix の app.js で Mithril が使えるようになる．
+
+** ユーザーの接続状態を管理する
+
+通常のチャットでは自分が誰であるか，最初に id とパスワードを入力して認証するだろう．
+
+今回作るチャットでは，簡易な認証機構として「現在接続しているユーザーと同じ名前の人は接続できない」ということにした．
+
+これを達成するためには
+
+1. 接続者一覧の準備
+2. 接続時に名前を入力する
+3. 接続している接続者一覧と比較する
+  - 存在していれば接続拒否
+  - 存在していなければ接続者一覧への名前追加と接続許可
+4. 切断時に接続者一覧からの名前削除
+
+を行わなければならない．
+
+*** 一覧の取り扱い
+
+今回は大がかりなことをやらないので，接続者一覧には単なるリストを使うことにした．
+接続者一覧には一覧の取得，一覧への名前追加，一覧からの名前削除を行いたい．
+
+Elixir で状態を管理するのには [[http://elixir-lang.org/docs/stable/elixir/Agent.html][Agent]] というモジュールを使うと便利なので，これを利用する．
+
+また，接続者一覧にはプログラムのどこからでもアクセスしたい．
+言い換えると，関数の引数に接続者一覧へアクセスできる情報を持っていなくても，接続者一覧へアクセスしたい．
+
+そこで今回はモジュールの名前 ( =Chat.LoginUser= ) 経由でアクセスできるようにした．
+=Chat.LoginUser.login(pid, name)= や =Chat.LoginUser.logout(pid)= といったようなものだ．
+
+複数プロセスから触れる，さらに状態の更新があると聞くとレースコンディションについて不安になるだろう．
+マルチスレッドプログラミングでよくある，前の行でチェックした内容が，他のスレッドにより更新されてしまうため，次の行では保証されているとは限らないというやつだ．
+
+しかし ErlangVM では，関数の始まりから終わりまでの間は他のスレッド(プロセス)からその関数内の内容を書き換えられることがない．
+そのためレースコンディションはおこしにくい．ErlangVM では全ての関数が Java や Ruby でいうところの =syncronized= で実行されているようなものだと考えるとイメージしやすいだろうか．
+
+横道にそれてしまった．つまり，短く言うと大丈夫だ．
+(と考えているが，間違っていたら教えてほしい)
+
+さて，この一覧の初期化はどこで行えばよいだろうか？
+PhoenixFramework では初期化処理が =lib/[プロジェクト名].ex= で行われているので，
+今回であれば =lib/chat.ex= で[[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/lib/chat.ex#L14][一覧の初期化処理]]を追加する．
+
+*** 接続/切断時の処理をどこに書くか
+
+Phoenix では Socket というもので低レイヤーの接続を確立して，その 1 つの Socket の上で複数の Channel という高レイヤーのものを取り扱っている．
+
+Socket 層で接続を確立するときに認可の仕組みを入れることもできるが，今回は Channel 層での認可を取り扱う．
+もし Socket 層での認証/認可を行いたい場合は [[http://hexdocs.pm/phoenix/Phoenix.Socket.html][Phoenix.Socket]] の Socket Behaviour の項をみるとよい．
+
+Channel には 4 つのコールバックが用意されている．それぞれ以下のイベントと対応付いている
+
+- =join/3= :: 接続時
+- =terminate/2= :: 切断時
+- =handle_in/3= :: メッセージが送られてきたとき
+- =handle_out/3= :: メッセージを接続先に送るとき(接続先が興味のない内容を送らないようにフィルタできる)
+
+つまり =join/3= に接続開始時の処理， =terminate/2= に切断時の処理を書けばよい．
+
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/static/js/app.js#L42][接続開始に関するクライアント実装部分]]
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/channels/room_channel.ex#L4][接続開始に関するサーバー実装部分]]
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/channels/room_channel.ex#L13][切断に関するサーバー実装部分]]
+
+*** 接続の拒否をするには
+
+さて既に接続一覧に同じ名前が含まれており，接続を拒否したい場合はどうしたらよいだろう．
+
+その場合は =join/3= の返り値を ={:error, reply}= にすると，
+クライアントへエラーが伝わり，かつ =reply= で送ったものをエラーの内容として取得できる．
+
+この場合 Channel への接続は確立されない．接続を試みる前と同じ状態にある．
+
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/static/js/app.js#L49-L54][接続OKの場合のクライアント実装]]
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/channels/room_channel.ex#L8][接続OKを返すサーバー実装]]
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/static/js/app.js#L55-L58][接続NGの場合のクライアント実装]]
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/channels/room_channel.ex#L9][接続NGを返すサーバー実装]]
+
+** クライアントからサーバーへ送られてきた内容をブロードキャストする
+
+通常のチャットでは，クライアントが発言をサーバーへ送ると，その他のクライアントの発言一覧も更新される．
+
+これを達成するためには
+
+1. クライアントからサーバーへ送られてきた内容を取得する
+2. サーバーから全てのクライアントへ内容を送る
+
+を行わなければならない．
+
+クライアントからサーバーへ送られてきた内容は =handle_in/3= コールバックで取得できる．
+3 引数には 「イベント名」，「内容」，「ソケット」 が渡されてくる，大抵の場合は「イベント名」と「内容」にだけ興味があるだろう．
+
+サーバーから，接続している全てのクライアントへ内容を送るのは =broadcast!/3= でできる．
+
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/static/js/app.js#L62][クライアントからサーバーへの送信実装]]
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/channels/room_channel.ex#L17][メッセージが送られてきた場合のサーバー処理実装]]
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/channels/room_channel.ex#L20][接続している全てのクライアントへの，サーバーからのブロードキャスト]]
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/static/js/app.js#L43-L47][クライアントがサーバーから受信した場合の実装]]
+
+** Channel へ接続したときにこれまでの情報を取得する
+
+通常のチャットでは，接続すると過去の発言も見られるようになっている．
+
+これを達成するには接続 -> (認可OK) -> 過去発言取得 と，クライアントからサーバーへ 2 回問合せを行ってもよい．
+
+Phoenix では，クライアントからサーバーへ接続したときに認証結果の他に任意のデータを返すことができる．
+これを利用すると，接続 -> (認可OKと過去発言データ) と 1 回のやりとりで認可と過去発言の取得できるため通信回数を削減できる．
+
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/channels/room_channel.ex#L7-L8][認可OK時に過去発言データを送っているサーバー側実装]]
+- [[https://github.com/niku/ff_stack_chat_example/blob/d49755be5d28888aa61bcf1916a90e68d36b45ba/web/static/js/app.js#L52%0A][認可OK時に過去発言データを受けとってクライアントに表示する実装]]
+
+** まとめ
+
+PhoenixFramework のクライアントサイドで外部ライブラリを簡単に利用する方法を書いた．
+
+また，Chat に必要な要素である
+
+- 認証/認可
+- 接続状態の管理
+- サーバーからクライアントへのブロードキャスト
+- 接続時のデータ読み込み
+
+を PhoenixFramework のどこで行うかを書いた．
+Chat に限らず，ソフトリアルタイムな通信を行う Web アプリケーションで利用できる普遍的な内容になっているはずだ．
