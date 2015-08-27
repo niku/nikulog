@@ -1,0 +1,70 @@
+* ElixirのGenEvent.streamで複数のINPUTとOUTPUTを繋ぐ
+
+Elixir で Ruboty や Hubot のような ChatBot を作りたいと思った．
+
+Elixir は Stream が良くできていそうなので，これを使って処理を書いていけるかなと思い試した．
+
+[[https://gist.github.com/niku/866526b3feda16b30d47][複数の INPUT と OUTPUT を Stream で繋ぐ例]]
+
+一番最初のプロトタイプを貼っておく．
+
+#+begin_src elixir
+# 複数の INPUT と OUTPUT を Stream で繋ぐ例
+
+{:ok, manager} = GenEvent.start_link()
+
+#
+# 複数個の OUTPUT を取り扱える
+#
+Task.start(fn ->
+  for x <- GenEvent.stream(manager), do: IO.puts "OUTPUT#1: #{x}"
+end)
+
+# パターンマッチできる
+Task.start(fn ->
+  for x <- GenEvent.stream(manager),
+      x == "foo"
+  do
+    IO.puts "OUTPUT#2: foo と書かれました"
+  end
+end)
+
+#
+# 複数個の INPUT を取り扱える
+#
+
+# 3 秒毎に 1 足していく
+Task.start(fn ->
+  Stream.iterate(0, &(&1+1))
+  |> Stream.zip(Stream.interval(3000))
+  |> Stream.each(fn {v, _} -> GenEvent.notify(manager, v) end)
+  |> Stream.run
+end)
+
+# シェルから手で入力できる
+IO.stream(:stdio, :line)
+|> Stream.each(fn line ->
+  GenEvent.notify(manager, String.rstrip(line))
+end)
+|> Enum.to_list
+#+end_src
+
+実行すると以下のようになる．
+
+#+begin_src
+% elixir stream.ex
+OUTPUT#1: 0
+OUTPUT#1: 1
+OUTPUT#1: 2
+OUTPUT#1: 3
+hoge
+OUTPUT#1: hoge
+fuga
+OUTPUT#1: fuga
+OUTPUT#1: 4
+foo
+OUTPUT#2: foo と書かれました
+OUTPUT#1: foo
+#+end_src
+
+1 つの Stream (manager) の上に複数の INPUT と複数の OUTPUT を流せているのがわかる．
