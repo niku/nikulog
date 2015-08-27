@@ -1,0 +1,178 @@
+* Rubotyを読む
+
+Elixir で bot を作ろうと考えた．
+
+そこで
+
+- 広く使われている
+- プラグインシステムを採用している
+- コードが綺麗
+- Ruby で記述されている
+
+[[https://github.com/r7kamura/ruboty][r7kamura/ruboty]] の最新 v1.2.2 を読み，run させたときにどうやって plugin と連携しているのか調べた．
+
+[[http://qiita.com/tbpgr/items/7f08569dd8828bae6527][Ruboty | 基本構成図解]] も理解の助けになった．
+概要を知るのにこの絵を眺めると登場人物を把握しやすい．
+
+** コマンド実行
+
+=ruboty= コマンドを実行すると [[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/bin/ruboty#L6][bin/ruboty]] の
+
+#+begin_src ruby
+Ruboty::CommandBuilder.new(ARGV).build.call
+#+end_src
+
+が呼ばれる．
+
+[[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/lib/ruboty/command_builder.rb][ruboty/command_builder.rb]] には
+
+#+begin_src ruby
+def initialize(arguments = ARGV)
+  @arguments = arguments
+end
+
+def build
+  command_class.new(options)
+end
+
+def command_class
+  case
+  when options[:generate]
+    Commands::Generate
+  when options[:help]
+    Commands::Help
+  else
+    Commands::Run
+  end
+end
+#+end_src
+
+があるので，何も指定していない今回は =Commands::Run= が返される．つまり =Commands::Run.new(options).call= だ．
+
+[[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/lib/ruboty/commands/run.rb][ruboty/run.rb]] は
+
+#+begin_src ruby
+module Ruboty
+  module Commands
+    class Run < Base
+      def call
+        Robot.new(options).run
+      end
+    end
+  end
+end
+#+end_src
+
+継承元の =Base= は [[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/lib/ruboty/commands/base.rb][ruboty/base.rb]] の通り =options= を保持しているだけだ．
+
+=Robot.new(options).run= で =Robot= インスタンスを作って =run= させていることがわかる．
+
+** Robot
+
+[[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/lib/ruboty/robot.rb#L16-L23][ruboty/robot.rb の run]] は
+
+#+begin_src ruby
+def run
+  dotenv
+  bundle
+  setup
+  remember
+  handle
+  adapt
+end
+#+end_src
+
+- dotenv :: Dotenv から環境変数を読み込む
+- bundle :: Bundler から gem を読み込む
+- setup :: ファイルを load する．[[http://qiita.com/tbpgr/items/805af286406a787d4267#-%E5%AE%9F%E8%A1%8C][Ruboty | Ruboty を魔改造してみる]] のように，オプションで渡したファイル名の plugin を読み込ませることができる
+- remember :: =Brains::Base.find_class.new= で Brain を作っている
+- handle :: =Ruboty.handlers.map { |handler_class| handler_class.new(self) }= で Handle を作っている
+- adapt :: =AdapterBuilder.new(self).build.run= で Adapter を動かしている
+
+
+** Brain
+
+[[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/lib/ruboty/brains/base.rb][ruboty/base.rb]]
+
+Brain についてはあまり書くことがない．
+
+[[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/spec/ruboty/robot_spec.rb#L19-L20][ruboty/robot_spec.rb]] にあるような =robot.brain.data["a"]= といった形で状態を扱えるようだ．
+
+Brain は 1 つの Robot インスタンスに 1 つしか持てないようになっている．
+
+** Handler
+
+[[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/lib/ruboty/handlers/base.rb][ruboty/base.rb]]
+
+1 つの Handler は，複数の Action を持つことができ，Action は Handler.on メソッドで登録する．
+複数の Action を登録する場合は，[[https://github.com/r7kamura/ruboty-alias/blob/1815efe8e004293c339fa40ecb3aa32eb3fdcd72/lib/ruboty/handlers/alias.rb#L6-L29][ruboty-alias/alias.rb]] のように複数回 Handler.on を呼び出す．
+
+#+begin_src ruby
+on(
+  /alias (?<from>.+?) -> (?<to>.+)\z/m,
+  description: "Create alias message",
+  name: "create",
+)
+
+on(
+  /list alias\z/,
+  description: "List alias",
+  name: "list",
+)
+
+on(
+  /delete alias (?<from>.+)\z/m,
+  description: "Delete alias",
+  name: "delete",
+)
+
+on(
+  //,
+  description: "Resolve alias if registered",
+  name: "resolve",
+  hidden: true,
+)
+#+end_src
+
+[[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/lib/ruboty/action.rb][ruboty/action.rb]]
+
+Action には，パターンと，パターンに合致したときに呼び出す Handelr のメソッド名が設定される．
+
+Handler が =call= されたときは，登録してある Action を順番に =call= していく．
+
+Action が =call= されると，渡された =message= に対してパターンが合致するか試し，合致したら =name= で Handler のメソッドを呼ぶ．
+
+大抵の場合は =message.reply= で Adapter へと表示してもらいたい内容を返す．
+
+Message は [[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/lib/ruboty/message.rb][ruboty/message.rb]] に定義がある．内容と，メタデータ(どこから来たか，マッチした内容は何かなど)によって構成されている．
+
+** Adapter
+
+Adapter も 1 つの Robot インスタンスに 1 つしか持てないようになっている．
+
+[[https://github.com/r7kamura/ruboty/blob/77afe56fd89f5cd5e3c033249949ea2e1da06571/lib/ruboty/adapters/base.rb][ruboty/base.rb]]
+
+=run= したら，自分でループしながら動作しつづけ，入力があれば，引数にメタ情報と入力内容をつけて =robot.receive= を呼びだす．
+
+出力は Handler で =message.reply= が呼ばれ，その中で =robot.say= が呼ばれ，その中で =adapter.say= が呼ばれて返ってくる．
+
+** まとめ
+
+登場人物はおおまかに
+
+1. 本体(Robot)
+2. 外界との接続(Adapter)
+3. 来たメッセージに，どんな種類のとき，どう反応するか(Handler)
+4. (おまけ)状態を Robot に持っておく(Brain)
+
+の 4 つ．
+
+1 つの Robot は，1 つの Adapter，1 つの Brain，複数の Handler を持つ．
+
+入力があると Adapter, Robot, Handler の層の間を Message が流れていく．
+
+Handle が反応して，出力したい場合は Message の reply を呼び出す．すると Robot, Adapter の順に呼び出されて出力を行える．
+
+Ruboty を使ったことがなく，Ruboty の Plugin についての知識もなかったのだが 3 - 4 時間くらいでこの記事を書きながらだいたい読めた．
+
+とてもわかりやすい作りになっていた．すばらしい．
