@@ -1,0 +1,22 @@
+* Sapporo.cljに参加した
+
+[[https://sapporoclj.github.io/][Sapporo.clj]] の [[https://atnd.org/events/68964][6 回目]] に参加した．
+
+興味があったのだけど，なかなか都合が合わなくて行けておらず初参加となった．
+
+- 分散 DB [[http://www.datomic.com/][Datomic]] を触ってみていた
+- 音を鳴らすライブラリ [[http://yoppa.org/blog/6232.html][Shadertone]] で遊んでみた
+- Clojureians のための問題集 [[https://www.4clojure.com/][4clojure]] を進めていた
+- core/async を使って clojure でメッセージパッシングな非同期実行プログラムを書いた
+
+といった人が集まって，最後の発表 30 分以外はもくもくと進めていた．
+
+僕は ClojureScript を初めて触るために [[https://github.com/clojure/clojurescript/wiki/Quick-Start#user-content-less-boilerplate][Quick Start · clojure/clojurescript Wiki]] を読み進めていた．
+
+自分自身の理解のためもあり，雑にひととおり日本語化したので，興味があれば眺めてみるとよい．
+
+[[ClojureScript Quick Start 日本語訳]]
+
+主催してくださった @aloelight さん，参加して一緒に遊んでくださったみなさん，ありがとう．
+
+おかげさまで楽しかった．
