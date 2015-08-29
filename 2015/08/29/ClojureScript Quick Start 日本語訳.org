@@ -1,0 +1,567 @@
+* ClojureScript Quick Start 日本語訳
+
+自分で始めるのに必要な程度に雑に訳しているので信用してはいけない．
+おかしいなと思ったら原典の英語を眺めてみること．
+もし直した方がいいところがあれば教えてくれれば善処する．
+
+[[https://github.com/clojure/clojurescript/wiki/Quick-Start][Quick Start · clojure/clojurescript Wiki]]
+
+このチュートリアルは Java8 と standalone ClojureScript JAR に依存する．
+
+ClojureScript 自体は Java7 でいいんだけど，standalone JAR は Nashorn をバンドルしていて，これに 8 が必要．
+
+Leiningen を利用した使いかたに興味がある場合でも，この Quick Start は読む価値がある．
+
+この QuickStart はツールには依存しない，基本的な使いかたをカバーしている．
+
+** ClojureScript Compiler
+
+standalone ClojureScript JAR は 1.7.0 からバンドルされた．
+
+これは ClojureScript compile の簡潔な記述と，ややこしいコマンドラインインターフェースのない REPL をサポートしている．
+
+=hello_world= ディレクトリを作って，その中に JAR を置き，
+さらに =mkdir -p src/hello_world;touch src/hello_world/core.cljs= する．
+
+そして書く
+
+#+begin_src clojure
+(ns hello-world.core)
+
+(enable-console-print!)
+
+(println "Hello world!")
+#+end_src
+
+( Emacs の場合だと [[https://github.com/clojure-emacs/clojure-mode][clojure-emacs/clojure-mode]] を使うと便利だった )
+
+最初に =ns= で名前空間を定義する．全ての ClojureScript file は名前空間を定義して，名前空間はファイルパスと同じでなくてはならない．
+
+そして JavaScript の =console= オブジェクトに直接出力することを許可して，かの有名なメッセージを出力する．
+
+これをコンパイルするには簡潔なビルドスクリプトが必要だ．
+ClojureScript は単なる Clojure のライブラリで，数行 Clojure で記述されている．
+=bild.clj= と呼ばれるファイルを ( src ではなく ) =hello_world= の下に置く．
+
+本チュートリアルではディレクトリのルートにこのコンパイラーヘルパースクリプトを置いておく．
+
+以下の Colojure code を (build.clj に) 追記する．
+
+#+begin_src clojure
+(require 'cljs.build.api)
+
+(cljs.build.api/build "src" {:output-to "out/main.js"})
+#+end_src
+
+=cljs.build.api= という名前空間を =require= してから，ClojureScript を構築する関数 =cljs.build.api/build= を呼び出している．
+この関数は 2 つの引数を取る : コンパイルするディレクトリと，map 形式のオプション．
+今回は =:output-to= だけつけた．
+
+ClojureScript を構築する:
+
+#+begin_src
+$ java -version
+java version "1.8.0_51"
+Java(TM) SE Runtime Environment (build 1.8.0_51-b16)
+Java HotSpot(TM) 64-Bit Server VM (build 25.51-b03, mixed mode)
+$ java -cp cljs.jar:src clojure.main build.clj
+$ ls -l
+total 19812
+-rw-r--r-- 1 niku wheel       83  8 29 14:19 build.clj
+-rw-r--r-- 1 niku staff 20280934  8 29 13:58 cljs.jar
+drwxr-xr-x 6 niku wheel      204  8 29 14:24 out
+drwxr-xr-x 3 niku wheel      102  8 29 14:24 src
+#+end_src
+
+jar と私たちが書いた ClojureScript への classpath を指定して =java= の実行をしている．
+ここの =clojure.main= 引数で簡単に Clojure ファイルを実行できている．
+
+シェルはすぐに終わって， コンパイルされた JavaScript を含む =out= ディレクトリができている．
+=out/main.js= の中で示しているように，たくさんのファイルが追加されているのがわかるだろう．
+
+これらをすぐに説明することもできるが，まずはこのコンパイルされた成果物をどうやって簡単に web ページに表示するかをみよう．
+
+** Using CloureScript on a Web Page
+
+以下のような =index.html= を作る
+
+#+begin_src html
+<html>
+    <body>
+        <script type="text/javascript" src="out/main.js"></script>
+    </body>
+</html>
+#+end_src
+
+好きなブラウザでこのファイルを開き，ブラウザのコンソールを見る(ブラウザには何も表示されない)．
+
+すると "Hello world!" を見るかわりに以下のようなエラーを目にするだろう:
+
+#+begin_src
+ReferenceError: goog is not defined
+#+end_src
+
+このエラーを理解するには Google Closure Library の基礎をいくつか調べなければならない．
+少し遠回りに見えるが，以下のセクションで Google Closure Library がどうやってバグの特定を簡単かつ簡単にしているか眺めよう．
+
+** Google Closure Library
+
+JavaScript 環境の違いから離れて抽象化するのに，ClojureScript では Google Closure Library(GCL)に頼っている．
+GCL は JavaScript にない大事な機能: 名前空間，依存関係の定義を提供している．
+実際のところ ClojureScript の名前空間は Google Closure の名前空間へとコンパイルされる．
+
+様々なブラウザを対象にした正確な依存の読み込みは驚くほどトリッキーな作業になる．
+GCL では依存グラフを整頓することでこれを成し遂げる．
+あなたが名前空間を =require= すると，GCL はあなたが指定した名前空間に依存していて必要なスクリプトタグを書く．
+
+それで，先程の例は何が間違っていたのだろうか？
+=out/main.js= を見ると，依存グラフ構築の呼び出しをいくつか見ることができるだろう:
+
+#+begin_src
+goog.addDependency("base.js", ['goog'], []);
+goog.addDependency("../cljs/core.js", ['cljs.core'], ['goog.string', 'goog.object', 'goog.string.StringBuffer', 'goog.array']);
+goog.addDependency("../hello_world/core.js", ['hello_world.core'], ['cljs.core']);
+#+end_src
+
+まった． =boogle= オブジェクトはどこから来るのだろうか？
+
+おぉ……それを読み込んでいない！GCL を起動するには，最低でも =goog/base.js= を読み込まなくてはならない．
+=out/goog/base.js= にそれがあることがわかるだろう．それをページに足そう．
+
+#+begin_src html
+<html>
+    <body>
+        <script type="text/javascript" src="out/goog/base.js"></script>
+        <script type="text/javascript" src="out/main.js"></script>
+    </body>
+</html>
+#+end_src
+
+ページを再読み込みする．
+
+エラーはなくなったが "Hello world!" はまだ見られない．
+
+はー． =out/main.js= に私たちが書いたどのロジックも出てこない，
+実際のところ ClojureScript 標準ライブラリ =cljs.core= と私たちの名前空間のために必要な依存関係のグラフを含めているだけにすぎない．
+
+なるほど．最後に足りなかったステップは require した名前空間で物事を始めることだったのだ．
+=index.html= を以下のように変更する．
+
+#+begin_src html
+<html>
+    <body>
+        <script type="text/javascript" src="out/goog/base.js"></script>
+        <script type="text/javascript" src="out/main.js"></script>
+        <script type="text/javascript">
+            goog.require("hello_world.core");
+            // Note the underscore "_"!
+        </script>
+    </body>
+</html>
+#+end_src
+
+=index.html= を再読み込みすると，ついに "Hello world!" がブラウザの JavaScript コンソールに出力されているのを見られるだろう．
+もし十分モダンなブラウザを使っているなら，source mapping によって JavaScript ではなく ClojureScript のソースファイルから実行されているのを見ることもできるだろう．
+(Chrome のようないくつかのブラウザは，あなたが最初に source mapping を有効に設定しなければならない．詳細はリンク先参照)
+
+** Less Boilerplate
+
+前のセクションでは GCL 周りの重要なコンセプトの基本的部分について示した．
+とはいえずいぶんと定型的(ボイラープレート)なところを含んでいる．
+=:main= エントリーポイントを =cljs.build.api/build= のオプションに指定することでこれを減らすことができる．やってみよう:
+
+#+begin_src clojure
+(require 'cljs.build.api)
+
+(cljs.build.api/build "src"
+  {:main 'hello-world.core
+   :output-to "out/main.js"})
+#+end_src
+
+HTML も以下のように変える:
+
+#+begin_src html
+<html>
+    <body>
+        <script type="text/javascript" src="out/main.js"></script>
+    </body>
+</html>
+#+end_src
+
+再構築する
+
+#+begin_src shell
+$ java -cp cljs.jar:src clojure.main build.clj
+#+end_src
+
+ページを再読み込みすると "Hello world!" が JavaScript コンソールに出力されているのをまだ見ることができる．
+=out/main.js= を調べると(先ほど書いたような)定型的なタグが記述されているのを見られるだろう．
+以前の =main.js= の内容は，現在は =out/cljs_deps.js= にあり，新しい =out/main.js= によって私たちが作った名前空間と同じタイミングで読み込まれる．
+
+** Auto building
+
+ClojureScript コンパイラは漸近的(インクリメンタル)なコンパイルをサポートしている．
+ClojureScriptコンパイラがディレクトリの監視して，必要なら再コンパイルできると便利だ．
+新しいヘルパースクリプト =watch.clj= を作ろう:
+
+#+begin_src clojure
+(require 'cljs.build.api)
+
+(cljs.build.api/watch "src"
+  {:main 'hello-world.core
+   :output-to "out/main.js"})
+#+end_src
+
+自動構築をスタートしよう
+
+#+begin_src shell
+$ java -cp cljs.jar:src clojure.main watch.clj
+#+end_src
+
+こんな出力が見られるはずだ:
+
+#+begin_src shell
+% java -cp cljs.jar:src clojure.main watch.clj
+Building ...
+... done. Elapsed 0.672314494 seconds
+Watching paths: /private/tmp/hello_world/src
+#+end_src
+
+=src/hello_world/core.cljs= を編集すると，再コンパイルしている出力が見られるだろう．
+
+次のセクションに進む前に，(Ctrl-C を使って)自動構築を終わらせよう．
+
+** Browser REPL
+
+生産的な Lisp 体験を REPL(Read-Eval-Print-Loop) を抜きに想像するのは難しい．
+ClojureScript は組み込みで Node.js, Rhino, Nashorn, そしてブラウザの REPL を提供している．
+
+私たちのプロジェクトでブラウザ REPL を動かしてみよう．
+
+まず，rlwrap というものをインストールすることをおすすめしている．OSX だと brew で =brew install rlwrap= するのが最も簡単だ．
+
+REPL script である =repl.clj= を作ろう:
+
+#+begin_src clojure
+(require 'cljs.repl)
+(require 'cljs.build.api)
+(require 'cljs.repl.browser)
+
+(cljs.build.api/build "src"
+  {:main 'hello-world.core
+   :output-to "out/main.js"
+   :verbose true})
+
+(cljs.repl/repl (cljs.repl.browser/repl-env)
+  :watch "src"
+  :output-dir "out")
+#+end_src
+
+REPL を構築する前に最低一回はビルドする．
+
+REPL は常に同じ方法で構築される．
+=cljs.repl/repl= に渡される最初の引数は REPL を評価する環境 (Node.js, Rhino, Nashorn, ブラウザ ) だ，
+次の引数は =cljs.build.api/build= に渡すのと同じように，REPL の(動作)仕様を決めるようなオプションになっている．
+
+=:watch= オプションをソースディレクトリに対して指定しているのに注意すること．
+自動ビルドプロセスをREPLと一緒に動かすことができて便利だ．
+自動ビルドプロセスは動作を =out/watch.log= に書き出すので， =tail -f out/watch.log= することができる．
+
+=:output-dir= も指定しているので，REPL はビルドにより生成されたコンパイル済ファイルを再利用する．
+
+ブラウザで REPL を使うためにソースも変更しなければならない:
+
+#+begin_src clojure
+(ns hello-world.core
+  (:require [clojure.browser.repl :as repl]))
+
+(defonce conn
+  (repl/connect "http://localhost:9000/repl"))
+
+(enable-console-print!)
+
+(println "Hello world!")
+#+end_src
+
+接続を =defonce= で作る．これはコネクションを一度だけ構築することを保証する - 私たちは開発のときに名前空間をリロードするだろうけれども，複数のコネクションはいらない．
+
+試そう:
+
+#+begin_src shell
+$ rlwrap java -cp cljs.jar:src clojure.main repl.clj
+#+end_src
+
+最初は REPL コミュニケーションスクリプトをビルドする必要があるのでいつもより遅い．
+Google Closure Compiler による無害な =WARNING= を見ることになるかもしれないが，無視してよい．
+最終的に以下のメッセージを見るだろう:
+
+#+begin_src
+Waiting for browser to connect ...
+#+end_src
+
+ブラウザで =http://localhost:9000= を開く．
+
+REPL が動くだろう．(ブラウザではなく，ターミナルの方で動くことに注意)
+
+=(+ 1 2)= のような簡単な式を評価してみよう．
+
+(もし REPL がすぐに繋がらなければ，何回かブラウザを再読み込みしてみること．
+REPL のタブにブラウザのフォーカスが当っていないと遅くなるかもしれない．
+何かの理由で REPL が固まってしまったら，ページを再読み込みすること)
+
+自動ビルドの状況は新しいターミナルで =tail -f out/watch.log= を動かすと見られる．
+
+=(first [1 2 3])= や =(doc first)= や =(source first)= などの式を評価してみよう．
+
+=src/hello_world/core.cljs= を以下のように書き変える:
+
+#+begin_src clojure
+(ns hello-world.core
+  (:require [clojure.browser.repl :as repl]))
+
+(defonce conn
+  (repl/connect "http://localhost:9000/repl"))
+
+(enable-console-print!)
+
+(println "Hello world!")
+
+;; ADDED
+(defn foo [a b]
+  (+ a b))
+#+end_src
+
+REPL プロンプトで =(require '[hello-world.core :as hello])= を評価して名前空間を require する．
+それから =(hello/foo 2 3)= の評価を試すと， =5= の結果が得られるだろう．
+
+=foo= の =+= を =*= に変えてみる．
+
+#+begin_src clojure
+(ns hello-world.core
+  (:require [clojure.browser.repl :as repl]))
+
+(defonce conn
+  (repl/connect "http://localhost:9000/repl"))
+
+(enable-console-print!)
+
+(println "Hello world!")
+
+(defn foo [a b]
+  (* a b)) ;; CHANGED
+#+end_src
+
+require のキーワードに =:reload= をつけて REPL で新しい定義をすると強制的にリロードする．
+=(require '[hello-world.core :as hello] :reload)= して =(hello/foo 2 3)= を試すと =6= が返ってくる．
+
+間違えた入力を試してみよう． =(ffirst [1])= と評価する．
+JavaScript ではなく，ClojureScript でのソースの場所が示されたスタックトレースを得るだろう．
+これで容易にデバッグできる．
+
+** Production Builds
+
+たくさんの JavaScript コンテンツが =out= にあるのを見たかもしれない．
+幸いなことに ClojureScript コンパイラは Google Closure Compiler へと適したアウトプットを生成する．
+Google Closure Compiler は複数の最適化ができるが，
+ブラウザベースのクライアントにとって最も重要な最適化は最小化(ミニファイ)とデッドコードの除去だ．
+
+以下のような =release.clj= という新しいヘルパービルドスクリプトを作ろう:
+
+#+begin_src clojure
+(require 'cljs.build.api)
+
+(cljs.build.api/build "src"
+  {:output-to "out/main.js"
+   :optimizations :advanced})
+
+(System/exit 0)
+#+end_src
+
+=:advanced= な最適化しているときは，一つの JavaScript 成果物になるので =:main= が必要ない．
+=(System/exit 0)= も足した．これは Google Closure Compiler がスレッドプールを作りシャットダウンしないためだ - そこで，exit することで作業完了を知る．
+
+開発に使っていた REPL のところを =src/hello_world/core.cljs= から消そう:
+
+#+begin_src clojure
+(ns hello-world.core)
+
+(enable-console-print!)
+
+(println "Hello world!")
+#+end_src
+
+そしてリリースビルドを作る:
+
+#+begin_src
+$ java -cp cljs.jar:src clojure.main release.clj
+#+end_src
+
+このプロセスはすごく長くかかる．それこそが開発のときにこのモードでのコンパイルをしない理由だ．
+
+=index.html= を開くと =Hello world!= がちゃんと表示されているのが見られるだろう．
+
+=out/main.js= を調べる，ファイルサイズは大体 80K くらいだ．もしこのファイルを zip 化すると大体 19K になる．
+これは驚くことに jQuery に依存するよりも小さい．
+ClojureScript を使うときは ClojureScript の標準ライブラリ(10KLOC)と Google Closure Library(300KLOC) へ暗黙的に依存しているのだけど，使わないコードの削除が効いている．感謝しよう．
+
+** Running ClojureScript on Node.js
+
+Node.js をインストールする．方法は Node.js の wiki をみること．
+現在の最新安定版 (=0.12.x=) しかサポートしていない．
+=src/hello_world/core.cljs= はこのようにする:
+
+#+begin_src clojure
+(ns hello-world.core
+  (:require [cljs.nodejs :as nodejs]))
+
+(nodejs/enable-util-print!)
+
+(defn -main [& args]
+  (println "Hello world!"))
+
+(set! *main-cli-fn* -main)
+#+end_src
+
+=node.clj= というビルドヘルパーを作る:
+
+#+begin_src clojure
+(require 'cljs.build.api)
+
+(cljs.build.api/build "src"
+  {:main 'hello-world.core
+   :output-to "main.js"
+   :target :nodejs})
+#+end_src
+
+今までとの違いは =:nodejs= ターゲットを指定したことと， =main.js= を =out= ディレクトリに出力しなくなった．
+これは Node.js が JavaScript のソースファイルを分析するのに大事なことだ．
+
+Node.js にはソースマッピングの素晴らしいサポートがある．それを有効化するには =source-map-support= をインストールするだけでよい:
+
+#+begin_src
+$ npm install source-map-support
+#+end_src
+
+それでは Node プロジェクトをビルドしてみよう:
+
+#+begin_src
+$ java -cp cljs.jar:src clojure.main node.clj
+#+end_src
+
+ファイルの実行は
+
+#+begin_src
+$ node main.js
+#+end_src
+
+でできる．
+
+** Node.js REPL
+
+Node.js の REPL を動かすのはブラウザの REPL を動かすのより簡潔にできる．
+以下のような =node_repl.clj= と呼ばれるヘルパファイルを作ろう:
+
+#+begin_src clojure
+(require 'cljs.repl)
+(require 'cljs.build.api)
+(require 'cljs.repl.node)
+
+(cljs.build.api/build "src"
+  {:main 'hello-world.core
+   :output-to "out/main.js"
+   :verbose true})
+
+(cljs.repl/repl (cljs.repl.node/repl-env)
+  :watch "src"
+  :output-dir "out")
+#+end_src
+
+=src/hello_world/core.cljs= には (ブラウザ REPL とは異なり) REPL に関係したものを追加しなくてよい．
+
+REPL を動かしてみる:
+
+#+begin_src
+$ rlwrap java -cp cljs.jar:src clojure.main node_repl.clj
+#+end_src
+
+以前の章でブラウザ REPL にやったことは Node.js REPL でも動くはずだ．
+
+** Dependencies
+
+ClojureScript は ClojureScript と JavaScript の依存を含めるために様々な種類のオプションをサポートしている(詳しくは wiki の Dependencies を参照のこと)．
+しかし最も簡潔なアプローチは classpath 上にある packaged JAR に含めてしまうことだ．
+CLJSJS は，どのように依存を扱うかの例を見せるには十分な程度の，JavaScript ライブラリをとりまとめるよくできた機能を提供する．
+
+React は ClojureScript のプロジェクトで人気のある依存ライブラリだ．
+CLJSJS でもあるバージョンをバンドルしている．どのように含めているか見よう:
+
+Clojars から JAR をとってくる:
+
+以下のような React のプロパティが必要となる簡潔なプログラムを書こう:
+
+#+begin_src clojure
+(ns hello-world.core
+  (:require cljsjs.react))
+
+(enable-console-print!)
+
+(println "Hello React!")
+#+end_src
+
+プロジェクトを再ビルドする．このとき CLJSJS React JAR をクラスパスに含めるようにコマンドを拡張する．
+
+#+begin_src
+$ java -cp cljs.jar:src:react-0.12.2-8.jar clojure.main build.clj
+#+end_src
+
+もし =index.html= を再読み込みすると React を読み込めたというログを見ることだろう．
+
+いくつかの依存があるなら，それらを =lib= というフォルダに入れる規約がある．そしてスクリプトをこのように動かす:
+
+#+begin_src
+$ java -cp 'cljs.jar:lib/*:src' clojure.main build.clj
+#+end_src
+
+Maven か Leiningen といった依存管理を使うと，依存グラフはより洗練される．
+理解しやすいチュートリアルを見るには Wiki の Dependencies を参照のこと．
+ここでは基本だけおさえる．
+
+** Leiningen
+
+上でみてきた全てのコマンドは Leiningen の =run= 機能で実行できる．
+Leiningen を使うとクラスパスを明示する必要がない．
+例えば REPL はプロジェクトのディレクトリからこんな感じで行えばよい．
+
+#+begin_src
+$ lein run -m clojure.main repl.clj
+#+end_src
+
+** Maven
+
+Leiningen と同じように，Maven もこれまで挙げたようなスクリプトの実行にクラスパスを指定せずに実行できる．
+=pom.xml= へ =clojure-maven-plugin= を追加する．
+
+#+begin_src xml
+<project xmlns="..."
+         xsi:schemaLocation="....">
+    <modelVersion>4.0.0</modelVersion>
+    ...
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.theoryinpractise</groupId>
+                <artifactId>clojure-maven-plugin</artifactId>
+                <version>1.7.1</version>
+                <extensions>true</extensions>
+            </plugin>
+        </plugins>
+    </build>
+    ...
+</project>
+#+end_src
+
+そして =clojure:run= タスクを動かすと REPL を開始できる:
+
+#+begin_src
+$ mvn clojure:run -Dclojure.script=repl.clj
+#+end_src
