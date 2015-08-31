@@ -1,0 +1,58 @@
+* Elixirでforが複数行に渡る場合のインデント
+
+#+begin_src
+$ git clone elixir-lang/elixir
+$ cd elixir
+$ ag 'for ' . | ag '<-' | ag -v do
+#+end_src
+
+で調べた．17 個しかなかった．先頭の空白は除去している．特徴的なものをいくつか挙げる．
+
+[[https://github.com/elixir-lang/elixir/blob/cc233805229eb9b65c5532916757ca0357076c16/lib/elixir/lib/kernel/parallel_compiler.ex#L136-L139][lib/elixir/lib/kernel/parallel_compiler.ex#L136-L139]]
+
+#+begin_src elixir
+available = for {:struct, pid, _, waiting_module} <- waiting,
+                module == waiting_module,
+                not pid in entries,
+                do: pid
+#+end_src
+
+[[https://github.com/elixir-lang/elixir/blob/cc233805229eb9b65c5532916757ca0357076c16/lib/elixir/lib/module/locals_tracker.ex#L147-L152][lib/elixir/lib/module/locals_tracker.ex#L147-L152]]
+
+#+begin_src elixir
+for {name, arity} <- all_defined,
+    :digraph.in_neighbours(d, {:import, name, arity}) != [],
+    n = :digraph.out_neighbours(d, {:import, name, arity}),
+    n != [] do
+  {n, name, arity}
+end
+#+end_src
+
+[[https://github.com/elixir-lang/elixir/blob/cc233805229eb9b65c5532916757ca0357076c16/lib/elixir/lib/protocol.ex#L190-L193][lib/elixir/lib/protocol.ex#L190-L193]]
+
+(たぶんインデントが他のものと違っている)
+
+#+begin_src elixir
+for path <- paths,
+   file <- list_dir(path),
+   mod = extract_from_file(path, file, prefix, callback),
+   do: mod
+
+#+end_src
+
+[[https://github.com/elixir-lang/elixir/blob/cc233805229eb9b65c5532916757ca0357076c16/lib/mix/test/test_helper.exs#L106-L110][lib/mix/test/test_helper.exs#L106-L110]]
+
+#+begin_src elixir
+for {mod, file} <- :code.all_loaded -- previous,
+    file == :in_memory or
+    (is_list(file) and :lists.prefix(flag, file)) do
+  purge [mod]
+end
+#+end_src
+
+** 結論
+
+- 2 行目以降は =for xxx= の =xxx= の先頭と同じ列にあわせる
+- =do= が 1 行の場合 ( =do:= の場合 ) は改行して，最後の要素にする
+- =do= が複数行の場合 ( =do= の場合 ) は改行せず，最後の要素の後ろにつける
+- =do= ブロックの中身は =for= から 2 文字インデントして書く
