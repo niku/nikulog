@@ -1,0 +1,155 @@
+* Phoenixのサーバー起動から処理を眺める
+
+結論から言うと目的の部分にはたどりつかなかったので，このルートではなかった．
+ただし一つの末端部分までは追いかけたので，追いかけかたの参考にはなるだろう．
+
+** 目的
+
+Phoenix サーバーが起動，リクエストを受けてレスポンスを返すまでの処理を調べて，
+エラーハンドリングや SupervisionTree をどう構築するかの設計指針を得る．
+
+コードは v1.0 から次のバージョンくらいのあいだのもの．
+
+** 処理を追う
+
+=mix phoenix.server= だから [[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/lib/mix/tasks/phoenix.server.ex#L20][lib/mix/tasks/phoenix.server.ex#L20]] が呼ばれる．
+
+#+begin_src elixir
+def run(args) do
+  Application.put_env(:phoenix, :serve_endpoints, true, persistent: true)
+  Mix.Task.run "app.start", args
+  no_halt()
+end
+#+end_src
+
+=app.start= すると Application のエンドポイントが呼ばれる．
+
+この場合は [[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/mix.exs#L23][mix.exs#L23]] で設定されているように =Phoenix.start= が呼ばれる．
+
+[[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/lib/phoenix.ex#L30][lib/phoenix.ex#L30]]
+
+#+begin_src elixir
+def start(_type, _args) do
+  # Warm up caches
+  _ = Phoenix.Template.engines
+  _ = Phoenix.Template.format_encoder("index.html")
+
+  # Configure proper system flags from Phoenix only
+  if stacktrace_depth = Application.get_env(:phoenix, :stacktrace_depth) do
+    :erlang.system_flag(:backtrace_depth, stacktrace_depth)
+  end
+
+  # Start the supervision tree
+  Phoenix.Supervisor.start_link
+end
+#+end_src
+
+=Phoenix.Supervisor.start_link= しているので
+
+[[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/lib/phoenix/supervisor.ex#L4][lib/phoenix/supervisor.ex#L4]]
+
+#+begin_src elixir
+def start_link do
+  Supervisor.start_link(__MODULE__, [], name: __MODULE__)
+end
+#+end_src
+
+が呼ばれる．
+
+自身のモジュール ( =__MODULE__= ) を start_link しているので，
+=Supervisor.start_link/3= の説明にあるとおり， =init/1= が呼ばれる．
+
+[[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/lib/phoenix/supervisor.ex#L8][lib/phoenix/supervisor.ex#L8]]
+
+#+begin_src elixir
+def init([]) do
+  children = [
+    supervisor(Phoenix.Transports.LongPoll.Supervisor, [])
+  ]
+  supervise(children, strategy: :one_for_one)
+end
+#+end_src
+
+=Phoenix.Transports.LongPoll.Supervisor= を supervise しているので，
+=Phoenix.Transports.LongPoll.Supervisor.start_link= が呼ばれる．
+
+[[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/lib/phoenix/transports/long_poll_server.ex#L6][lib/phoenix/transports/long_poll_server.ex#L6]]
+
+#+begin_src elixir
+def start_link do
+  Supervisor.start_link(__MODULE__, [], name: __MODULE__)
+end
+#+end_src
+
+自身のモジュール ( =__MODULE__= ) を start_link しているので， =init/1= が呼ばれる．
+
+[[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/lib/phoenix/transports/long_poll_server.ex#L10][lib/phoenix/transports/long_poll_server.ex#L10]]
+
+#+begin_src elixir
+def init([]) do
+  children = [
+    worker(Phoenix.Transports.LongPoll.Server, [], restart: :temporary)
+  ]
+  supervise(children, strategy: :simple_one_for_one)
+end
+#+end_src
+
+=Phoenix.Transports.LongPoll.Server= を supervise しているので，
+=Phoenix.Transports.LongPoll.Server.start_link= が呼ばれる．
+
+[[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/lib/phoenix/transports/long_poll_server.ex#L38][lib/phoenix/transports/long_poll_server.ex#L38]]
+
+#+begin_src elixir
+def start_link(endpoint, handler, transport_name, transport,
+               serializer, params, window_ms, priv_topic) do
+  GenServer.start_link(__MODULE__, [endpoint, handler, transport_name, transport,
+                                    serializer, params, window_ms, priv_topic])
+end
+#+end_src
+
+自身のモジュール ( =__MODULE__= ) を start_link しているので， =init/1= が呼ばれる．
+
+[[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/lib/phoenix/transports/long_poll_server.ex#L46-L47][lib/phoenix/transports/long_poll_server.ex#L46-L47]]
+
+#+begin_src elixir
+def init([endpoint, handler, transport_name, transport,
+          serializer, params, window_ms, priv_topic]) do
+  Process.flag(:trap_exit, true)
+
+  case Transport.connect(endpoint, handler, transport_name, transport, serializer, params) do
+    {:ok, socket} ->
+      state = %{buffer: [],
+                socket: socket,
+                channels: HashDict.new,
+                channels_inverse: HashDict.new,
+                window_ms: trunc(window_ms * 1.5),
+                pubsub_server: socket.endpoint.__pubsub_server__(),
+                priv_topic: priv_topic,
+                last_client_poll: now_ms(),
+                client_ref: nil}
+
+      if socket.id, do: socket.endpoint.subscribe(self, socket.id, link: true)
+      :ok = PubSub.subscribe(state.pubsub_server, self, priv_topic, link: true)
+      :timer.send_interval(state.window_ms, :shutdown_if_inactive)
+
+      {:ok, state}
+    :error ->
+      :ignore
+  end
+end
+#+end_src
+
+=Process.flag(:trap_exit, true)= は「終了シグナルを拾って，普通のメッセージにする」ことを表している．
+
+このプロセスに =exit= が伝わってきても，それを自動的に link 元へ渡すことはないよということ(だと理解している)．
+詳しくは [[http://www.ymotongpoo.com/works/lyse-ja/ja/14_errors_and_processes.html#id3][14.2. それは罠だ！]] に書いてある．
+
+このモジュールは名前 =Phoenix.Transports.LongPoll.Server= からも，処理からも [[http://qiita.com/niku/items/e846c4cbb9f1d15830cc#transport-adapters][Transport Adapters]] に該当するはずだ．
+
+あれここではリクエストの受けつけはしていない……
+
+** まとめ
+
+- Phoenix の起動から処理を順番に追った
+- HTTP リクエスト/レスポンスを扱うところには辿りつかなかった
+  - どこかに見落した分岐がある
