@@ -1,0 +1,87 @@
+* Phoenixのサーバー起動から処理を眺める(ふたたび)
+
+** 目的
+
+Phoenix サーバーが起動，リクエストを受けてレスポンスを返すまでの処理を調べて，
+エラーハンドリングや SupervisionTree をどう構築するかの設計指針を得る．
+
+コードは v1.0 から次のバージョンくらいのあいだのもの．
+
+** 前回は何が失敗だったか
+
+=app.start= したときの Application のエンドポイントの判断．
+
+実際には phoenix のコードではなく， =mix phoenix.new= で生成したコードから追いかけはじめないといけなかった．
+
+=mix phoenix.new= で生成するときのテンプレートは [[https://github.com/phoenixframework/phoenix/tree/master/installer/templates/new][installer/templates/new]] にある．ここからスタートする．
+
+もし変数の挿入などで読みにくければ，実際に =mix phoenix.new sample= などとして，コードを生成し，そのコードを読むとよい．
+
+** 処理を追う
+
+=mix phoenix.server= だから [[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/lib/mix/tasks/phoenix.server.ex#L20][lib/mix/tasks/phoenix.server.ex#L20]] が呼ばれる．
+
+#+begin_src elixir
+def run(args) do
+  Application.put_env(:phoenix, :serve_endpoints, true, persistent: true)
+  Mix.Task.run "app.start", args
+  no_halt()
+end
+#+end_src
+
+=app.start= すると Application のエンドポイントが呼ばれる．
+
+この場合は [[https://github.com/phoenixframework/phoenix/blob/master/installer/templates/new/mix.exs#L5][installer/templates/new/mix.exs#L5]] に示されているように =application_name= の =start/2= が呼ばれる．
+
+[[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/installer/templates/new/lib/application_name.ex#L6][installer/templates/new/lib/application_name.ex#L6]]
+
+#+begin_src elixir
+def start(_type, _args) do
+  import Supervisor.Spec, warn: false
+
+  children = [
+    # Start the endpoint when the application starts
+    supervisor(<%= application_module %>.Endpoint, []),<%= if ecto do %>
+    # Start the Ecto repository
+    worker(<%= application_module %>.Repo, []),<% end %>
+    # Here you could define other workers and supervisors as children
+    # worker(<%= application_module %>.Worker, [arg1, arg2, arg3]),
+  ]
+
+  # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
+  # for other strategies and supported options
+  opts = [strategy: :one_for_one, name: <%= application_module %>.Supervisor]
+  Supervisor.start_link(children, opts)
+end
+#+end_src
+
+=application_module.Supervisor= という名前の Supervisor がいて，
+=:one_for_one= で =application_module.Endpoint= が監視されている．
+
+そこで [[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/installer/templates/new/lib/application_name/endpoint.ex][installer/templates/new/lib/application_name/endpoint.ex]] を眺める．
+
+#+begin_src elixir
+defmodule <%= application_module %>.Endpoint do
+  use Phoenix.Endpoint, otp_app: :<%= application_name %>
+#+end_src
+
+の =use Phoenix.Endpoint= のマクロ部分で何かしているのだろう．
+
+予想通り [[https://github.com/phoenixframework/phoenix/blob/4d01294c563f59c52800097920b97783ddcc6e33/lib/phoenix/endpoint.ex#L216][lib/phoenix/endpoint.ex#L216]] で処理をしている．
+
+#+begin_src elixir
+defmacro __using__(opts) do
+  quote do
+    unquote(config(opts))
+    unquote(pubsub())
+    unquote(plug())
+    unquote(server())
+  end
+end
+#+end_src
+
+時間切れ．次はそれぞれの部分について調べる．
+
+** まとめ
+
+- =mix phoenix.new= で生成されたコードを追いかけると Phoenix.Endpoint を =:one_for_one= で起動している
