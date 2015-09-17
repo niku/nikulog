@@ -1,0 +1,107 @@
+* GenRouterを眺めた
+
+Elixir の公式リポジトリに [[https://github.com/elixir-lang/gen_router][elixir-lang/gen_router]] というものがあったので眺めた．
+
+** 何なのか
+
+[[https://github.com/elixir-lang/gen_router/blob/7853d1698c686e9c4ee933ddf65f78072faa6be9/lib/gen_router.ex#L3-L10][https://github.com/elixir-lang/gen_router/blob/7853d1698c686e9c4ee933ddf65f78072faa6be9/lib/gen_router.ex#L3-L10]]
+
+#+begin_quote
+A behaviour module for routing events from multiple sources
+to multiple sinks.
+
+`GenRouter` allows developers to receive events from multiple
+sources and/or send events to multiple sinks. The relationship
+between sources (the one sending messages) and sinks (the one
+receiving them) is established when the sink explicitly asks
+for data.
+#+end_quote
+
+「複数のソースから複数のシンクへとイベントを振り分けるモジュール．
+
+=GenRouter= は複数のソースからイベントを受けとって，複数のシンクへとイベントを送る．
+シンクがデータについて明示的に問いあわせたときにソースとシンクが繋げられる」
+
+[[http://www.fluentd.org/blog/unified-logging-layer][Fluentd のコア]]のような，複数 Input と複数 Output を繋ぐ部分を作りやすくなるのではないかと想像している．
+
+Source と Sink という言葉の使い方は Wikpedia にある [[https://en.wikipedia.org/wiki/Sink_(computing)][Sink (computing) - Wikipedia, the free encyclopedia]] くらいメジャーなようだ．
+Source はよく使うけど，Sink という言葉をこういうときに使うのは初めて知ったので覚えておく．
+
+** どうやって使うのか
+
+[[https://github.com/elixir-lang/gen_router/blob/7853d1698c686e9c4ee933ddf65f78072faa6be9/lib/gen_router.ex#L49-L86][https://github.com/elixir-lang/gen_router/blob/7853d1698c686e9c4ee933ddf65f78072faa6be9/lib/gen_router.ex#L49-L86]]
+
+に書いてある．
+
+#+begin_src
+[A] -> [B] -> [C]
+#+end_src
+
+という形式の例で示す．
+
+まずデータの出口を実装する． =handle_event/2= でイベントを扱うようだ．
+
+その他のコールバック API は
+
+- [[https://github.com/elixir-lang/gen_router/blob/7853d1698c686e9c4ee933ddf65f78072faa6be9/lib/gen_router/in.ex][受信に関するAPI]]
+- [[https://github.com/elixir-lang/gen_router/blob/7853d1698c686e9c4ee933ddf65f78072faa6be9/lib/gen_router/out.ex][送信に関するAPI]]
+
+にある．
+
+#+begin_src elixir
+# [A(source)] -> [B(router)] -> [C(sink)]
+# という流れの例
+
+defmodule MySink do
+  use GenRouter.Sink
+  def start_link do
+    GenRouter.Sink.start_link(__MODULE__, [])
+  end
+  def handle_event(event, state) do
+    IO.puts "Got #{inspect event}"
+    {:ok, state}
+  end
+end
+
+# A イベントを動的に受けて，それをブロードキャストする
+{:ok, source} = GenRouter.start_link(GenRouter.DynamicIn, [],
+                                     GenRouter.BroadcastOut, [])
+
+# B イベントを一つのところから受けて，それをブロードキャストする
+{:ok, router} = GenRouter.start_link(GenRouter.SingleIn, [],
+                                     GenRouter.BroadcastOut, [])
+
+# C イベントを受ける(イベントをどこかに送ることはしない)
+{:ok, sink} = MySink.start_link()
+
+# B が A のイベントを受けとる(購読する)と宣言する
+GenRouter.subscribe(router, to: source)
+
+# C が B のイベントを受けとる(購読する)と宣言する
+GenRouter.subscribe(sink, to: router)
+
+# これで一連の流れの処理が準備できた
+
+# A にデータを流すと
+Task.start_link fn -> GenRouter.sync_notify(pid, :hello) end
+
+# hello と表示される，はず
+#+end_src
+
+** いつから使えるのか
+
+[[https://github.com/elixir-lang/gen_router/blob/7853d1698c686e9c4ee933ddf65f78072faa6be9/README.md#L7-L8][https://github.com/elixir-lang/gen_router/blob/7853d1698c686e9c4ee933ddf65f78072faa6be9/README.md#L7-L8]]
+
+#+begin_quote
+GenRouter requires Erlang 18 as it is meant to be included in
+Elixir v1.3 or later.
+#+end_quote
+
+Erlang 18 が必要なので (Erlang18以降にしか対応しない予定の) Elixir1.3 に含めるということのようだ．
+
+Erlang 18 が必要なところがよくわからなかった．
+
+GenRouter のソースコードでは Map を使っているので，
+Erlang 17 では大きいサイズの Map だと性能が劣化し，18 だと劣化しないという性質のことを指しているのかもしれない．
+
+わかればぜひ教えてほしい．
