@@ -1,0 +1,26 @@
+* Emacs寄合を開いた
+
+#+begin_quote
+9/19 13:00-17:00 くらいに札幌ミライストカフェ http://miraist.com/#cafe  のすみっこで Emacs 寄合しましょう．
+EmacsやElispに関する悩みを持ちよって話し，あわよくば解決しようとする試みです．
+電源と wifi あるみたい(嬉しい
+#+end_quote
+
+[[https://twitter.com/niku_name/status/643586056005156864][https://twitter.com/niku_name/status/643586056005156864]]
+
+たまには Emacs ユーザーで集まって困っていることを解決しようと集まった．
+
+[[http://lingr.com/room/emacs/archives#message-22476536][Lingr]] と [[https://twitter.com/hashtag/Emacs%E5%AF%84%E5%90%88?src=hash][ハッシュタグ #Emacs寄合]] をみると雰囲気がわかります．
+
+解決とか，うまくいったやつ．
+
+- [[https://twitter.com/irasally/status/645091261595041792][magitとで Ctrl+c Ctrl+c でコミットした瞬間にEmacsが最小化される問題を相談してる #Emacs寄合]]
+- [[https://twitter.com/nasa9084/status/645129636247023616][肉さんに教えてもらったgithub-browse-filesを導入した。 #emacs寄合]]
+- [[https://twitter.com/tetuyosi39/status/645123719719882752][macのapp版emacsでPATHが通らない問題を解決してもらった #emacs寄合]]
+- [[https://twitter.com/l3msh0/status/645130536751489024][create-imageに渡すtypeをimagemagickにしたら:widthと:height指定できた https://t.co/TbNq14nUsk]]
+- [[https://twitter.com/fel97048/status/645140712233693184][twittering-mode on Windowsからこんにちは。エラーが出てたのはただ古いだけだった #Emacs寄合]]
+- [[https://github.com/niku/uti/commit/bb9c492047fef1849f24d3cf5bde5e294bf5987e][twittering-mode の twittering-edit-skeleton を教えてもらった]]
+
+1人の困っていることは1つは解決できてよかった．
+
+また気がむいたら誰かやるといいですよ．
