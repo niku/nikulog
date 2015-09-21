@@ -1,0 +1,284 @@
+* Debianサーバー構築
+
+Debian のサーバーを立てるときに毎回調べているのでまとめる．
+
+現在は Debian8 jessie に対応している．
+
+プロビジョニングツールを使ってもいいのだけど，
+その進化を追いかけることができなさそうなのでシェルスクリプトを利用する．
+
+以下にメモしたシェルスクリプトの全体は [[./setup.sh]] で入手できる．
+
+アプリケーションのところはそうではないが，セキュリティのところは万人向けになっているはずだ．
+
+( 自分へ: org-babel-tangle を利用して setup.sh を更新しているので，このページのソースを更新したら =C-c C-v t= を押すこと )
+
+** セキュリティ
+
+以下をすごく参考にした
+
+[[http://qiita.com/cocuh/items/e7c305ccffb6841d109c][そこそこセキュアなlinuxサーバーを作る - Qiita]]
+
+*** 公開鍵をクライアントからサーバーへ送りこむ
+
+ssh ログインできるように，サーバーの =~/.ssh/authorized_keys= へ，
+クライアントの =~/.ssh/id_rsa.pub= をコピーする．
+
+権限は =~/.ssh= が =700= ， =~/.ssh/authorized_keys= が =600= となる．
+
+Mac の Homebrew で ssh-copy-id がインストールできるので，これを利用するのが簡単だ．
+
+#+begin_src sh
+brew install ssh-copy-id
+ssh-copy-id -i ~/.ssh/id_rsa.pub niku.name
+#+end_src
+
+*** パスワード確認なしに sudo を実行する
+
+参考: [[https://wiki.debian.org/sudo][sudo - Debian Wiki]]
+
+=/etc/sudores= の最後に =#includedir /etc/sudoers.d= と書いてあるだろう．
+
+そうすると =/etc/sudores.d= ディレクトリにある，権限が =0440= なファイルを設定に追加して読み込んでくれるようだ．
+
+#+begin_src sh :tangle setup.sh
+# パスワード確認なしに sudo を実行する
+sudo sh -c "cat << EOS > /etc/sudoers.d/nopasswd
+${USER} ALL=(ALL) NOPASSWD:ALL
+EOS
+" && \
+sudo chmod 0440 /etc/sudoers.d/nopasswd
+#+end_src
+
+*** ssh ポートを変更する
+
+[[http://qiita.com/cocuh/items/e7c305ccffb6841d109c#5-%E3%83%9D%E3%83%BC%E3%83%88%E5%A4%89%E6%9B%B4][ポート変更]]
+
+ssh のデフォルトポート 22 にはポートスキャンが沢山くるので，
+万が一脆弱性があった場合の時間稼ぎのために変更しておく．
+
+#+begin_src sh :tangle setup.sh
+# ssh ポートをデフォルトから変更する
+sudo sed -i -e "s/^Port .*$/Port 2929/" /etc/ssh/sshd_config
+#+end_src
+
+*** root アカウントで ssh ログインさせない
+
+[[http://qiita.com/cocuh/items/e7c305ccffb6841d109c#4-ssh%E3%81%A7root%E3%81%ABlogin%E5%87%BA%E6%9D%A5%E3%81%AA%E3%81%8F%E3%81%99%E3%82%8B][sshでrootにlogin出来なくする]]
+
+#+begin_src sh :tangle setup.sh
+# root アカウントでの ssh ログイン禁止
+sudo sed -i -e "s/^PermitRootLogin .*$/PermitRootLogin no/" /etc/ssh/sshd_config
+#+end_src
+
+*** パスワード認証で ssh ログインさせない
+
+[[http://qiita.com/cocuh/items/e7c305ccffb6841d109c#4-%E3%83%91%E3%82%B9%E3%83%AF%E3%83%BC%E3%83%89%E8%AA%8D%E8%A8%BC%E3%82%92%E5%88%87%E3%82%8B][パスワード認証を切る]]
+
+#+begin_src sh :tangle setup.sh
+# パスワード認証での  ssh ログイン禁止
+sudo sed -i -e "s/^PasswordAuthentication .*$/PasswordAuthentication no/" /etc/ssh/sshd_config
+sudo sed -i -e "s/^ChallengeResponseAuthentication .*$/ChallengeResponseAuthentication no/" /etc/ssh/sshd_config
+#+end_src
+
+*** IPv6 を無効化する
+
+知識がないとセキュアな運用はできない．
+そして僕の IPv6 の知識は今のところ足りないので，無効にしておく．
+なんだか申し訳ない >< だれとなく．
+
+[[https://wiki.debian.org/DebianIPv6#How_to_turn_off_IPv6][DebianIPv6 - Debian Wiki]]
+
+を読むと =/etc/sysctl.conf= に書くとよいらしい．
+
+=/etc/sysctl.conf= には
+
+#+begin_quote
+See /etc/sysctl.d/ for additional system variables.
+#+end_quote
+
+と書いてある．
+
+そこで =/etc/sysctl.d= の中を探索して見つけた =/etc/sysctl.d/README.sysctl= には
+
+#+begin_quote
+Files found under the /etc/sysctl.d directory that end with .conf are
+parsed within sysctl(8) at boot time.
+#+end_quote
+
+とある．
+
+=/etc/sysctl.d= ディレクトリにある =.conf= で終わるファイル名のものは
+=/etc/sysctl.conf= に書いたものと同じように読み込まれるようだ．
+
+#+begin_src sh :tangle setup.sh
+# IPv6 無効化
+sudo sh -c "cat << EOS > /etc/sysctl.d/disable_ipv6.conf
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+net.ipv6.conf.eth0.disable_ipv6 = 1
+EOS"
+#+end_src
+
+*** IP spoofing 対策をする
+
+[[https://www.ipa.go.jp/security/fy14/contents/soho/html/chap1/spoof.html][IP Spoofing]]
+
+#+begin_quote
+自IPアドレスを相手のIPアドレスに偽装し攻撃を仕掛けたり、 Firewallを突破するという方法
+#+end_quote
+
+127.0.0.1 や 192.168.0.1 など内部で利用する IP アドレスはファイアウォールの制限が緩かったりする．
+それを利用して，IP アドレスを偽装してパケットを送りつける手法のことを IP Spoofing と呼ぶそうだ．
+
+=/etc/sysctl.conf= に
+
+#+begin_quote
+Uncomment the next two lines to enable Spoof protection (reverse-path filter)
+Turn on Source Address Verification in all interfaces to
+prevent some spoofing attacks
+net.ipv4.conf.default.rp_filter=1
+net.ipv4.conf.all.rp_filter=1
+#+end_quote
+
+とある．
+
+ここを直接コメントアウトしてもよい．
+
+今回は，デフォルトのファイルはできるだけそのままにしておきたいという僕の趣味により， =/etc/sysctl.d= に conf ファイルを作る．
+
+#+begin_src sh :tangle setup.sh
+# IP spoofing 対策
+sudo sh -c "cat << EOS > /etc/sysctl.d/enable_ip_spooof_protection.conf
+net.ipv4.conf.default.rp_filter=1
+net.ipv4.conf.all.rp_filter=1
+EOS"
+#+end_src
+
+*** 使わないポートを閉じる
+
+[[https://wiki.debian.org/iptables][iptables - Debian Wiki]]
+
+を参考にする．
+
+- SSH のポート番号を 22 から 2929 変更する
+- HTTP 通信に使うので 4000 番も開ける
+
+の 2 点だけ変更した．
+
+#+begin_src sh :tangle setup.sh
+# firewall 設定
+sudo apt-get update -q && \
+sudo DEBIAN_FRONTEND=noninteractive apt-get -y -qq install iptables-persistent && \
+sudo sh -c "cat << EOS > /etc/iptables/rules.v4
+*filter
+
+# Allows all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0
+-A INPUT -i lo -j ACCEPT
+-A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
+
+# Accepts all established inbound connections
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Allows all outbound traffic
+# You could modify this to only allow certain traffic
+-A OUTPUT -j ACCEPT
+
+# Allows HTTP and HTTPS connections from anywhere (the normal ports for websites)
+-A INPUT -p tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp --dport 443 -j ACCEPT
+
+# Allows HTTP connections (original ports)
+-A INPUT -p tcp --dport 4000 -j ACCEPT
+
+# Allows SSH connections
+# The --dport number is the same as in /etc/ssh/sshd_config
+-A INPUT -p tcp -m state --state NEW --dport 2929 -j ACCEPT
+
+# Now you should read up on iptables rules and consider whether ssh access
+# for everyone is really desired. Most likely you will only allow access from certain IPs.
+
+# Allow ping
+#  note that blocking other types of icmp packets is considered a bad idea by some
+#  remove -m icmp --icmp-type 8 from this line to allow all kinds of icmp:
+#  https://security.stackexchange.com/questions/22711
+-A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
+
+# log iptables denied calls (access via 'dmesg' command)
+-A INPUT -m limit --limit 5/min -j LOG --log-prefix \"iptables denied: \" --log-level 7
+
+# Reject all other inbound - default deny unless explicitly allowed policy:
+-A INPUT -j REJECT
+-A FORWARD -j REJECT
+
+COMMIT
+EOS"
+#+end_src
+
+*** パッケージ自動更新
+
+セキュリティに関するアップデートを見逃すことのないよう，パッケージを自動更新する．
+
+初期設定として用意されている =/etc/cron-apt/action.d/3-download= は，
+apt-get に =-d= というオプションがついているのでダウンロードのみ行う．
+オプションは =man apt-get= 参照のこと．
+
+そこで =apt-get upgrade= するような action を新たに追加する．
+
+#+begin_src sh :tangle setup.sh
+# パッケージ自動更新
+sudo sudo apt-get update -q && \
+sudo apt-get install -y -qq cron-apt && \
+sudo sh -c "cat << EOS > /etc/cron-apt/action.d/5-upgrade
+upgrade -y -o APT::Get::Show-Upgraded=true
+EOS"
+#+end_src
+
+** アプリケーション
+
+アプリケーションは基本的に全てを Docker 上で動かす．
+
+Docker コンテナの更新だけは [[https://github.com/niku/yobirinex][Erlang 製のアプリ]]で HTTP(S) を待ち受けて行う．
+
+という方針にする．
+
+*** Docker
+
+Debian8(Jessie) への Docker のインストールは [[https://docs.docker.com/installation/debian/#debian-jessie-8-0-64-bit][Installation on Debian]] にまとまっている．
+
+jessie-backports が必要なので，apt の設定へ追記する．
+
+#+begin_src sh :tangle setup.sh
+# Docker のインストール
+sudo sh -c "cat << EOS > /etc/apt/sources.list.d/jessie-backports.list
+deb http://ftp.jp.debian.org/debian jessie-backports main
+EOS" && \
+sudo sudo apt-get update -q && \
+sudo apt-get install -y -qq docker.io
+#+end_src
+
+*** yobirinex
+
+[[https://github.com/niku/yobirinex][niku/yobirinex]]
+
+Docker コンテナの更新通知を HTTP で待ち受けて，
+通知がきたらあらかじめ設定してあるコマンドを実行する．
+
+手元の vagrant で同じバージョンの debian サーバーを立ち上げて，
+ErlangVM 同梱の動作環境を生成，それを scp なりでコピーすること．
+
+*** nikulog
+
+nikulog は [[https://hub.docker.com/r/niku/nikulog/][Docker で利用できるようにしてある]]．
+
+セットアップが終わったら =sudo docker run --publish 80:80 --name nikulog -d niku/nikulog= で起動すること．
+
+** 仕上げ
+
+設定が終わったら，設定の反映を行うために **サーバーを再起動させる** ことを忘れてはいけない．
+
+設定がまちがっていて接続できなかったり，起動しないことがあるかもしれないが，
+VPS を使っており，たとえ再設定するとしても楽なのでこうしている．
+
+離れたところにあるサーバーの設定などの場合は一つずつ丁寧に反映させていく方がよい．
