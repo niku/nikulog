@@ -1,0 +1,69 @@
+* X86の上でARMのDebian8(Jessie)なDockerImageを作った
+
+X86 環境にて，Docker に含まれている mkimage.sh を利用して ARM 環境の DockerImage を作ることができた．
+
+[[http://kotak.hatenablog.com/entry/2014/06/21/002944][Debian armhfなDocker imageを作ってみた - kotakのひまじめ日記]] でも成功しているようだったが，
+こちらはスクリプトを自作なさって，それによってうまく動作させていた．
+
+今回僕がやったのは，既存のスクリプトには手を加えずに，環境変数やパラメータだけで作る方法なので，最新版に追従するメンテナンスが楽であろう．
+
+X86 の Debian8(Jessie) 環境で以下のコマンドを打つと debian-image ディレクトリにできる．
+
+#+begin_src sh
+$ uname -a
+Linux packer-virtualbox-iso-1441705744 3.16.0-4-amd64 #1 SMP Debian 3.16.7-ckt11-1+deb8u3 (2015-08-04) x86_64 GNU/Linux
+$ cat /etc/debian_version
+8.2
+$ sudo sh -c "echo 'deb http://ftp.jp.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/jessie-backports.list"
+$ sudo apt-get -q update && sudo apt-get install -qq -y debootstrap qemu-user-static git docker.io
+$ git clone -b v1.8.2 --depth 1 https://github.com/docker/docker.git
+$ sudo DEBOOTSTRAP=qemu-debootstrap docker/contrib/mkimage.sh --dir debian-image --tag niku/armhf-debian debootstrap --no-check-gpg --arch=armhf --variant=minbase jessie http://ftp.jp.debian.org/debian
+#+end_src
+
+もしこれを DockerHub へアップロードしたいときは，追加で以下の手順を行う
+
+#+begin_src sh
+$ cd debian-image
+$ sudo docker login --username="niku" --email="my_email_address@example.com" --password="my_password"
+$ sudo docker push niku/armhf-debian
+#+end_src
+
+こうしてできたのが [[https://hub.docker.com/r/niku/armhf-debian/][niku/armhf-debian]] になる．ARM 環境の Docker で動かしてみたところ動作した．
+( ARM 環境で，X86 環境版の [[https://hub.docker.com/r/niku/debian/][niku/debian]] を動かしてみたら想定通り動かなかった )
+
+** 説明
+
+以下は詳しくない人間が数日間調べた結果なので正しくない可能性がある．
+もし間違っていたら直すので教えてほしい．
+
+1.  X86 上で ARM 環境を動かすには QEMU というエミュレータを使うのが一般的である．X86 なのに ARM のふりをしてくれる．ただし，ふりをするのは大変なので，すごく遅くなる．
+2. Linux には =chroot= という，仮想環境に入るコマンドがある．コマンドで指定したディレクトリを / とみなして作業を行えるコマンドだ．
+3. Debian には =debootstrap= という，Debian 環境を指定のディレクトリに作るコマンドがある．
+
+この 3 つを組み合わせると
+「debootstrap で作った debian 環境の動作を QEMU ですりかえて ARM のふりをさせる．
+そこに chroot で入ると，まるで ARM で動作する Debian 環境のように動く」
+ということをさせられる．
+
+これを手で行っているのが [[http://pcdennokan.dip.jp/static/mypyapp2/files/debianmeetingresume201304-presentation-sugimoto.pdf][東京エリアDebian勉強会 debootstrapを有効活用してみよう]] の 15-16 ページ目あたりだ．
+
+[[https://wiki.debian.org/ArmHardFloatChroot][ArmHardFloatChroot - Debian Wiki]] によると，最近は =qemu-debootstrap= という，一連のことを自動でやってくれるコマンドができたようだ．
+
+さて，docker リポジトリの contrib には mkimage.sh という，Docker の Image を自分で作成するためのコマンドが含まれている．
+
+mkimage.sh の引数には debootstrap を指定できる．
+すると debootstrap で作成した Debian を Docker の Image にしてくれる．
+
+mkimage.sh の中で =debootstrap= コマンドを実行するとき，
+これを =qemu-debootstrap= へとすり替えて，引数をうまく渡せば ARM 環境での Docker Image になる．
+
+mkimage.sh から呼ばれる [[https://github.com/docker/docker/blob/v1.8.2/contrib/mkimage/debootstrap#L28-L29][contrib/mkimage/debootstrap#L28-L29]] を見ると答えが書いてある．
+=DEBOOTSTRAP= という環境変数が，実行するコマンド名になるので =DEBOOTSTRAP=qemu-debootstrap ./mkimage.sh ...= するとよい．
+
+** まとめ
+
+- 既存の資産に手を加えずに X86 上で ARM にて動作する Docker Image の作成ができた
+- X86 環境で ARM 環境のものを動かすには QEMU を使う
+- Linux にはルートをすりかえる =chroot= というコマンドがある
+- Debian には Debian 環境を作る =debootstrap= というコマンドがある
+- X86 にて =debootstrap= で作った Debian 環境の動作を QEMU ですり替え，そのディレクトリに =chroot= で入ると，まるで ARM 環境にいるように見える
