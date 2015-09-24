@@ -1,0 +1,42 @@
+* elixirの--no-haltオプションはどう実装されているか
+
+elixir には，サーバーなどを起動させるコマンドの場合に，コマンドを終了させない =--no-halt= というオプションがある．
+
+#+begin_src sh
+% elixir --help 2>&1 | grep no-halt
+  --no-halt         Does not halt the Erlang VM after execution
+#+end_src
+
+これはどのように実装されているのだろうか．
+
+[[https://github.com/elixir-lang/elixir/blob/v1.0.5/lib/elixir/lib/kernel/cli.ex#L158-L160][lib/elixir/lib/kernel/cli.ex#L158-L160]]
+
+#+begin_src elixir
+defp parse_shared(["--no-halt"|t], config) do
+  parse_shared t, %{config | halt: false}
+end
+#+end_src
+
+=--no-halt= を設定されると =config= に含まれる =:halt= が =false= となるようだ．
+
+[[https://github.com/elixir-lang/elixir/blob/v1.0.5/lib/elixir/lib/kernel/cli.ex#L4-L6][lib/elixir/lib/kernel/cli.ex#L4-L6]]
+
+#+begin_src elixir
+@blank_config %{commands: [], output: ".", compile: [],
+                halt: true, compiler_options: [], errors: [],
+                pa: [], pz: [], verbose_compile: false}
+#+end_src
+
+初期値は =true= である．
+
+[[https://github.com/elixir-lang/elixir/blob/v1.0.5/lib/mix/lib/mix/tasks/run.ex#L67][lib/mix/lib/mix/tasks/run.ex#L67]]
+
+#+begin_src elixir
+unless Keyword.get(opts, :halt, true), do: :timer.sleep(:infinity)
+#+end_src
+
+=:halt= が =true= でない場合は =:timer.sleep(:infinity)= で待ち続けるようになっている．
+
+** まとめ
+
+=--no-halt= は =:timer.sleep(:infinity)= で実装されている．
