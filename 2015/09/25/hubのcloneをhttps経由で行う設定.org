@@ -1,0 +1,35 @@
+* hubのcloneをhttps経由で行う設定
+
+[[https://github.com/github/hub][github/hub]] を利用して，GitHub からのソースコードの clone を
+=git clone https://github.com/niku/nikulog.git= ではなく
+=git clone niku/nikulog= のように行っている人も多いだろう．
+
+その時に，何も設定していなければ git プロトコルでクローンされる．
+
+GitHub では [[https://help.github.com/articles/which-remote-url-should-i-use/#cloning-with-https-recommended][Which remote URL should I use? - User Documentation]] で https プロトコルをお勧めしている．
+どのように設定すれば https プロトコルで clone できるだろうか．
+
+=man hub= すると CONFIGRATION に "HTTPS instead of git protocol" という部分があり
+
+#+begin_src
+If you prefer the HTTPS protocol for GitHub repositories, you can set "hub.protocol" to "https".
+This will affect clone, fork, remote add and other operations that expand references to GitHub repositories as full URLs that otherwise use git and ssh protocols.
+
+"hub.protocol" only applies when the "OWNER/REPO" shorthand is used instead of a full git URL.
+
+    # default behavior
+    $ git clone defunkt/repl
+    < git clone >
+
+    # opt into HTTPS:
+    $ git config --global hub.protocol https
+    $ git clone defunkt/repl
+    < https clone >
+#+end_src
+
+と書いてある．つまり =git config --global hub.protocol https= を行えば https プロトコルで clone するようになる．
+
+** まとめ
+
+hub コマンドを利用して github の リポジトリを clone してくる際に https プロトコルを利用するには
+=git config --global hub.protocol https= という設定を行う．
