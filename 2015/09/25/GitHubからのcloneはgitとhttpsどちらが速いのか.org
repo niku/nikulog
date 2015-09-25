@@ -1,0 +1,27 @@
+* GitHubからのcloneはgitとhttpsどちらが速いのか
+
+GitHub から clone する時は git と https を選べる．どちらが速いのか．
+
+=time= コマンドで 2 回ずつ linux リポジトリを clone してみた．
+
+#+begin_src
+# time git clone git@github.com:torvalds/linux.git
+hub clone git@github.com:torvalds/linux.git  298.80s user 78.85s system 79% cpu 7:52.84 total
+hub clone git@github.com:torvalds/linux.git  299.61s user 79.24s system 79% cpu 7:57.87 total
+
+# time git clone https://github.com/torvalds/linux.git
+hub clone https://github.com/torvalds/linux.git  285.38s user 83.63s system 73% cpu 8:25.28 total
+hub clone https://github.com/torvalds/linux.git  283.56s user 84.88s system 78% cpu 7:49.35 total
+#+end_src
+
+|        | git@github.com:torvalds/linux.git | https://github.com/torvalds/linux.git |
+| 1 回目 |                               472 |                                   505 |
+| 2 回目 |                               477 |                                   469 |
+| 平均   |                               474 |                                   487 |
+
+それほど差がないことがわかった．
+昔は https の方がかなり速かったような記憶があったのだが，改善されたのかもしれない．
+
+[[http://tech.nitoyon.com/ja/blog/2013/01/11/github-clone-http/][GitHub で clone するときは SSH じゃなく HTTP を使ったほうが高速 - てっく煮ブログ]]
+
+昔は ssh と https を使っていたのだが，現在は git と https を使っているせいなのかな？
