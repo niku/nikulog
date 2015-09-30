@@ -1,0 +1,135 @@
+* ブラウザで開いているGithubのリポジトリをターミナルからcloneする
+
+ターミナルから =git c= と打つと，ブラウザで開いている Github のリポジトリを clone してくる方法．
+
+もっと過激な，ブラウザで Github のページを開いたら自動的にリポジトリを clone する方法は
+
+[[http://moznion.hatenadiary.com/entry/2015/09/25/014001][GitHub のリポジトリページにアクセスするだけで自動的に git clone される Chrome 拡張書いた - その手の平は尻もつかめるさ]]
+
+にある．
+
+** Firefoxに拡張をインストールする
+
+Firefoxの状態取得や，操作を telnet 越しに行える MozRepl という拡張がある．こちらをインストールする．
+
+- [[https://addons.mozilla.org/ja/firefox/addon/mozrepl/][MozRepl]]
+- [[https://github.com/bard/mozrepl][bard/mozrepl]]
+
+インストールしたら，Firefox の設定で Tools - MozRepl - Activate on start up を選ぶ．
+これで Firefox が起動するたびに毎回 MozRepl が起動する．
+
+Firefox の起動中なら =telnet localhost 4242= で繋げるようになっているはずだ．
+
+例えば Firefox で http://www.yahoo.co.jp/ を開いてから，ターミナルで以下のコマンドを試そう．
+
+#+begin_src
+$ telnet localhost 4242
+repl> eval("content.location.href")
+"http://www.yahoo.co.jp/"
+#+end_src
+
+うまく動いただろうか．
+
+** gitのサブコマンドを作る
+
+[[http://qiita.com/icoxfog417/items/1d3ccec32d32bdaadc92][Git オリジナルのコマンドを作成する - Qiita]]
+
+パスの通ったところに =git-xxx= というコマンドを置いて，実行権限をつけると =git xxx= というサブコマンドとして利用できる．
+
+1. ブラウザで開いている URL を取得
+2. 取得した URL を元に clone するリポジトリの URL を作成
+3. =git clone 作成したURL= というコマンドを実行
+
+を行う =git clone-via-mozrepl= というコマンドを作成する．
+
+以下のソースコードを，パスの通ったところに git-clone-via-mozrepl というファイル名で保存，実行権限をつける．
+
+#+begin_src ruby
+#!/usr/bin/env ruby
+
+require "uri"
+require "net/telnet"
+
+# 環境変数 MOZREPL_PORT を指定すれば，mozrepl へ接続するポート番号を変更できる
+# $ MOZREPL_PORT=9000 git clone-via-mozrepl
+MOZREPL_PORT = ENV["MOZREPL_PORT"] || 4242
+
+begin
+  # telnet コマンドを実行するたびに短いウェイトを入れないと
+  # 想定している値を取れなかったので，コマンド毎に sleep している
+  telnet = Net::Telnet.new("Port" => MOZREPL_PORT)
+  sleep 0.01
+  # 本処理のときにヘッダを受けとりたくないため，
+  # ここでログイン時に出るヘッダを受けとっておく
+  telnet.waitfor(/\z/)
+  sleep 0.01
+  result = telnet.cmd("content.location.href")
+  mozrepl_uri = URI.parse(result.delete('"').split("\n")[0])
+
+  # Github のどの階層にいても user と repository を取得する
+  _empty, user_name, repository_name, _discard = mozrepl_uri.path.split("/", 4)
+
+  target_uri = mozrepl_uri.dup
+  target_uri.path = "/#{user_name}/#{repository_name}.git"
+
+  # Do clone
+  command = "git clone #{target_uri}"
+  puts "Do: `#{command}`"
+  system(command)
+ensure
+  telnet.close if telnet
+end
+#+end_src
+
+ブラウザで https://github.com/niku/nikulog/pulls を開いてから以下のコマンドを試してみよう．
+
+#+begin_src
+$ cd /tmp
+$ git clone-via-mozrepl
+Do: `git clone https://github.com/niku/nikulog.git`
+Cloning into 'nikulog'...
+remote: Counting objects: 2132, done.
+remote: Compressing objects: 100% (51/51), done.
+remote: Total 2132 (delta 19), reused 6 (delta 6), pack-reused 2075
+Receiving objects: 100% (2132/2132), 8.61 MiB | 2.18 MiB/s, done.
+Resolving deltas: 100% (807/807), done.
+Checking connectivity... done.
+#+end_src
+
+想定通り nikulog が clone できただろうか．
+
+** gitのコマンド短縮設定をする
+
+[[https://git-scm.com/book/tr/v2/Git-Basics-Git-Aliases][Git - Git Aliases]]
+
+=git config --global alias.[短縮名] 元コマンド= で，短縮コマンドを設定できる．
+
+今回は =git c= を =git clone-via-mozrepl= の短縮コマンドとして利用する．
+
+#+begin_src
+$ git config --global alias.c clone-via-mozrepl
+#+end_src
+
+ブラウザで https://github.com/niku/ff_stack_chat_example を開いてから以下のコマンドを試してみよう．
+
+#+begin_src
+$ cd /tmp
+$ git c
+Do: `git clone https://github.com/niku/ff_stack_chat_example.git`
+Cloning into 'ff_stack_chat_example'...
+remote: Counting objects: 96, done.
+remote: Total 96 (delta 0), reused 0 (delta 0), pack-reused 96
+Unpacking objects: 100% (96/96), done.
+Checking connectivity... done.
+#+end_src
+
+想定通り ff_stack_chat_example が clone できただろうか．
+
+
+** まとめ
+
+1. Firefoxを telnet 経由で操作する [[https://addons.mozilla.org/ja/firefox/addon/mozrepl/][MozRepl]] という拡張がある
+2. パスの通っているところに，実行権限をつけて =git-xxx= というファイルを置くと， =git xxx= というサブコマンドが準備できる
+3. =git config --global alias.x 元コマンド= で =git x= という短縮コマンドを準備できる
+
+以上を利用すると =git c= で，ブラウザで開いている Github のリポジトリを clone できる．
