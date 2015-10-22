@@ -1,0 +1,280 @@
+* Erlangライブラリ開発の流れ
+
+先日簡単な Erlang のライブラリを作った．
+その際 Erlang に詳しい方々より教えていただいたことがいくつもある．
+調べて知ったこととあわせて共有する．
+
+** ビルドツール
+
+いくつか調べたものがあるので列挙する．
+
+*** erlang.mk
+
+[[http://erlang.mk/][erlang.mk]]
+
+Erlang で多くの人に利用されている HTTP サーバー [[https://github.com/ninenines/cowboy][Cowboy]] の作者が作られているビルドツール．
+make でビルドするための Makefile やツール群が揃えられている．
+
+使い方の例が [[http://erlang.mk/guide/ch02.html][Chapter 2. Getting started]] にある．
+
+#+begin_src
+$ mkdir hello_joe
+$ cd hello_joe
+$ curl -O https://raw.githubusercontent.com/ninenines/erlang.mk/master/erlang.mk
+$ make -f erlang.mk bootstrap
+$ make
+$ tree
+.
+├── Makefile
+├── ebin
+│   ├── hello_joe.app
+│   ├── hello_joe_app.beam
+│   └── hello_joe_sup.beam
+├── erlang.mk
+├── hello_joe.d
+└── src
+    ├── hello_joe_app.erl
+    └── hello_joe_sup.erl
+
+2 directories, 8 files
+#+end_src
+
+*** rebar
+
+[[https://github.com/rebar/rebar][rebar]]
+
+Erlang 製の分散 NOSQL データベースである [[http://jp.basho.com/products/#riak][Riak]] を作られている basho さん発祥のビルドツール．
+最近は rebar という organization にコードが移管されているようだ．
+こちらのバージョンは 2.x となる．
+
+使い方の例が [[https://github.com/rebar/rebar/wiki/Getting-started][Getting started]] にある．
+
+OSX で Hombrew が入っているなら =brew install rebar= でインストールできる．
+
+#+begin_src
+$ brew install rebar
+$ mkdir hello_joe
+$ cd hello_joe
+$ rebar create-app appid=hello_joe
+$ rebar compile
+$ tree
+.
+├── ebin
+│   ├── hello_joe.app
+│   ├── hello_joe_app.beam
+│   └── hello_joe_sup.beam
+└── src
+    ├── hello_joe.app.src
+    ├── hello_joe_app.erl
+    └── hello_joe_sup.erl
+
+2 directories, 6 files
+#+end_src
+
+*** rebar3
+
+[[https://github.com/rebar/rebar3][rebar3]]
+
+上記 rebar を受け，非互換な改良をしたバージョン 3.
+
+Elixir のビルドツール mix が利用するパッケージマネージャーに [[https://hex.pm/][hex.pm]] というものがある．
+hex.pm を Erlang から利用するときは，この rebar3 の利用が推奨されているようだ．
+
+使い方の例が [[http://www.rebar3.org/docs/basic-usage][Basic Usage]] にある．
+
+OSX で Hombrew が入っているなら =brew install --devel homebrew/devel-only/rebar3= でインストールできる．
+
+#+begin_src
+$ brew install --devel homebrew/devel-only/rebar3
+$ rebar3 new release hello_joe
+$ cd hello_joe
+$ rebar3 compile
+$ tree
+.
+├── LICENSE
+├── README.md
+├── _build
+│   └── default
+│       └── lib
+│           └── hello_joe
+│               ├── ebin
+│               │   ├── hello_joe.app
+│               │   ├── hello_joe_app.beam
+│               │   └── hello_joe_sup.beam
+│               ├── include -> ../../../../include
+│               ├── priv -> ../../../../priv
+│               └── src -> ../../../../src
+├── rebar.config
+├── rebar.lock
+└── src
+    ├── hello_joe.app.src
+    ├── hello_joe_app.erl
+    └── hello_joe_sup.erl
+
+7 directories, 12 files
+#+end_src
+
+*** どれを使う？
+
+rebar3 を使うことにした．
+
+**** 理由1.
+
+今回は Erlang と Elixir のどちらからでも簡単に使えるようにしたかったので，
+ライブラリを作成して hex.pm に公開することを目指した．
+hex.pm で Erlang から利用する場合のビルドツール例が rebar3 であるため．
+
+**** 理由2.
+
+パラメータの取り方や利用方法が，
+僕が慣れている Ruby の Bundler / Rake に近い雰囲気を感じたため．
+
+** rebar3 でライブラリのテンプレートを作成する
+
+*** ライブラリの複数単語は_で繋ぐ
+
+ライブラリは erlang version について書くので，
+これを =-= (ハイフン) で繋ぐか =_= (アンダースコア) のどちらで繋ぐといいか
+twitter で聞いたところ [[https://twitter.com/mururururu][@mururururu]] さんに教えていただいた．
+
+#+begin_quote
+@niku_name _ が普通かと思います。 - だと 'a-b' みたいにクオートしないとアトムとして扱えないので。
+#+end_quote
+
+[[https://twitter.com/mururururu/status/647014540530454528]]
+
+=_= を利用して =erlang_version= をライブラリ名とした．
+
+*** rebar3のテンプレート生成
+
+=rebar3 new= すると選択可能なテンプレートが説明つきで表示される．
+
+#+begin_src
+$ rebar3 new
+app (built-in): Complete OTP Application structure.
+cmake (built-in): Standalone Makefile for building C/C++ in c_src
+escript (built-in): Complete escriptized application structure
+lib (built-in): Complete OTP Library application (no processes) structure
+plugin (built-in): Rebar3 plugin project structure
+release (built-in): OTP Release structure for executable programs
+#+end_src
+
+今回はプロセス生成が不要なライブラリなので =lib= を利用し，
+=rebar3 new lib erlang_version= とコマンドを打ってテンプレートを生成した．
+
+[[https://github.com/sapporo-beam/erlang_version/commit/529032cb1ce19e06e8bd3039dcce8ad58ee1739d][sapporo-beam/erlang_version@529032c]]
+
+** ライブラリのユニットテストを書く
+
+他の言語にもあるように，Erlang にも EUnit というユニットテスト用ライブラリがある．
+
+[[http://www.erlang.org/doc/apps/eunit/chapter.html][Erlang -- EUnit - a Lightweight Unit Testing Framework for Erlang]] が公式のユーザーガイドだ．
+
+日本語で読みやすく正しい情報を得たいなら [[http://www.amazon.co.jp/o/ASIN/4274069125/0x1d-22][すごいErlangゆかいに学ぼう!]] の "第24章 国際Erlang単体テスト理事会 EUnit" が良い．
+Web で読むならその本の元になった [[http://www.ymotongpoo.com/works/lyse-ja/ja/27_eunited_nations_council.html][27. EUnited Nations Council]] が読める．
+
+僕も『すごいErlangゆかいに学ぼう!』から知識を得た．
+
+ちょっとしたライブラリのテストなら，
+プロダクションコードに直接テストコードを含めてしまってもいいだろう．
+
+[[https://github.com/sapporo-beam/erlang_version/blob/v0.2.0/src/erlang_version.erl#L85-L137]]
+
+=rebar3 eunit= というコマンドを打つとユニットテストを実行できる．
+
+** ライブラリに型情報を書く
+
+Erlang は動的な型付言語ではあるが，型情報を付与し，その型情報の整合性をチェックすることができる．
+
+[[http://www.erlang.org/doc/apps/dialyzer/dialyzer_chapter.html][Erlang -- Dialyzer]] が公式のユーザーガイドだ．
+
+日本語で読みやすく正しい情報を得たいなら [[http://www.amazon.co.jp/o/ASIN/4274069125/0x1d-22][すごいErlangゆかいに学ぼう!]] の "第30章 型仕様とDialyzer" が良い．
+Web で読むならその本の元になった [[http://www.ymotongpoo.com/works/lyse-ja/ja/33_dialyzer.html][33. 型仕様とErlang]] が読める．
+
+以下のような =-spec= で始まる部分が型宣言になっている．
+
+[[https://github.com/sapporo-beam/erlang_version/blob/v0.2.0/src/erlang_version.erl#L67]]
+
+=rebar3 dialyzer= というコマンドを打つと dialyzer による型チェックを実行できる．
+
+** ライブラリのドキュメントを書く
+
+他の言語にもあるように，Erlang にも EDoc というドキュメントをコードに書くためのツールがある．
+もし前述の型情報を書いていた場合はドキュメントにも自動的に併記してくれる．
+
+[[http://www.erlang.org/doc/apps/edoc/chapter.html][Erlang -- Welcome to EDoc]] が公式のユーザーガイドだ．
+
+すごいErlang本には EDoc についての章はなかった．
+最低限 =@doc= だけ覚えておけば[[https://github.com/sapporo-beam/erlang_version/blob/v0.2.0/src/erlang_version.erl#L1][モジュールのドキュメント]]や[[https://github.com/sapporo-beam/erlang_version/blob/v0.2.0/src/erlang_version.erl#L54-L66][関数のドキュメント]]を書ける．
+
+=rebar3 edoc= というコマンドを打つと doc というディレクトリの中にドキュメントが生成される．
+doc/index.html がエントリポイントだ．
+
+** ライブラリを hex.pm へ公開する
+
+ここまでの内容は rebar3 の組み込みタスクで行える．
+hex.pm への公開は [[https://github.com/hexpm/rebar3_hex][hexpm/rebar3_hex]] という rebar3 のプラグインで行う．
+
+*** rebar3 へ rebar3_hex プラグインを組込む方法
+
+[[https://github.com/hexpm/rebar3_hex#usage][hexpm/rebar3_hex]] の通り =~/.config/rebar3/rebar.config= を作り，
+その rebar.config へ ={plugins, [rebar3_hex]}.= と記述する．
+
+すると，次に rebar3 を動かしたときに，足りない依存関係があれば自動的にダウンロードしてくれる(要ネットワーク)．
+
+*** hex.pm へユーザー登録する
+
+まず hex.pm へユーザー登録する．僕が知っている限りではコマンドラインからしか行えない（！）
+
+=rebar3 hex user register= でユーザー登録を行える．
+
+ユーザー名とメールアドレスを打ち込むと，
+そのメールアドレスへアカウント認証のメールが届き，
+指定されたリンクをクリックすると認証が完了する．
+
+*** hex.pm への認証をする
+
+ユーザー登録が完了したら，コマンドラインから hex.pm への認証を行う．
+
+=rebar3 hex user auth= で認証を行える．
+
+認証の結果は =~/.hex/hex.config= に記載されている．
+
+これでパッケージを公開できる準備が整った．
+
+*** ライブラリを hex.pm へ公開する
+
+[[https://hex.pm/packages/erlang_version][erlang_version | Hex]] のように公開できるのだが
+
+[[./erlang_version_on_hexpm.png]]
+
+赤枠で囲ったメタデータの部分があるとなお良いので =src/[ライブラリ名].app.src= へ追記しよう．
+それぞれがどういった意味を持つかは [[https://hex.pm/docs/rebar3_publish][Rebar3 Publish package | Hex]] の "Adding metadata to .app.src" に書いてある．
+
+[[https://github.com/sapporo-beam/erlang_version/blob/v0.2.0/src/erlang_version.app.src#L11-L13]]
+
+準備ができたら =rebar3 hex publish= とコマンドを打つとライブラリを公開できる．
+
+*** ドキュメントを hex.pm へ公開する
+
+ライブラリは公開できた．hex.pm には [[http://hexdocs.pm/erlang_version/0.2.0/][The erlang_version application]] のようにドキュメントを Web 上にホスティングしてくれる機能もある．
+
+もしうまくいかなかったら rebar3_hex のバージョンを見直してみよう．
+僕の環境では 1.7.x でうまくいかなかったが，作者が直してくれて 1.8 でうまくいくようになった．
+
+=rebar3 hex docs= とコマンドを打つとライブラリのドキュメントを公開できる．
+
+** まとめ
+
+- ライブラリをホスティングしてくれる [[https://hex.pm/][hex.pm]] というサイトがある
+- Erlang のビルドツールはいくつかあるが hex.pm を利用するなら [[http://www.rebar3.org/][rebar3]] がよい
+- 最近の言語でよくある，ライブラリのテンプレート作成は =rebar3 new [テンプレートの種類] [ライブラリ名]= で行える
+- ユニットテストには [[http://www.erlang.org/doc/apps/eunit/chapter.html][EUnit]] を使い =rebar3 eunit= でテストできる
+- 型情報チェックには [[http://www.erlang.org/doc/apps/dialyzer/dialyzer_chapter.html][Dialyzer]] を使い =rebar3 dialyzer= でチェックできる
+- ドキュメントを書くには [[http://www.erlang.org/doc/apps/edoc/chapter.html][EDoc]] を使い =rebar3 edoc= で生成できる
+- ライブラリを hex.pm へ公開するには =rebar3 hex publish= で公開できる
+- ドキュメントを hexdocs.pm へ公開するには =rebar3 hex docs= で公開できる
+
+erlang には，ソフトウェア開発で欲しいなあと思う機能は一通り揃っていることがわかった．
+
+また rebar3 を使えば特に苦労せずやりたい事がコマンドから実行できることがわかった．
