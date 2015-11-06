@@ -200,7 +200,7 @@ Worker が HTTP リクエストを待ちうけてレスポンスを返すよう�
 また，この Worker を動かすためには，あらかじめ =cowboy= と =plug= が初期化されて起動していなければいけない．
 プログラム内で呼び出してもよいのだが， =mix.exs= の =applications= に宣言しておくと，これらをあらかじめ起動しておいてくれるのでこちらを利用する．
 
-[[Introduction | Learn You Some Erlang for Great Good!][Start server from command · niku/builtinplug@f10060f]]
+[[https://github.com/niku/builtinplug/commit/f10060f0272ff90c8ae6e6c069266210b69ac06b][Start server from command · niku/builtinplug@f10060f]]
 
 ** ログをファイルに残す
 
