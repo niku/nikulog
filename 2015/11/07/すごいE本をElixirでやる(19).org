@@ -1,0 +1,335 @@
+* すごいE本をElixirでやる(19)
+
+第9章 一般的なデータ構造への小さな旅 から
+
+** 9.1 レコード
+
+Elixirでレコードを扱うにはドキュメントの [[http://elixir-lang.org/docs/v1.1/elixir/Record.html][Record]] モジュールを眺めるのが早い．
+
+*** レコードを定義する
+
+Elixirでのレコード定義は
+
+#+begin_src elixir
+  defmodule Records do
+    require Record
+    Record.defrecord :robot, [
+      name: nil,
+      type: :industrial,
+      hobbies: nil,
+      details: []
+    ]
+
+    def first_robot do
+      robot(name: "Mechatron",
+            type: :handmade,
+            details: ["Moved by a small man inside"])
+    end
+  end
+
+  Records.first_robot
+  # => {:robot, "Mechatron", :handmade, nil, ["Moved by a small man inside"]}
+#+end_src
+
+Erlangとの違い
+
+- Erlangのレコード定義では値を設定しない場合，暗黙的に =:undefined= になる．Elixirからのレコード定義はKey-Valueを受け取るので，構文上「値を設定しない」ということができない．明示的に値へ =:undefined= を設定することはできる．
+- ErlangのrrはElixirには無いようだ
+  - rrのようにKey-Valueで値を得るには =Record.robot(レコード)= とする
+  - =defrecord= の第二引数にはモジュール名を指定できる
+
+#+begin_src elixir
+  defmodule Records do
+    require Record
+    Record.defrecord :robot, Robot, [
+      name: nil,
+      type: :industrial,
+      hobbies: nil,
+      details: []
+    ]
+
+    def first_robot do
+      robot(name: "Mechatron",
+            type: :handmade,
+            details: ["Moved by a small man inside"])
+    end
+
+    def car_factory(corp_name) do
+      robot(name: corp_name, hobbies: "building cars")
+    end
+  end
+
+  defmodule Main do
+    require Records
+
+    def run do
+      Records.robot(Records.first_robot)
+    end
+  end
+
+  Records.first_robot
+  # => {Robot, "Mechatron", :handmade, nil, ["Moved by a small man inside"]}
+
+  Records.car_factory("Jokeswagen")
+  # => {Robot, "Jokeswagen", :industrial, "building cars", []}
+
+  Main.run
+  # => [name: "Mechatron", type: :handmade, hobbies: nil,
+  #     details: ["Moved by a small man inside"]]
+#+end_src
+
+#+RESULTS:
+| name: | Mechatron | type: | :handmade | hobbies: | nil | details: | (Moved by a small man inside) |
+
+*** レコードから値を読む
+
+Elixirのレコードには，Erlangのレコードにあるような「ドット構文」がない．
+Elixirのドット構文はrecordではなくstructというデータ構造に割り当てられている．
+structについては後述する．
+
+#+begin_src elixir
+  defmodule Records do
+    require Record
+    Record.defrecord :robot, Robot, [
+      name: nil,
+      type: :industrial,
+      hobbies: nil,
+      details: []
+    ]
+
+    def first_robot do
+      robot(name: "Mechatron",
+            type: :handmade,
+            details: ["Moved by a small man inside"])
+    end
+
+    def car_factory(corp_name) do
+      robot(name: corp_name, hobbies: "building cars")
+    end
+  end
+
+  defmodule Main do
+    require Records
+
+    def create_crusher do
+      crusher = Records.robot(
+        name: "Crusher",
+        hobbies: ["Crushing people", "petting cats"]
+      )
+
+      Records.robot(crusher, :hobbies)
+    end
+
+    def create_nested_bot do
+      nested_bot = Records.robot(
+        details: Records.robot(name: "erNest")
+      )
+
+      Records.robot(nested_bot, :details)
+      |> Records.robot(:name)
+    end
+  end
+
+  Main.create_crusher
+  # => ["Crushing people", "petting cats"]
+
+  Main.create_nested_bot
+  # => "erNest"
+#+end_src
+
+Elixirでも，Erlangと同じように，recordを関数ヘッダでパターンマッチに使え，ガードでも使える．
+
+#+begin_src elixir
+  defmodule Records do
+    require Record
+    Record.defrecord :user, User, id: nil, name: nil, group: nil, age: nil
+
+    # フィルタのためにパターンマッチを使う
+    def admin_panel(user(name: name, group: :admin)), do: "#{name} is allowed!"
+    def admin_panel(user(name: name)), do: "#{name} is not allowed."
+
+    # 問題なくuserを展開できる
+    def adult_section(u=user()) when user(u, :age) >= 18, do: :allowed
+    def adult_section(_), do: :forbidden
+  end
+
+  defmodule Main do
+    require Records
+
+    def run do
+      Records.admin_panel(Records.user(id: 1, name: "fred", group: :admin, age: 96))
+      # => "fred is allowed!"
+      Records.admin_panel(Records.user(id: 2, name: "you", group: :users, age: 66))
+      # => "you is not allowed."
+      Records.adult_section(Records.user(id: 21, name: "Bill", group: :users, age: 72))
+      # => :allowed
+      Records.adult_section(Records.user(id: 22, name: "Noah", group: :users, age: 13))
+      # => :forbidden
+    end
+  end
+
+  Main.run
+#+end_src
+
+*** レコードを更新する
+
+=Records.robot(レコード, 更新したいキーのシンボル, 更新したい値)= でレコードを更新できる．
+
+#+begin_src elixir
+  defmodule Records do
+    require Record
+    Record.defrecord :robot, Robot, [
+      name: nil,
+      type: :industrial,
+      hobbies: nil,
+      details: []
+    ]
+
+    def repairman(rob) do
+      details = robot(rob, :details)
+      new_rob = robot(rob, details: ["Repaired by repairman"|details])
+      {:repaired, new_rob}
+    end
+  end
+
+  defmodule Main do
+    require Records
+
+    def run do
+      {:repaired, rob} = Records.repairman(Records.robot(name: "Ulbert", hobbies: ["trying to have feelings"]))
+      Records.robot(rob)
+    end
+  end
+
+  Main.run
+  # => [name: "Ulbert", type: :industrial, hobbies: ["trying to have feelings"],
+  #     details: ["Repaired by repairman"]]
+#+end_src
+
+*** レコードを共有する
+
+ElixirでErlangのヘッダファイルをレコードとして利用するには2手順必要だ
+
+1. =Record.extract= を使ってヘッダファイルを読み込み，keyword listの形で取得する
+2. =Record.defrecord= を使って keyword list をレコードとして読み込む
+
+#+begin_src elixir
+  defmodule Records do
+    require Record
+    Record.defrecord :file_info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+
+    def extract, do: Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+    def run, do: file_info
+  end
+
+  IO.inspect Records.extract
+  # => [size: :undefined, type: :undefined, access: :undefined, atime: :undefined,
+  #     mtime: :undefined, ctime: :undefined, mode: :undefined, links: :undefined,
+  #     major_device: :undefined, minor_device: :undefined, inode: :undefined,
+  #     uid: :undefined, gid: :undefined]
+
+  IO.inspect Records.run
+  # => {:file_info, :undefined, :undefined, :undefined, :undefined, :undefined,
+  #     :undefined, :undefined, :undefined, :undefined, :undefined, :undefined,
+  #     :undefined, :undefined}
+#+end_src
+
+個人的にはElixirでのレコードは扱いが面倒に感じる．
+Erlangでハックしているものを，さらにElixirに馴染むようにハックしているから多少無理がでるのは仕方ないのかもしれない．
+
+** Struct
+
+Elixirには [[http://elixir-lang.org/getting-started/structs.html][Struct]] というデータ構造がある．
+
+- 「関数ヘッド内でパターンマッチに使え，ガードでも使える」というrecordと同じ特長を持つ
+- 「structの要素の取得にドット構文が割り当てられている」
+
+という便利さから考えると，恐らくElixirにおいてはrecordよりもstructを使う機会が多い．
+
+Recordが内部的には単なる第一要素がatomなTupleであるのと似たように，
+Structは内部的には =__struct__= というキーを持つ単なるMapである．
+
+Mapだと任意のキーに値を格納できる柔軟性を持つ一方，予想していない使い方やtypoした値でトラブルになることがある．
+Structは受け入れられないキーがないかや異なる形式のStructを渡していないかをコンパイル時に静的にチェックしてくれる．
+
+StructとRecordと比較してみよう．
+
+#+begin_src elixir
+  defmodule X do
+    require Record
+    Record.defrecord :r_robot, [
+      name: nil,
+      type: :industrial,
+      hobbies: nil,
+      details: []
+    ]
+
+    defmodule SRobot do
+      defstruct name: nil,
+                type: :industrial,
+                hobbies: nil,
+                details: []
+    end
+
+    # 作成
+    def create do
+      IO.inspect r_robot(name: "hogehoge") |> r_robot
+      #> [name: "hogehoge", type: :industrial, hobbies: nil, details: []]
+
+      IO.inspect %SRobot{name: "hogehoge"}
+      #> %X.SRobot{details: [], hobbies: nil, name: "hogehoge", type: :industrial}
+    end
+
+    # 読み込み
+    def read do
+      a = r_robot(name: "hogehoge")
+      IO.inspect r_robot(a, :name)
+      #> "hogehoge"
+
+      b = %SRobot{name: "hogehoge"}
+      IO.inspect b.name
+      #> "hogehoge"
+    end
+
+    # パターンマッチング
+    defp extract_name(r_robot(name: "foo")), do: "Record, foo"
+    defp extract_name(r_robot()), do: "Record, other"
+    defp extract_name(%SRobot{name: "foo"}), do: "Struct, foo"
+    defp extract_name(%SRobot{}), do: "Struct, other"
+
+    def pattern_matching do
+      IO.inspect extract_name(r_robot(name: "foo"))
+      #> "Record, foo"
+      IO.inspect extract_name(r_robot(name: "bar"))
+      #> "Record, other"
+      IO.inspect extract_name(%SRobot{name: "foo"})
+      #> "Struct, foo"
+      IO.inspect extract_name(%SRobot{name: "bar"})
+      #> "Struct, other"
+    end
+
+    # ガード
+    defp any_detail?(r_robot(details: details)) when 0 < length(details), do: true
+    defp any_detail?(%SRobot{details: details}) when 0 < length(details), do: true
+    defp any_detail?(_), do: false
+
+    def guard do
+      IO.inspect any_detail?(r_robot(name: "foo", details: ["some detail", "description"]))
+      #> true
+      IO.inspect any_detail?(r_robot(name: "foo", details: []))
+      #> false
+      IO.inspect any_detail?(%SRobot{name: "foo", details: ["some detail", "description"]})
+      #> true
+      IO.inspect any_detail?(%SRobot{name: "foo", details: []})
+      #> false
+    end
+  end
+
+  X.create
+  IO.puts "----"
+  X.read
+  IO.puts "----"
+  X.guard
+#+end_src
+
+ほとんど同じように書けるのがわかるだろう．
