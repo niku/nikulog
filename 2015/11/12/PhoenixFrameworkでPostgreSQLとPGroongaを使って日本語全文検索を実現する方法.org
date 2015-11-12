@@ -1,0 +1,319 @@
+* PhoenixFrameworkでPostgreSQLとPGroongaを使って日本語全文検索を実現する方法
+
+[[http://www.clear-code.com/blog/2015/11/9.html][Ruby on RailsでPostgreSQLとPGroongaを使って日本語全文検索を実現する方法 - ククログ(2015-11-09)]] を参考に，
+PhoenixFrameworkでPostgreSQLとPGroongaを使って日本語全文検索を実現する方法を書いた．
+
+OSはOSX10.10.5(Yosemite),パッケージ管理に [[http://brew.sh/][Homebrew]] を利用している．
+
+** PostgreSQLとPGroongaのインストール
+
+PostgreSQLとPGroongaをインストールし，起動しておく．
+(これ以降は別のコンソールを立ち上げて操作する)
+
+もしログイン時にバックグラウンドでPostgreSQLを起動しておきたいなら =brew info postgresql= にやり方が書いてある．
+
+#+begin_src sh
+  $ brew install pgroonga
+  $ postgres -D /usr/local/var/postgres
+#+end_src
+
+** Elixirのインストール
+
+#+begin_src sh
+  $ brew install elixir
+#+end_src
+
+** PhoenixFrameworkのインストール
+
+node.jsも必要なので一緒に入れておく
+
+#+begin_src sh
+  $ brew install nodejs
+  $ mix archive.install https://github.com/phoenixframework/phoenix/releases/download/v1.0.3/phoenix_new-1.0.3.ez
+#+end_src
+
+** ドキュメント検索システムの開発
+
+=mix new= で雛形を作る．
+
+#+begin_src sh
+  $ mix phoenix.new document_search --database postgres
+  $ cd document_search
+#+end_src
+
+document_searchがPostgreSQLへ接続するユーザー名を設定する．
+document_search/config/dev.exs の =username: "postgres",= を =username: System.get_env("USER"),= へと書き換える．
+
+#+begin_src diff
+  diff --git a/config/dev.exs b/config/dev.exs
+  index b2fa07a..43acfdb 100644
+  --- a/config/dev.exs
+  +++ b/config/dev.exs
+  @@ -35,7 +35,7 @@ config :phoenix, :stacktrace_depth, 20
+   # Configure your database
+   config :document_search, DocumentSearch.Repo,
+     adapter: Ecto.Adapters.Postgres,
+  -  username: "postgres",
+  +  username: System.get_env("USER"),
+     password: "postgres",
+     database: "document_search_dev",
+     hostname: "localhost",
+#+end_src
+
+document_searchがPostgreSQLへ接続するユーザー名を設定したので，データベースを作成する．
+
+#+begin_src sh
+  $ mix ecto.create
+#+end_src
+
+ここまでは（ほぼ）PGroongaと関係なく，アプリケーションがPostgreSQLを使う場合にはよくある手順だ．
+
+ここからPGroongaを使う場合に特有の手順になる．
+
+まず，データベースでPGroongaを使えるようにする．
+
+マイグレーションファイルを作成する．
+
+#+begin_src sh
+  $ mix ecto.gen.migration enable_pgroonga
+  * creating priv/repo/migrations
+  * creating priv/repo/migrations/20151112034251_enable_pgroonga.exs
+#+end_src
+
+=priv/repo/migrations/20151112034251_enable_pgroonga.exs= を[[https://github.com/niku/pgroonga-with-phoenix/commit/4aef714b5d84da8f1b2d760c127fbe85d59142bd][次のような内容]]にする．
+[[https://www.postgresql.jp/document/9.4/html/runtime-config-client.html][search_path]]を設定しているのはPGroongaが提供している演算子を =pg_catalog= にある組み込みの演算子よりも優先的に使うためだ．
+
+#+begin_src elixir
+  defmodule DocumentSearch.Repo.Migrations.EnablePgroonga do
+    use Ecto.Migration
+
+    def up do
+      execute "CREATE EXTENSION pgroonga;"
+      execute """
+      ALTER DATABASE #{current_database}
+        SET search_path = '$user', public, pgroonga, pg_catalog;
+      """
+    end
+
+    def down do
+      execute "ALTER DATABASE #{current_database} RESET search_path;"
+      execute "DROP EXTENSION pgroonga CASCADE;"
+    end
+
+    defp current_database, do: Application.get_env(:document_search, DocumentSearch.Repo)[:database]
+  end
+#+end_src
+
+続いて[[https://github.com/niku/pgroonga-with-phoenix/commit/59455a60faef146c846d6b97dde78140f4903258][検索対象のドキュメントを格納するテーブルを作成]]する．
+
+#+begin_src sh
+  $ mix phoenix.gen.html Document documents title:text content:text
+#+end_src
+
+[[https://github.com/niku/pgroonga-with-phoenix/commit/a0a3b3b06fa39802e1c5d4572e3a8d8eb382b75d][ラウティング（routing）は自分で足さなければならない]]（mix phoenix.gen.html したときに表示されるメッセージにも書いてある）
+これを足しておかないとDocumentControllerのコンパイル時にエラーになる．
+
+#+begin_src diff
+  diff --git a/web/router.ex b/web/router.ex
+  index cd80f61..2648b4b 100644
+  --- a/web/router.ex
+  +++ b/web/router.ex
+  @@ -17,6 +17,7 @@ defmodule DocumentSearch.Router do
+       pipe_through :browser # Use the default browser stack
+
+       get "/", PageController, :index
+  +    resources "/documents", DocumentController
+     end
+
+     # Other scopes may use custom stacks.
+#+end_src
+
+全文検索用のインデックスを作成する．
+
+#+begin_src sh
+  $ mix ecto.gen.migration add_full_text_search_index_to_documents
+  * creating priv/repo/migrations
+  * creating priv/repo/migrations/20151112034948_add_full_text_search_index_to_documents.exs
+#+end_src
+
+=priv/repo/migrations/20151112034948_add_full_text_search_index_to_documents.exs= を[[https://github.com/niku/pgroonga-with-phoenix/commit/8071e0ec5e4a86152d834bfd0df21d571c57f25d][次のような内容]]にする．
+ここで using: "pgroonga" を指定してインデックスを追加することがポイントだ．
+
+#+begin_src elixir
+  defmodule DocumentSearch.Repo.Migrations.AddFullTextSearchIndexToDocuments do
+    use Ecto.Migration
+
+    def change do
+      index(:documents, [:content], using: "pgroonga")
+    end
+  end
+#+end_src
+
+このマイグレーションファイルを反映する．
+
+#+begin_src sh
+  $ mix ecto.migrate
+#+end_src
+
+PostgreSQL側の準備はできたのでアプリケーション側に全文検索機能を実装する．
+
+[[https://github.com/niku/pgroonga-with-phoenix/commit/4db75f5b9f7badd52170c1af09ba71c5da614e58][モデルに全文検索用の関数を定義]]する．PGroongaでは[[http://pgroonga.github.io/ja/reference/operators/query.html][@@演算子]]で全文検索をする．
+この演算子を使うと「 =キーワード1 OR キーワード2= 」のようにORを使ったクエリーを指定できる．
+
+#+begin_src diff
+  diff --git a/web/models/document.ex b/web/models/document.ex
+  index f62ab9f..d3f37e1 100644
+  --- a/web/models/document.ex
+  +++ b/web/models/document.ex
+  @@ -21,4 +21,9 @@ defmodule DocumentSearch.Document do
+       model
+       |> cast(params, @required_fields, @optional_fields)
+     end
+  +
+  +  def full_text_search(base_query, searching_query) do
+  +    from d in base_query,
+  +    where: fragment("content @@ ?", ^searching_query)
+  +  end
+   end
+#+end_src
+
+ビューに[[https://github.com/niku/pgroonga-with-phoenix/commit/c84ee87183bb4c6cda627214ce1dd3faf577d41b][ヒット件数表示機能と検索フォームをつける]]．
+検索フォームではqueryというパラメーターに検索クエリーを指定することにする．
+
+#+begin_src diff
+  diff --git a/web/templates/document/index.html.eex b/web/templates/document/index.html.eex
+  index 2270378..5d7a07f 100644
+  --- a/web/templates/document/index.html.eex
+  +++ b/web/templates/document/index.html.eex
+  @@ -1,5 +1,15 @@
+   <h2>Listing documents</h2>
+
+  +<p><%= length(@documents) %> records</p>
+  +
+  +<%= form_for @conn, document_path(@conn, :index), [as: :document, method: :get], fn f -> %>
+  +  <div class="form-group">
+  +    <%= label f, :query, "query", class: "control-label" %>
+  +    <%= text_input f, :query, class: "form-control" %>
+  +  </div>
+  +  <%= submit "Submit" %>
+  +<% end %>
+  +
+   <table class="table">
+     <thead>
+       <tr>
+#+end_src
+
+最後に，[[https://github.com/niku/pgroonga-with-phoenix/commit/27043a4515b47ad1c85af5db5e3afb37a4c4a6be][コントローラーで全文検索を使うようにする]]．
+
+#+begin_src diff
+  diff --git a/web/controllers/document_controller.ex b/web/controllers/document_controller.ex
+  index ecbee46..a956d11 100644
+  --- a/web/controllers/document_controller.ex
+  +++ b/web/controllers/document_controller.ex
+  @@ -5,6 +5,11 @@ defmodule DocumentSearch.DocumentController do
+
+     plug :scrub_params, "document" when action in [:create, :update]
+
+  +  def index(conn, %{"document" => %{"query" => query}}) do
+  +    documents = Repo.all(Document.full_text_search(Document, query))
+  +    render(conn, "index.html", documents: documents)
+  +  end
+  +
+     def index(conn, _params) do
+       documents = Repo.all(Document)
+       render(conn, "index.html", documents: documents)
+#+end_src
+
+これで日本語全文検索機能は実現できる．
+
+ここからは，動作を確認するために[[https://github.com/niku/pgroonga-with-phoenix/commit/6733a6bfb7071968ad4003ca36a4671ff3b5567c][Qiitaから検索対象のドキュメントを取得するMixタスクを作る]]．
+
+ElixirでHTTPアクセスするには外部ライブラリのHTTPoisonを利用すると簡単なので，mix.exsの依存関係へと追加する．
+
+#+begin_src diff
+  diff --git a/mix.exs b/mix.exs
+  index 462b3c4..5e6febc 100644
+  --- a/mix.exs
+  +++ b/mix.exs
+  @@ -35,7 +35,8 @@ defmodule DocumentSearch.Mixfile do
+        {:postgrex, ">= 0.0.0"},
+        {:phoenix_html, "~> 2.1"},
+        {:phoenix_live_reload, "~> 1.0", only: :dev},
+  -     {:cowboy, "~> 1.0"}]
+  +     {:cowboy, "~> 1.0"},
+  +     {:httpoison, "~> 0.8", only: :dev}]
+     end
+#+end_src
+
+依存関係を追加したら，パッケージを取得する．
+
+#+begin_src sh
+  $ mix deps.get
+#+end_src
+
+準備ができたのでMixタスクを作成する．
+
+lib/mix/tasks/document_search/data/load/qiita.ex
+
+#+begin_src elixir
+  defmodule Mix.Tasks.DocumentSearch.Data.Load.Qiita do
+    use Mix.Task
+
+    @shortdoc "Load data from Qiita"
+    def run(_args) do
+      HTTPoison.start
+      DocumentSearch.Repo.start_link
+
+      tag = "groonga"
+      url = "https://qiita.com/api/v2/items?page=1&per_page=100&query=tag:#{tag}"
+      %HTTPoison.Response{body: body} = HTTPoison.get!(url)
+      Poison.Parser.parse!(body)
+      |> Enum.map(fn entry ->
+        params = %{title: entry["title"], content: entry["body"]}
+        DocumentSearch.Document.changeset(%DocumentSearch.Document{}, params)
+      end)
+      |> Enum.each(&DocumentSearch.Repo.insert!/1)
+    end
+  end
+#+end_src
+
+Mixタスクができたら，コンパイルする．コンパイルしないとmix helpへタスクとして出てこないので注意すること．
+
+コンパイルが完了したら，実行して検索対象のドキュメントを作成する．
+
+#+begin_src sh
+  $ mix compile
+  $ mix document_search.data.load.qiita
+#+end_src
+
+サーバーを起動する．
+
+#+begin_src sh
+  $ mix phoenix.server
+#+end_src
+
+=http://localhost:4000/documents= にアクセスすると，ドキュメントは100件ある．
+
+[[./empty_query.png]]
+
+フォームに「オブジェクト」と日本語のクエリーを入力すると，
+「オブジェクト」で絞り込んで16件になっている．日本語で全文検索ができている．
+
+[[./object_query.png]]
+
+次のようにOR検索もできる．「オブジェクト」単体で検索したときの16件よりも件数が増えているのでORが効いていることがわかる．
+
+[[./object_or_api_query.png]]
+
+** まとめ
+
+PotgreSQLとPGroonga（ぴーじーるんが）を使ってPhoenixFrameworkで日本語全文検索機能を実現する方法を説明した．
+
+ポイントは次の通り．
+
+- =CREATE EXTENSION pgroonga;=
+- =ALTER DATABASE SET search_path=
+- =index(:documents, [:content], using: "pgroonga")=
+- =where: fragment("content @@ ?", ^searching_query)=
+
+PhoenixFrameworkからも簡単に日本語全文検索が利用できることがわかった．
