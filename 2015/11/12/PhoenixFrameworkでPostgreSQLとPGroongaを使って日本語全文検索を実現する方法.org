@@ -317,3 +317,11 @@ PotgreSQLとPGroonga（ぴーじーるんが）を使ってPhoenixFrameworkで�
 - =where: fragment("content @@ ?", ^searching_query)=
 
 PhoenixFrameworkからも簡単に日本語全文検索が利用できることがわかった．
+
+** 告知
+
+この記事でお世話になったPGroongaやGroongaのイベントが2015/11/29にある．興味がでてきた人はイベントページから申し込むとよい．
+
+発表内容から有益な情報を得られるし，開発者に直接質問することもできるそうだ．
+
+[[https://groonga.doorkeeper.jp/events/31482][Groonga Meatup 2015 - Groonga | Doorkeeper]]
