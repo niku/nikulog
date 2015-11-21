@@ -1,0 +1,39 @@
+* 楽天テクノロジーカンファレンス2015札幌サテライトに行った
+
+[[http://web-unyou-sapporo.github.io/][札幌Webサービス運用勉強会 (web-unyou-sapporo)]]
+（タイトルが異なっているが『楽天テクノロジーカンファレンス2015ライブ接続@札幌のご案内』）にて，
+ [[http://tech.rakuten.co.jp/index.html][Rakuten Technology Conference 2015]] の一部を札幌サテライトで観てきた．
+
+楽天の方が [[https://github.com/sapporo-beam/sapporo-beam/issues/79][サッポロビーム#89]] にぶらりと遊びにきてくださって，
+小一時間ErlangVMやGCやGVLな雑談をしたあとにチラシを置いていってくださったので行ってみようという気になったのだった．
+
+全部英語なので大丈夫かなと思ったけど，
+今回聞いた人達はしゃべりとスライドがまあまあ同期していたので，
+前提知識がある程度わかっているやつは気合を入れればそれなりにわかった．
+（疲れてきて気合を抜くと全然わからなくなった）
+
+特に印象に残ったやつをメモっておこう．内容の理解にはあまり自信がない．誤読しているところがあったら教えてほしい．
+
+- [[http://rakutentechnologyconference2015.sched.org/event/6b3d89a7311a9c96f855f1884040b305#.ViiTYBDhDOQ][Will AI surpass human intelligence? -- Beyond Deep Learning]]
+  -「DLは特徴を抽出する」というのが印象に残った
+  - あと通常のAIからDLに変わったところでエラー率が25%->15%になったのを見てすげえなあと思った(こなみ
+- [[http://rakutentechnologyconference2015.sched.org/event/3fe0ab7cb4624022eee2d613f496e50f#.ViinDRDhBQI][Philosophy behind the Creation of Programming Languages]]
+  - Matzの「language designは，みんなが考えているより広い意味で，あなたたちもそこここでやっている．デザインよくしてこ」というメッセージ好き
+  - Egiさんの作られた [[http://www.egison.org/][Egison]] はある局面では非常に便利そうなんだけど，まだ自分にとっての使いどころが少なくてチャレンジしていない
+  - 正規表現みたいに言語内DSLとして使えると嬉しいのかもしれないので，Rubyで使えるパターンマッチング [[https://github.com/egison/egison-ruby][egison-ruby]] を試してみるか
+- [[http://rakutentechnologyconference2015.sched.org/event/cc8c0b541b5532939792c3260ad15a1b#.Viin4xDhBQI][Frontiers of Music Technologies: Singing Synthesis and Active Music Listening]]
+  - 「つきつめると，あなたの歌をコンピューターが聞く」とおっしゃっていて，ロシア的倒置法かなと思った
+  - Q&Aの「コンピューターが歌を解するようになったら，売れる歌は事前にわかるのか」「コンピューターが自動的に音楽を作れるようになったら，人間は音楽を作るのか」の回答も含めておもしろかった
+
+個人的には中の人と雑談する時間がもうちょっと長いとさらに楽しめたと思うが，
+すでにすばらしいイベントであったように思う．
+
+面白いトークセッションを楽しめ，アテンドしてくださっている楽天の中の人が親切で，
+ステッカー，ノベルティ，wifi，電源，昼食，コーヒー，ピザ（夕食）が無料で提供されているという
+ホスピタリティの高いイベントだった．
+
+札幌でライブ接続をやるのは始めてだったそうだ．準備するの大変だったろうなと思う．
+もうちょっと質を下げて，がんばらなくて大丈夫なので，また来年もやってくれるといいな……
+
+楽天テクノロジーカンファレンス2015を準備してくださったみなさん，スピーカーのみなさん，参加者のみなさん，
+そして特に札幌の楽天の中の人のみなさん，このような楽しい機会を設けていただきありがとうございました．
