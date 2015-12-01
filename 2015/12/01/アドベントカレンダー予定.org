@@ -1,0 +1,10 @@
+* アドベントカレンダー予定
+
+今のところ，自分が書くアドベントカレンダーの予定
+
+- 12/03 [[http://qiita.com/advent-calendar/2015/elixir-lang][Elixir Advent Calendar 2015 - Qiita]]
+- 12/04 [[http://qiita.com/advent-calendar/2015/emacs][Emacs Advent Calendar 2015 - Qiita]]
+- 12/07 [[http://www.adventar.org/calendars/824][Kawaz Advent Calendar 2015 - Adventar]]
+- 12/09 [[http://www.adventar.org/calendars/1128][北海道コンサドーレ札幌 Advent Calendar 2015 - Adventar]]
+
+列挙してみると前半につめこみすぎた感がある．
