@@ -3,8 +3,12 @@
 今のところ，自分が書くアドベントカレンダーの予定
 
 - 12/03 [[http://qiita.com/advent-calendar/2015/elixir-lang][Elixir Advent Calendar 2015 - Qiita]]
+  - [[http://qiita.com/niku/items/f120a40ab57e7a54fb8b][Elixirでプログラムがエラーになっても再起動する仕組みを試す]]
 - 12/04 [[http://qiita.com/advent-calendar/2015/emacs][Emacs Advent Calendar 2015 - Qiita]]
+  - [[http://qiita.com/niku/items/f81fa8759cb69efa4c90][Emacs25から標準添付されるseq.elを調べた]]
 - 12/07 [[http://www.adventar.org/calendars/824][Kawaz Advent Calendar 2015 - Adventar]]
+  - [[http://www.kawaz.org/blogs/niku/2015/12/7/790/][Kawaz - 来年はKawazに参加してこれをやろうと思う2015]]
 - 12/09 [[http://www.adventar.org/calendars/1128][北海道コンサドーレ札幌 Advent Calendar 2015 - Adventar]]
+  - [[https://gist.github.com/niku/f57ca5a52303a42360dd][コンサドーレ札幌サポートシップパートナー様の住所をマッピングしてみた]]
 
 列挙してみると前半につめこみすぎた感がある．
