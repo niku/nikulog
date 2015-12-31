@@ -1,0 +1,23 @@
+* 2015年ふりかえり
+
+2015年をふりかえってみようと思ったが，そもそも今年は抱負を書いていなかったので，どんな目標を立てていたのか失われてしまった……
+
+やったことだけ書く．
+
+2016年の抱負はあとで書く．
+
+** やった/参加したこと
+
+- 2015-06-13 OSC2015Hokkaidoで [[https://www.ospn.jp/osc2015-do/modules/eguide/event.php?eid=37][プログラミング言語Elixir]] を発表した
+- [[../../06/30/Ruby%E6%9C%AD%E5%B9%8C%E3%81%AELounge%E3%81%AB%E5%8F%82%E5%8A%A0%E3%81%97%E3%81%9F][2015/06/30/Ruby札幌のLoungeに参加した]]
+- [[../../07/06/okinawarb%E3%81%AB%E5%8F%82%E5%8A%A0%E3%81%95%E3%81%9B%E3%81%A6%E3%82%82%E3%82%89%E3%81%A3%E3%81%9F][2015/07/06/okinawarbに参加させてもらった]]
+- [[../../07/10/InfrastructureAsCodeCasual%E6%9C%AD%E5%B9%8C%E3%81%AB%E5%8F%82%E5%8A%A0%E3%81%97%E3%81%9F][2015/07/10/InfrastructureAsCodeCasual札幌に参加した]]
+- [[../../07/14/Ruby%E6%9C%AD%E5%B9%8C%E3%81%AELounge%E3%81%AB%E5%8F%82%E5%8A%A0%E3%81%97%E3%81%9F][2015/07/14/Ruby札幌のLoungeに参加した]]
+- [[../../08/18/Ruby%E6%9C%AD%E5%B9%8C%E3%81%AELounge%E3%81%AB%E5%8F%82%E5%8A%A0%E3%81%97%E3%81%9F][2015/08/18/Ruby札幌のLoungeに参加した]]
+- [[../../08/29/Sapporo.clj%E3%81%AB%E5%8F%82%E5%8A%A0%E3%81%97%E3%81%9F][2015/08/29/Sapporo.cljに参加した]]
+- [[../../09/12/PyconMiniSapporo%E3%81%AB%E5%8F%82%E5%8A%A0%E3%81%97%E3%81%9F][2015/09/12/PyconMiniSapporoに参加した]]
+- [[../../09/19/Emacs%E5%AF%84%E5%90%88%E3%82%92%E9%96%8B%E3%81%84%E3%81%9F][2015/09/19/Emacs寄合を開いた]]
+- [[../../11/21/%E6%A5%BD%E5%A4%A9%E3%83%86%E3%82%AF%E3%83%8E%E3%83%AD%E3%82%B8%E3%83%BC%E3%82%AB%E3%83%B3%E3%83%95%E3%82%A1%E3%83%AC%E3%83%B3%E3%82%B92015%E6%9C%AD%E5%B9%8C%E3%82%B5%E3%83%86%E3%83%A9%E3%82%A4%E3%83%88%E3%81%AB%E8%A1%8C%E3%81%A3%E3%81%9F][2015/11/21/楽天テクノロジーカンファレンス2015札幌サテライトに行った]]
+- 2015-11-13 [[https://swsapporo.doorkeeper.jp/events/30959][Startup Weekend Sapporo vol.3]] に参加した
+
+あとはサッポロビームを[[https://github.com/sapporo-beam/sapporo-beam/issues?page=1&q=is%3Aissue+created%3A2015-01-01..2016-01-01&utf8=%E2%9C%93][50回くらいやった]]みたい．
