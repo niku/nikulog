@@ -1,0 +1,18 @@
+* TimexでTwitterの時間表現をパースする
+
+[[https://dev.twitter.com/overview/api/tweets][twitterの時間表現]] =Wed Aug 27 13:08:45 +0000 2008= というのは，
+ISOやRFCで定義されているような標準的な表現形式ではないのかもしれない
+(合致するものをみつけられなかった)．
+
+古いバージョンの [[https://github.com/bitwalker/timex][bitwalker/timex]] では ="{UNIX}"= という形式で[[http://niku.name/articles/2014/12/12/Elixir で時間を扱うのに便利なライブラリ Timex][twitterの時間表現を解析できていた]]のだが，
+バージョンアップに伴いパーサーが厳密になり，解析できなくなったようだ．いいことだ．
+
+現在のTimex(1.0.0)でTwitterの時間表現を解析するには ="{WDshort} {Mshort} {D} {ISOtime} {Z} {YYYY}"= で行える．
+
+#+begin_src
+Timex.DateFormat.parse!("Wed Aug 27 13:08:45 +0000 2008", "{WDshort} {Mshort} {D} {ISOtime} {Z} {YYYY}")
+# => %Timex.DateTime{calendar: :gregorian, day: 27, hour: 13, minute: 8, month: 8, ms: 0, second: 45,
+#                    timezone: %Timex.TimezoneInfo{abbreviation: "UTC", from: :min, full_name: "UTC", offset_std: 0, offset_utc: 0, until: :max}, year: 2008}
+#+end_src
+
+表現を解析している第二引数の表現の意味はTimexのドキュメント [[https://hexdocs.pm/timex/Timex.Format.DateTime.Formatters.Default.html][Timex.Format.DateTime.Formatters.Default]] に書いてある．
