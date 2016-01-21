@@ -121,6 +121,22 @@ net.ipv6.conf.eth0.disable_ipv6 = 1
 EOS"
 #+end_src
 
+また，DebianデフォルトのMTA(Mail Transfer Agent)exim4にもIPv6の設定が書かれているので無効化する．
+これを無効化しておかないと，毎日1通
+
+#+begin_quote
+socket bind() to port 25 for address ::1 failed: Cannot assign requested address: daemon abandoned
+#+end_quote
+
+というエラーが記載されたメールが届く(届いていたので[[https://lists.debian.org/debian-user/2012/05/msg00156.html][修正方法を調べて]]追記している)．
+
+#+begin_src sh :tangle setup.sh
+# Exim4 設定ファイル内にある IPv6 設定無効化
+sudo sed -i -e "s/^dc_local_interfaces=.*$/dc_local_interfaces='127.0.0.1'/" /etc/exim4/update-exim4.conf.conf
+sudo update-exim4.conf
+sudo service exim4 restart
+#+end_src
+
 *** IP spoofing 対策をする
 
 [[https://www.ipa.go.jp/security/fy14/contents/soho/html/chap1/spoof.html][IP Spoofing]]

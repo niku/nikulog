@@ -18,6 +18,10 @@ net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1
 net.ipv6.conf.eth0.disable_ipv6 = 1
 EOS"
+# Exim4 設定ファイル内にある IPv6 設定無効化
+sudo sed -i -e "s/^dc_local_interfaces=.*$/dc_local_interfaces='127.0.0.1'/" /etc/exim4/update-exim4.conf.conf
+sudo update-exim4.conf
+sudo service exim4 restart
 # IP spoofing 対策
 sudo sh -c "cat << EOS > /etc/sysctl.d/enable_ip_spooof_protection.conf
 net.ipv4.conf.default.rp_filter=1
