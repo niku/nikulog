@@ -1,0 +1,29 @@
+* Rubyのeach_consとeach_sliceはElixirではchunkでやる
+
+Rubyには [[http://docs.ruby-lang.org/ja/2.3.0/method/Enumerable/i/each_cons.html][Enumerable#each_cons]] と [[http://docs.ruby-lang.org/ja/2.3.0/method/Enumerable/i/each_slice.html][Enumerable#each_slice]] という便利なメソッドがある．
+
+Elixirで同じ振舞いをするには [[http://elixir-lang.org/docs/v1.2/elixir/Enum.html#chunk/4][Enum.chunk/4]] を使うとよい．
+
+** 調べたこと
+
+#+begin_src ruby
+[1, 2, 3, 4, 5].each_cons(2).to_a  # => [[1, 2], [2, 3], [3, 4], [4, 5]]
+[1, 2, 3, 4, 5].each_slice(2).to_a # => [[1, 2], [3, 4], [5]]
+#+end_src
+
+Elixirでも同じことをやりたいと思ったが，同じような役割を担っている [[http://elixir-lang.org/docs/v1.2/elixir/Enum.html][Enumモジュール]] にはeach_xxxがみつからなかった．
+
+調べてみると，Elixirの開発ML(elixir-lang-core)にて [[https://groups.google.com/d/topic/elixir-lang-core/LAK23vaJgvE/discussion][Enum.cons/3]] というproposalがあり，最後に
+
+#+begin_quote
+`Enum.chunk` is probably what you are looking for. It covers Ruby's `each_cons` and `each_slice` roughly
+#+end_quote
+
+という返答があった．
+
+#+begin_src elixir
+Enum.chunk([1, 2, 3, 4, 5], 2, 1)     # => [[1, 2], [2, 3], [3, 4], [4, 5]]
+Enum.chunk([1, 2, 3, 4, 5], 2, 2, []) # => [[1, 2], [3, 4], [5]]
+#+end_src
+
+なるほど．[[http://elixir-lang.org/docs/v1.2/elixir/Enum.html#chunk/4][Enum.chunk/4]] を使うと同じようなことができる．
