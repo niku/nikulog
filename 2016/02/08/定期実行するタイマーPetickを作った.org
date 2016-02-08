@@ -1,0 +1,30 @@
+* 定期実行するタイマーPetickを作った
+
+ErlangVMの上で，定期的にコールバックを返してくれる [[https://github.com/niku/petick][niku/petick]] を作った．
+
+[[http://stackoverflow.com/questions/5883741/how-to-perform-actions-periodically-with-erlangs-gen-server][Stack OverflowのHow to perform actions periodically with Erlang's gen_server?]] をすごく参考にした．
+
+cronのかわりなどにどうぞ．
+
+** 特徴(v0.0.1時)
+
+*** 扱いやすいAPI
+
+- Petick.start/1
+- Petick.terminate/1
+- Petick.list/0
+- Petick.get/1
+- Petick.change_interval/2
+
+*** 安定した呼び出し
+
+- コールバックの処理がエラーになっても，タイマーは繰りかえし実行される
+- コールバックの処理が遅くても，タイマーは定期的に実行される
+- タイマーの周期を変えても，周期は維持される．(例: a.5秒-> b.(3秒に変更) -> c. aの5秒後に実行 -> d. cの3秒後に実行)
+
+*** まだないやつ(やらないかも)
+
+- back preasure
+- 永続化
+- すぐに設定した周期へ切り替えるようなAPI
+- 変更直後の周期だけを調整可能にする
