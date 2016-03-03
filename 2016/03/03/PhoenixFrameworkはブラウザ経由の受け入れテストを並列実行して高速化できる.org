@@ -1,0 +1,46 @@
+* PhoenixFrameworkはブラウザ経由の受け入れテストを並列実行して高速化できる
+
+[[./concurrent_acceptance_test.png]]
+
+通常，DBに書き込みするブラウザ経由のテストは直列にしか(1つだけしか)動かせない．
+なぜなら，1つだけしかないDBへ複数のブラウザから同時に書き込みすると，DBのデータがテストで想定していない状態になり，テストが失敗することがあるためだ．
+そのせいで受け入れテストというのはとにかく時間がかかる．
+
+PhoenixFrameworkでもその制約は健在であったが
+
+- DBサーバーミドルウェアのEctoで，[[https://github.com/elixir-lang/ecto/issues/1215][DBConnection]]という概念が取り入れられ 並列に動作するプロセスそれぞれで独立したトランザクションを利用できるようにした
+- WebサーバーミドルウェアのPlugのプラグインで，[[https://github.com/phoenixframework/phoenix_ecto/commit/f916f7ee00f0ef6ae3e1c5be39d06937a685231c][特定のリクエストと特定のトランザクションをcookieを用いて結びつける]] ことができるようにした
+- ブラウザ自動実行ミドルウェアのHoundで，[[https://github.com/elixir-lang/ecto/issues/1237][Ectoを経由して取得したトランザクションをcookieに含めて，各リクエストを独立したDBトランザクションで動く]] ようにした
+
+ことでブラウザ経由の受け入れをテスト並列実行して高速化できるようになった．
+
+詳しくは [[http://blog.carbonfive.com/2016/03/01/concurrent-acceptance-testing-in-elixir/][Concurrent Acceptance Testing in Elixir]] を読むとよい．
+コードは [[https://github.com/tokafish/concurrent_acceptance][tokafish/concurrent_acceptance: Concurrent acceptance tests with Selenium, Hound, and Ecto 2]] にある．
+
+画像はそのテストの実行中の様子だ(見やすいようにブラウザはバラバラに広げた)．
+
+実際に並列とそうでないテストで時間がでるのか =async: true= をつけたままの初期状態での並列なテストと，[[https://github.com/tokafish/concurrent_acceptance/blob/master/test/acceptance/first_test.exs#L2][ConcurrentAcceptance.AcceptanceCase]] の =async: true= を first_test - fourth_test の4つ削除した状態での並列ではないテストを比較した．
+
+#+begin_src
+/Users/niku/src/concurrent_acceptance% mix test
+....................
+
+Finished in 14.9 seconds (0.3s on load, 14.6s on tests)
+20 tests, 0 failures
+
+Randomized with seed 66022
+
+/Users/niku/src/concurrent_acceptance% mix test
+....................
+
+Finished in 32.1 seconds (0.2s on load, 31.8s on tests)
+20 tests, 0 failures
+
+Randomized with seed 472461
+#+end_src
+
+- 並列 :: 14.6 秒
+- 直列 :: 31.8 秒
+
+と並列化すると直列より速くなっているのがわかるだろう．
+(各テストに5秒待ちうけるという処理が入っているためでもある)
