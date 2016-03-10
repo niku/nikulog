@@ -1,0 +1,34 @@
+* Elixirでズンドコキヨシ
+
+#+begin_quote
+Javaの講義、試験が「自作関数を作り記述しなさい」って問題だったから
+「ズン」「ドコ」のいずれかをランダムで出力し続けて「ズン」「ズン」「ズン」「ズン」「ドコ」の配列が出たら「キ・ヨ・シ！」って出力した後終了って関数作ったら満点で単位貰ってた
+#+end_quote
+
+[[https://twitter.com/kumiromilk/status/707437861881180160]]
+
+楽しそうなのでElixirで試した．
+"ズンズンズンドコキ・ヨ・シ！" と表示するまで無限に続く．表示したら終わる．
+
+Elixirである条件が来たら終わるが，それまでは無限に出力するストリーム扱おうとする場合は，
+ストリームを打ち切ることができる [[http://elixir-lang.org/docs/stable/elixir/Stream.html#unfold/2][Stream.unfold]] ， [[http://elixir-lang.org/docs/stable/elixir/Stream.html#transform/3][Stream.transform]] ， [[http://elixir-lang.org/docs/stable/elixir/Stream.html#resource/3][Stream.resource]] などが便利だ．
+
+#+begin_src
+Stream.repeatedly(fn -> Enum.random(["ズン", "ドコ"]) end)
+|> Stream.transform([],
+                    fn
+                      "ズン" = e, ~w()                         = acc -> {[e], [e|acc]}
+                      "ズン" = e, ~w(ズン)                     = acc -> {[e], [e|acc]}
+                      "ズン" = e, ~w(ズン ズン)                = acc -> {[e], [e|acc]}
+                      "ドコ" = e, ~w(ズン ズン ズン)           = acc -> {[e], [e|acc]}
+                      _e, ~w(ドコ ズン ズン ズン)              = acc -> {["キ・ヨ・シ！"], ["キ・ヨ・シ！"|acc]}
+                      _e, ~w(キ・ヨ・シ！ ドコ ズン ズン ズン) = acc -> {:halt, Enum.reverse(acc)}
+                      e, _acc                                        -> {[e], [e]}
+                    end)
+|> Stream.each(&IO.write/1)
+|> Stream.run
+#+end_src
+
+あわせてよみたい
+
+[[http://qiita.com/niku/items/f06752d165945ff0b72e][進捗どうですかと煽ってくるプログラムをElixirのAgentとStream.transform/2を使って状態遷移で解く - Qiita]]
