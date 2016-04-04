@@ -1,0 +1,39 @@
+* Frontend開発を頑張れない僕のFFStack
+
+- サーバー側実装にはPhoenixFrameworkを使うことに決めた
+- クライアント側実装で良いものを追いかけるリソースが足りない
+- Typescriptは使うことに決めた
+
+こういう状態で，多少便利じゃなくてもよい，できれば簡潔になるような構成を目指した．
+
+しばらくはこれでいいことにして，アプリケーションを作ってみる方をがんばる．
+
+** あきらめたこと
+
+- 外部ライブラリはminifyされなくてもかまわない．一つにまとまらなくてもかまわない
+- アプリケーションのコードはminifyされなくてもかまわない(一つにはまとまってほしい)
+- Sass/Scssは使えなくてもいい
+
+** できたこと
+
+- Brunch(PhoenixFramework標準)/Grunt/Glup/Browserify/Webpackなどを使わず =npm install= での環境構築
+- TypeScriptのコンパイラ =tsc= を使って，複数のtsファイルを監視し，変更があればapp.jsという1つのファイルへと結合
+- =mix phoenix.server= で開発サーバーを起動した後，tsファイルに変更があればapp.jsの自動更新，ブラウザの自動リロード
+- TypeScript定義集Typingsの利用
+- Mithril.jsの利用
+- ミニマルなCSSフレームワークPure.cssの利用
+
+** やったこと
+
+- [[https://github.com/niku/chatex/commit/b72b0109191430c8f6f7d8e5c5786473ea1c2254][node_modulesディレクトリから静的ファイルを公開できるように設定した]]
+- [[https://github.com/niku/chatex/commit/aeafddb8445329e5af77485ca974bf8c859fe9bb][TypeScriptをインストールした]]
+- [[https://github.com/niku/chatex/commit/91b6ba6bd96947719c06147fa6aadbee23093cad?diff=unified#diff-e5e546dd2eb0351f813d63d1b39dbc48R7][複数のtsファイルをapp.jsというファイルに結合できるように設定した]]
+  - [[http://www.typescriptlang.org/docs/handbook/compiler-options.html][Compiler Options]] に =Only ‘amd’ and ‘system’ can be used in conjunction with --outFile= とあったので =amd= を指定し，require.js を利用することにした
+  - =system= を設定して SystemJS を利用するのでも特にかまわなかったが古くて枯れていそうな方を選択した
+- [[https://github.com/niku/chatex/commit/bcab2f1ae106042c8b196cca53e0ab67f4e44f7e][開発サーバーを起動したとき，tsファイルに変更があればapp.jsを自動書き換え，自動ブラウザリロードを行うようにした]]
+  - =mix phoenix.server= をフックして，一緒に起動するスクリプト，変更があったらブラウザリロードをする方法は公式ドキュメントの [[http://www.phoenixframework.org/docs/static-assets#section-using-another-asset-management-system-in-phoenix][Using Another Asset Management System in Phoenix]] あたりに書いてある
+
+** アプリケーションコード記述例
+
+[[http://mithril-ja.js.org/getting-started.html][Mithril.jsのGetting Started]]とほぼ同じ[[https://github.com/niku/chatex/commit/fa799ff12efdbfa2f42e821148c17f8f0f31ef4a][TypeScript実装]]．
+ジッサイウゴク．
