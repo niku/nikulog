@@ -1,0 +1,36 @@
+* EmacsからSlack分報に投稿する
+
+[[http://c16e.com/1511101558/][Slackで簡単に「日報」ならぬ「分報」をチームで実現する3ステップ 〜 Problemが10分で解決するチャットを作ろう]]
+
+以前からSlack分報を導入していたのだけど，アプリやWebを開いて投稿するのが面倒だったので，Emacsから直接投稿できるようにした．
+
+* 必要なもの
+
+1. Slack の [[https://api.slack.com/incoming-webhooks][incoming-webhooks API]] の設定
+2. 下記のコード
+
+#+begin_src elisp
+(defun times-niku (s)
+  "Post to #times-niku channel on the slack"
+  (interactive "sText:")
+  (with-temp-buffer
+    (let ((url                       "https://hooks.slack.com/services/path/to/your/incoming/webhook")
+          (url-request-method        "POST")
+          (url-request-extra-headers `(("Content-Type" . "application/x-www-form-urlencoded")))
+          (url-request-data          (format "payload={\"text\": %s}" (json-encode-string s)))
+          (mycallback                (lambda (x) (message (format "%s" x)))))
+      (url-retrieve url mycallback))))
+
+(define-key global-map (kbd "C-c C-M-p") 'times-niku)
+#+end_src
+
+* 使い方
+
+上のコードを評価してから， =M-x= して =times-niku= とすると，ミニバッファにテキストを入力する形になる．
+テキストを入力してリターンすると，Slackへ非同期に(Emacsが固まらず)投稿してくれる．
+
+=M-x times-niku= するかわりに =C-c C-M-p= しても同じように投稿できる．
+
+* TIPS
+
+ミニバッファ内で改行を入力したいときは =C-q C-j= で入力できる．これを利用すると複数行入力も可能である．
