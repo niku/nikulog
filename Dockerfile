@@ -1,12 +1,35 @@
-FROM niku/nwiki
+FROM nginx
 MAINTAINER niku
 
-RUN git clone https://github.com/niku/nikulog /var/www/nikulog && \
-    cd /var/www/nikulog && \
-    git checkout config && \
-    git checkout master && \
-    git fetch && \
-    git reset --hard origin/master && \
-    echo "\$LOAD_PATH << './lib'\nrequire './lib/nwiki'\nrequire 'rack/tracker'\nuse Rack::Tracker do\n  handler :google_analytics, { tracker: 'UA-26456277-1' }\nend\nrun Nwiki::Frontend::App.new File.expand_path('../../nikulog/.git', __FILE__)" > /var/www/nwiki/config.ru && \
-    mkdir -p /var/www/nikulog/tmp && \
-    touch /var/www/nikulog/tmp/restart.txt
+WORKDIR /var/tmp
+
+ENV LANG=C.UTF-8 \
+    NWIKI_REPO=https://github.com/niku/nikulog \
+    NWIKI_SITE_NAME="ヽ（´・肉・｀）ノログ" \
+    NWIKI_TAGLINE="How do we fighting without fighting?" \
+    NWIKI_ENDPOINT="http://niku.name/" \
+    NWIKI_TRACKING_ID=UA-26456277-1
+
+RUN BUILD_DEPS="git bundler rake ruby-dev build-essential cmake pkg-config libssl-dev libssh-dev" && \
+    apt-get update -qq && \
+    apt-get install --no-install-recommends --no-install-suggests -y $BUILD_DEPS && \
+    git clone https://github.com/niku/nwiki.git && \
+    cd nwiki && \
+    sed -i -e 's/"bundler".*$/"bundler"/g' nwiki.gemspec && \
+    bundle install --path vendor/bundle --jobs 4 && \
+    bundle exec rake \
+        nwiki:get_head \
+        nwiki:convert \
+        nwiki:add_metadata \
+        nwiki:generate_index \
+        nwiki:add_highlightjs \
+        nwiki:add_analytics \
+        && \
+    cp -pr tmp/* /usr/share/nginx/html && \
+    cd .. && \
+    apt-get purge --auto-remove -y $BUILD_DEPS && \
+    apt-get clean && \
+    rm -rf \
+       /var/cache/apt/archives/* \
+       /var/lib/apt/lists/* \
+       nwiki
