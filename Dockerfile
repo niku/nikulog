@@ -25,6 +25,7 @@ RUN BUILD_DEPS="git bundler rake ruby-dev build-essential cmake pkg-config libss
         nwiki:add_highlightjs \
         nwiki:add_analytics \
         && \
+    cp conf/niku.name.conf /etc/nginx/conf.d/default.conf && \
     cp -pr tmp/* /usr/share/nginx/html && \
     cd .. && \
     apt-get purge --auto-remove -y $BUILD_DEPS && \
