@@ -1,0 +1,17 @@
+* org-rubyで出力する文章へHTMLを直接書く方法
+
+org-mode形式で記述された文章をHTMLへと変換するorg-rubyでHTML片を直接出力する方法がわかった．
+
+この日記はorg-mode形式で書いており [[https://github.com/wallyqs/org-ruby][org-ruby]] にてHTMLへと変換して今読んでいるようなHTMLになっている．
+最近Amazonの画像付きリンクを文章内に貼ろうとしたときに，HTML片を文章に埋め込む方法がわからなくて困ったので調べた．
+
+以下のように =#+html:= から行を始め，その後にHTMLを続けて書くだけで可能なようだ．
+
+#+begin_src
+#+html: <p>ここにHTML片を自由に貼る</p>
+#+end_src
+
+[[https://raw.githubusercontent.com/wallyqs/org-ruby/version-0.9.12/spec/html_examples/raw-html.org][org-rubyのspec]] から見つけた．[[https://github.com/wallyqs/org-ruby/blob/version-0.9.12/spec/html_examples/raw-html.html][このようなHTMLになる]]ようだ．
+
+複数行のHTMLを書きたい場合は spec にあるように =#+begin_html= と =#+end_html= で囲むとうまくいくかもしれない．
+これはまだ試していない．
