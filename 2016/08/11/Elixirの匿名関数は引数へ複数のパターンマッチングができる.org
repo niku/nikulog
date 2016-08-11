@@ -1,0 +1,28 @@
+* Elixirの匿名関数は引数へ複数のパターンマッチングができる
+
+Elixirの匿名関数は，引数に対して複数のパターンマッチングできるので，場合分けを簡単に行える．
+
+匿名関数の，引数へのパターンマッチングというのは，
+以下のように =fn= のあとに複数の行を書けるというものだ．
+もちろんguard句も使える．
+
+#+begin_src elixir
+list = [1,2,:a,3,4,5,:b]
+Enum.each(list, fn
+  x when is_integer(x) and rem(x, 2) === 0 -> IO.puts("even: #{x}")
+  x when is_integer(x) and rem(x, 2) !== 0 -> IO.puts("odd: #{x}")
+  :b -> IO.puts("atom: :b")
+  x -> IO.puts("other: #{x}")
+end)
+
+#> odd: 1
+#> even: 2
+#> other: a
+#> odd: 3
+#> even: 4
+#> odd: 5
+#> atom: :b
+#+end_src
+
+何度か人に説明をした記憶があるので，
+覚えておくと便利かもしれない．
