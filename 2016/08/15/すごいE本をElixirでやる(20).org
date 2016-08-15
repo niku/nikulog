@@ -1,0 +1,59 @@
+* すごいE本をElixirでやる(20)
+
+第 9 章 一般的なデータ構造への小さな旅 - 9.2 キーバリューストアから
+
+** 9.2 キーバリューストア
+
+#+begin_quote
+少量のデータには、基本的には 2 つのデータ構造しか使えません。プロパティリスト(proplist)と順序付きの辞書(orddict)です
+#+end_quote
+
+#+begin_quote
+大量のデータを扱うキーバリュー構造が基本的に 2 つあります。辞書(dicts)と一般的な平衡木(GB 木:general balanced tree)です
+#+end_quote
+
+これらは厳密さに少し差があるものの，基本的には全て同じ形式 =[{key1, value1}, {key2, value2}]= で表される．
+
+Elixirでこのデータ構造を扱うには [[http://elixir-lang.org/docs/v1.3/elixir/Keyword.html][Keyword]] モジュールを利用するとよい．
+
+#+begin_src elixir
+kv = [{:a, "foo"}, {:b, "bar"}, {:a, "baz"}]
+
+# 取得
+Keyword.get(kv, :b)        # => "bar"
+Keyword.get_values(kv, :a) # => ["foo", "baz"]
+
+# 追加
+[{:c, "hoge"} | kv]             # => [c: "hoge", a: "foo", b: "bar", a: "baz"]
+Keyword.put_new(kv, :c, "hoge") # => [c: "hoge", a: "foo", b: "bar", a: "baz"]
+
+# 更新
+Keyword.put(kv, :b, "aaa") # => [b: "aaa", a: "foo", a: "baz"]
+
+# 除去
+Keyword.delete(kv, :a)     # => [b: "bar"]
+#+end_src
+
+** マップ
+
+Erlang17でMapというキーバリューなデータ型が追加された．すごいE本だと付録Bの章に説明がある．
+
+Elixirでこのデータ構造を扱うには [[http://elixir-lang.org/docs/v1.3/elixir/Map.html][Map]] モジュールを利用するとよい．
+
+#+begin_src elixir
+kv = %{a: "foo", b: "bar"}
+
+# 取得
+kv.a            # => "foo"
+Map.get(kv, :a) # => "foo"
+
+# 追加
+Map.put(kv, :c, "baz") # => %{a: "foo", b: "bar", c: "baz"}
+
+# 更新
+%{kv | a: "aaa"}       # => %{a: "aaa", b: "bar"}
+Map.put(kv, :a, "aaa") # => %{a: "aaa", b: "bar"}
+
+# 除去
+Map.delete(kv, :a)     # => %{b: "bar"}
+#+end_src
