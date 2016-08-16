@@ -1,0 +1,54 @@
+* すごいE本をElixirでやる(21)
+
+第 9 章 一般的なデータ構造への小さな旅 - 9.3 これぞセットから
+
+** 9.3 これぞセット
+
+#+begin_quote
+セットは、比較したり操作したりできる一意な要素の集まり
+#+end_quote
+
+#+begin_quote
+Erlang でセットを扱うモジュールは主に 4 つ
+#+end_quote
+
+- [[http://erlang.org/doc/man/ordsets.html][ordsets]]
+- [[http://erlang.org/doc/man/sets.html][sets]]
+- [[http://erlang.org/doc/man/gb_sets.html][gb_sets]]
+- [[http://erlang.org/doc/man/sofs.html][sofs]]
+
+#+begin_quote
+ほとんどの状況で gb_sets を使い、ordset は自分が書いたコードで処理を明確に表現する必要があるときに使い、sets は=:=演算子が必要なときに使うことを提案しています
+#+end_quote
+
+Erlangでは上記のように扱われている．
+
+Elixirでは [[http://elixir-lang.org/docs/v1.3/elixir/Set.html][Set]] や [[http://elixir-lang.org/docs/v1.3/elixir/HashSet.html][HashSet]] というモジュールは deprecated になり，[[http://elixir-lang.org/docs/v1.3/elixir/MapSet.html][MapSet]] を推奨している．
+名前の通り Map を 用いて Set を表現している．
+
+** 9.4 有向グラフ
+
+#+begin_quote
+Erlangでの有向グラフは2つのモジュールとして実装されています。digraph と digraph_utils
+#+end_quote
+
+Elixirには有向グラフを扱うような標準ライブラリはないようだ．Erlangの [[http://erlang.org/doc/man/digraph.html][diagraph]] と [[http://erlang.org/doc/man/digraph_utils.html][diagraph_utils]] モジュールを直接使おう．
+
+** 9.5 キュー
+
+#+begin_quote
+queue モジュールは複雑さに応じて 3 つのインターフェース(または API)に分けられる関数を提供
+#+end_quote
+
+- オリジナルAPI
+- 拡張API
+- Okasaki API
+
+#+begin_quote
+これまでの例ではリストをアキュムレータとして使い、あとから逆順に並び変えていました。
+すべての並びをいっぺんに逆順にできず、要素が頻繁に追加される ような状況では、まさに queue モジュールが欲しくなると思います
+#+end_quote
+
+なるほど．
+
+Elixirにはキューを扱うような標準ライブラリはないようだ．Erlangの [[http://erlang.org/doc/man/queue.html][queue]] モジュールを直接使おう．
