@@ -1,0 +1,285 @@
+* すごいE本をElixirでやる(22)
+
+第 10 章 並行性ヒッチハイク・ガイド から
+
+** 10.1 パニクるな!
+
+#+begin_quote
+並行性(concurrency)と並列性(parallelism)の違いを定義しましょう。
+これら 2 つの単語が同じ概念を指している場合も多いですが、Erlang で並行性といったら、たくさんのアクターがそれぞれ独立して動いている状態をいいます。
+ただしすべてが同時に走っているわけではありません。並列性は、アクターをまったく同時に走らせることをいいます。
+#+end_quote
+
+並行と並列，違いの説明をよく目にするので覚えていた．
+
+** 10.2 並行性の概念
+
+Erlangは電話交換機で使われる目的で作られたので，電話交換機の要求を満たすようにできている．
+具体的には，一部で想定外のことが起きても，全体には影響させないこと．小さな処理を，素早く沢山動かせること．
+
+*** フォルトトレランス
+
+Erlangでは「障害は減らせるが，なくせない」という前提に立っている．
+
+まずソフトウェアのバグを根絶するのが困難である．
+さらに，ソフトウェアをどんなに気をつけて(ほぼバグなしで)書いても，ハードウェア障害をソフトウェアで防止するのは困難である．
+
+そこで，障害をなくすのではなく，「障害が起きたときにうまく対処する」というやり方を採用している．
+
+障害の影響範囲が小さく限定されていると，開発者が考えなければならないことを減らせるので，うまく対処しやすい．
+そこで，もし処理中に障害が起きても，その障害が影響を及ぼす範囲はその処理のみになるように作りたい．
+そのためには，処理が小さくまとまった単位になっていると望ましい．
+この単位のことをErlangではプロセスと呼んでいる．
+
+ErlangVMの障害は基本的にはプロセス単位で処理する．
+
+また，プロセスを協調動作させる際にも，障害範囲を限定したい．
+
+プロセスAとB，およびCの協調動作について考える．仮に以下のように作るとする
+
+- AはBに呼びかける
+- AはBがすぐに返事をすることを期待して，Bが返事するまで後続の処理を行わない
+- AはBから返事がきたらCに呼びかける
+
+これだと，Bが何らかの障害にあい返事ができないとき，Aの処理が止まり，Cの処理まで止まる．
+つまりBの障害がAとCに影響してしまっている．
+
+"AがBに呼びかけ，AはBがすぐに返事をすることを期待"していることを同期的な処理と呼ぶ．
+
+同期的な処理だと障害範囲の限定がうまくいかないことがわかったので，Erlangでは以下のようなやり方を採用している
+
+- AはBに呼びかける
+- AはCに呼びかける
+- Aは返事を待つ以外にやることがなくなったら返事を待つ
+- Bは処理を行えたら行う
+- Bは処理の結果をもってAに呼びかける
+- Aは呼びかけられたら処理を再開する
+
+仮にBが処理を行えなかった場合でもAの処理，Cの処理は続いている．
+
+"AがBに呼びかけ，Aの処理を続ける．Bの処理が終わったら，BからAに呼びかける"ような処理を非同期な処理と呼ぶ．
+
+*** スケーラビリティ
+
+1. 先に述べたフォルトトレランスの観点から，1プロセスでの処理量は少なくして，障害対処の範囲を限定したい
+2. 電話交換機ではそれほど複雑な処理はないため1プロセスの処理量は少ない．(ただし全体として一定時間内に要求される処理の量はとても多い)
+
+上記の理由により，Erlangが1プロセスでこなす処理量は少なく抑えられる傾向にある．
+
+=総処理量 = 1プロセスでこなす処理量 * プロセスの数= であるので，総処理量が変わらないとすると，プロセスの数は多くなる．
+多くのプロセスを素早く動かすためには，プロセスの立ち上げ/破壊の処理の重さが無視できなくなる．
+
+そのためErlangVMでのプロセスはとても軽くなっている．
+
+本によると
+
+#+begin_quote
+300 ワード程度のメモリを持ち、マイクロ秒単位で起動
+#+end_quote
+
+であるそうだ．
+
+*** 並行性の実装
+
+OSのプロセスでは用をなさなかったのだろうか？
+
+- ErlangVMの求めているプロセスには重すぎる(ものもある)
+- OSによってプロセスの扱いがまちまちなのでErlangVMで安定した利用ができない
+
+という理由で独自実装したようだ．
+
+** 10.3 すべてが線形にスケールするわけではない
+
+ErlangVMは並列処理が得意だが，個々の計算能力はCなどに比べると低いため，大量のデータを伴う数値計算は得意分野にはならない．
+
+#+begin_quote
+論理的に個別なエンティティ(アクター。誰でしたっけ?)で処理を表せるアプリケーションなどの概念に関係する問題
+#+end_quote
+
+が得意．例えばチャットサーバー，電話のスイッチ，Webサーバー，メッセージキュー，Webクローラなど．
+
+*** アムダールの法則
+
+#+begin_quote
+システムを並列化したときにどれくらい高速化できるか、それはどれくらいの部分を並列化した場合か、を示すもの
+#+end_quote
+
+#+begin_quote
+コードの 50% を並列化しても 2 倍以上は速くなりえず、95% を並列化すると十分なプロセッサがあれば理論上は 20 倍速く
+#+end_quote
+
+#+begin_quote
+最初あまり並列化されていないプログラムから直列な部分を 取り除いたときよりも、ある程度の並列化がされているプログラムから残りあと少しの直列な部分を取り除いたときのほうが、理論的にずっと大きな高速化につながる
+#+end_quote
+
+** 10.4 さようなら、いままで魚をありがとう!
+
+*** プロセスを生成(spawn)する
+
+Elixirでもプロセスの生成はspawnだ．[[http://elixir-lang.org/docs/v1.3/elixir/Kernel.html#spawn/1][Kernel.spawn/1]] をみよう．
+
+#+begin_src elixir
+f = fn -> 2 + 2 end
+spawn(f)
+# 何も出力されない
+#+end_src
+
+IO.puts で出力する
+
+#+begin_src elixir
+spawn(fn -> IO.puts(2 + 2) end)
+#> 4
+#+end_src
+
+=:timer.sleep= も使えるが，最近のElixirには [[http://elixir-lang.org/docs/v1.3/elixir/Process.html#sleep/1][Process.sleep/1]] が入ったのでこちらを使う．
+「1から10までの整数値」は =1..10= というリテラルがあり，[[http://elixir-lang.org/docs/v1.3/elixir/Range.html][Range]] というモジュールに変換される．
+内包表記もあるがErlangとは少し書き方が異なる．[[http://elixir-lang.org/getting-started/comprehensions.html][Comprehensions]] をみよう．
+
+#+begin_src elixir
+g = fn(x) -> Process.sleep(10); IO.puts(x) end
+for x <- 1..10, do: spawn(fn -> g.(x) end)
+Process.sleep(1000)
+#> 1
+#> 2
+#> 3
+#> 5
+#> 10
+#> 4
+#> 6
+#> 7
+#> 8
+#> 9
+#+end_src
+
+*** メッセージを送信する
+
+Elixir では [[http://elixir-lang.org/docs/v1.3/elixir/Kernel.html#send/2][Kernel.send/2]] を使ってメッセージを送る．
+
+#+begin_src
+iex(17)> send self, :hello
+send self, :hello
+:hello
+iex(18)> send(self, send(self, :double))
+send(self, send(self, :double))
+:double
+iex(19)> flush
+flush
+:hello
+:double
+:double
+:ok
+#+end_src
+
+*** メッセージを受信する
+
+Elixir でも receive だ．[[http://elixir-lang.org/docs/v1.3/elixir/Kernel.SpecialForms.html#receive/1][Kernel.SpecialForms.receive/1]] をみよう．
+[[http://elixir-lang.org/docs/v1.3/elixir/Kernel.html#spawn/3][Kernel.spawn/3]] も Erlang と同じように使える．
+
+#+begin_src elixir
+defmodule Dolphins do
+  def dolphin1() do
+    receive do
+      :do_a_flip -> IO.puts("How about no?")
+      :fish -> IO.puts("So long and thanks for all the fish!")
+      _ -> IO.puts("heh, we're smarter than you humans.")
+    end
+  end
+end
+
+dolphin = spawn(Dolphins, :dolphin1, [])
+
+send dolphin, "oh, hello dolphin!"
+#> "heh, we're smarter than you humans."
+send dolphin, :fish
+# 反応なし
+#+end_src
+
+#+begin_src elixir
+defmodule Dolphins do
+  def dolphin1() do
+    receive do
+      :do_a_flip -> IO.puts("How about no?")
+      :fish -> IO.puts("So long and thanks for all the fish!")
+      _ -> IO.puts("heh, we're smarter than you humans.")
+    end
+  end
+
+  def dolphin2() do
+    receive do
+      {from, :do_a_flip} -> send from, "How about no?"
+      {from, :fish} -> send from, "So long and thanks for all the fish!"
+      _ -> IO.puts("heh, we're smarter than you humans.")
+    end
+  end
+end
+
+dolphin = spawn(Dolphins, :dolphin2, [])
+send dolphin, {self, :do_a_flip}
+
+receive do
+  x -> IO.puts x
+end
+#> "How about no?"
+#+end_src
+
+#+begin_src elixir
+defmodule Dolphins do
+  def dolphin1() do
+    receive do
+      :do_a_flip -> IO.puts("How about no?")
+      :fish -> IO.puts("So long and thanks for all the fish!")
+      _ -> IO.puts("heh, we're smarter than you humans.")
+    end
+  end
+
+  def dolphin2() do
+    receive do
+      {from, :do_a_flip} -> send from, "How about no?"
+      {from, :fish} -> send from, "So long and thanks for all the fish!"
+      _ -> IO.puts("heh, we're smarter than you humans.")
+    end
+  end
+
+  def dolphin3() do
+    receive do
+      {from, :do_a_flip} ->
+        send from, "How about no?"
+        dolphin3
+      {from, :fish} ->
+        send from, "So long and thanks for all the fish!"
+      _ ->
+        IO.puts("heh, we're smarter than you humans.")
+        dolphin3
+    end
+  end
+end
+
+dolphin = spawn(Dolphins, :dolphin3, [])
+send(dolphin, send(dolphin, {self, :do_a_flip}))
+
+receive do
+  x -> IO.puts x
+end
+#> "How about no?"
+
+receive do
+  x -> IO.puts x
+end
+#> "How about no?"
+
+send(dolphin, {self, :unknown_message})
+#> "heh, we're smarter than you humans."
+
+send(dolphin, send(dolphin, {self, :fish}))
+receive do
+  x -> IO.puts x
+end
+#> "So long and thanks for all the fish!"
+
+receive do
+  x -> IO.puts x
+after
+  0 -> IO.puts "no message"
+end
+#> "no message"
+#+end_src
