@@ -1,0 +1,97 @@
+* すごいE本をElixirでやる(24)
+
+第 11 章マルチプロセスについてもっと - 11.2 メッセージ大好きだけど秘密にしておいて から
+
+** 11.2 メッセージ大好きだけど秘密にしておいて
+
+erlangの =?MODULE= は Elixir だと =__MODULE__= に相当する．
+
+#+begin_src elixir :tangle kitchen.exs
+defmodule Kitchen do
+  def fridge1 do
+    receive do
+      {from, {:store, _food}} ->
+        send from, {self, :ok}
+        fridge1
+      {from, {:take, _food}} ->
+        # uh...
+        send from, {self, :not_found}
+      :terminate ->
+        :ok
+    end
+  end
+
+  def fridge2(food_list) do
+    receive do
+      {from, {:store, food}} ->
+        send from, {self, :ok}
+        fridge2([food | food_list])
+      {from, {:take, food}} ->
+        if Enum.member?(food_list, food) do
+          send from, {self, {:ok, food}}
+          # List.delete/2 doesn't match to use here.
+          # `List.delete([1, 2, 2, 3], 2)` returns `[1, 3]`
+          # But we need `[1, 2, 3]`
+          fridge2(:lists.delete(food, food_list))
+        else
+          send from, {self, :not_found}
+          fridge2(food_list)
+        end
+      :terminate ->
+        :ok
+    end
+  end
+
+  def store(pid, food) do
+    send pid, {self, {:store, food}}
+    receive do
+      {pid, msg} -> msg
+    end
+  end
+
+  def take(pid, food) do
+    send pid, {self, {:take, food}}
+    receive do
+      {pid, msg} -> msg
+    end
+  end
+
+  def start(food_list) do
+    spawn(__MODULE__, :fridge2, [food_list])
+  end
+end
+#+end_src
+
+#+begin_src iex
+Eshell V8.0.2  (abort with ^G)
+Interactive Elixir (1.3.2) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> c("kitchen.exs")
+c("kitchen.exs")
+[Kitchen]
+iex(2)> pid = spawn(Kitchen, :fridge2, [[:baking_soda]])
+pid = spawn(Kitchen, :fridge2, [[:baking_soda]])
+#PID<0.89.0>
+iex(3)> Kitchen.store(pid, :water)
+Kitchen.store(pid, :water)
+:ok
+iex(4)> Kitchen.take(pid, :water)
+Kitchen.take(pid, :water)
+{:ok, :water}
+iex(5)> Kitchen.take(pid, :juice)
+Kitchen.take(pid, :juice)
+:not_found
+iex(6)> pid = Kitchen.start([:rhubarb, :dog, :hotdog])
+pid = Kitchen.start([:rhubarb, :dog, :hotdog])
+#PID<0.95.0>
+iex(7)> Kitchen.take(pid, :dog)
+Kitchen.take(pid, :dog)
+{:ok, :dog}
+iex(8)> Kitchen.take(pid, :dog)
+Kitchen.take(pid, :dog)
+:not_found
+iex(9)>
+#+end_src
+
+#+begin_quote
+いまや、冷蔵庫プロセスに関する すべては kitchen モジュールで処理されます。
+#+end_quote
