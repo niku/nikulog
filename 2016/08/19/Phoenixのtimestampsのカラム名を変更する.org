@@ -1,0 +1,38 @@
+* Phoenixのtimestampsのカラム名を変更する
+
+Railsで作ったDBへPhoenixで接続するときのtimestampsのカラム名変更方法．
+
+=mix ecto.generate= で model を作ると以下のような形式になる．このとき timestamps は何も指定しなければ inserted_at と updated_at というカラムを指す．
+一方，Railsの timestamp は created_at と updated_at なので，このまま phoenix を動かすとDBには inserted_at というカラムが見つからないというエラーになる．
+
+#+begin_src elixir
+defmodule MySampleApp.User do
+  use FarmnoteAdminConsole.Web, :model
+
+  schema "users" do
+    field :name, :string
+
+    timestamps
+  end
+
+  # (略)
+end
+#+end_src
+
+これを回避するには以下のように timestamps へオプションを指定してやればよい．
+
+#+begin_src elixir
+defmodule MySampleApp.User do
+  use FarmnoteAdminConsole.Web, :model
+
+  schema "users" do
+    field :name, :string
+
+    timestamps inserted_at: :created_at
+  end
+
+  # (略)
+end
+#+end_src
+
+[[https://github.com/elixir-ecto/ecto/blob/v2.0.4/lib/ecto/schema.ex#L422-L466][ecto/schema.ex]] にドキュメントと実装がある．
