@@ -1,0 +1,31 @@
+* 並列処理との出会い
+
+毎日何の不満もなく CRuby を使っていた．
+
+ある日 HTTP 経由で数十のファイルをダウンロードするクライアント処理を書くことになった．
+素直に処理を書くと，ダウンロードを繰り返すので待たされる．
+
+IO 待ちが多いプログラムは CRuby でもマルチスレッドで解消するというのは聞いたことがあった．
+そこで興味本位で [[http://docs.ruby-lang.org/ja/2.3.0/method/Thread/s/fork.html][Thread.start]] を使って並列に処理してみようと思いたった．
+
+確かこんな感じの素朴な Ruby コードを書いた．
+
+#+begin_src ruby
+urls.map { |url|
+  Thread.start(url) { |u| Net::HTTP.get(u) }
+}.map { |t| t.join }
+#+end_src
+
+実行すると，なんと今までは待たされていた処理がそこそこ速く終わるのだ．
+スレッドをうまく扱えたこと，処理が速く終わるように便利にできたこと，喜びを二重に味わったのだった．
+
+そのうち Java の仕事で Netbeans フレームワークを使ったデスクトップアプリケーションを書くようになり，
+[[http://docs.oracle.com/javase/jp/8/docs/api/java/util/concurrent/Executor.html][Executor]] を使った（Threadよりは）高級なプログラミングで並行処理が楽にできることを覚えていった．
+
+Java並行処理プログラミングという本が良かった覚えがあるのだが，現在は絶版のようだ．
+もう手に入らないのだろうか．
+
+#+html: <iframe src="https://rcm-fe.amazon-adsystem.com/e/cm?t=0x1d-22&o=9&p=8&l=as1&asins=4797337206&ref=qf_sp_asin_til&fc1=93A1A1&IS2=1&lt1=_top&m=amazon&lc1=B58900&bc1=002B36&bg1=002B36&f=ifr" style="width:120px;height:240px;" scrolling="no" marginwidth="0" marginheight="0" frameborder="0"></iframe>
+
+また「ムーアの法則は近い将来終わる」というのがニュースで言われていたので，
+「なるほど，これからは複数コアを簡単に使えるようなプログラミングが求められるのだな．これからは並行処理が書きやすい言語/ライブラリが必要になる」と考えはじめたのだった．
