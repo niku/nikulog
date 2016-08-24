@@ -1,0 +1,123 @@
+* すごいE本をElixirでやる(27)
+
+第 12 章 エラーとプロセス から
+
+#+begin_quote
+try ... catchのように、たいていの言語ではプログラムの実行フローの中で例外を処理します。
+このありふれたアプローチの問題点は（略）ある層を安全にするための労力を次々と上の層に委譲していって、最終的にトップレベルのtry ... catch地獄に陥ることになります。
+#+end_quote
+
+よくある．
+
+#+begin_quote
+Erlang は、それとは違うレベルの例外処理もサポートしています。
+それにより、プログラムの実行の通常フローとは異なる並行プロセスへと例外処理を追い出せます。
+これは通常、「うまくいった場合」だけを考慮する非常にきれいなコー ドになります。
+#+end_quote
+
+「プログラムを書いている時点では予測不可能な何か」に備えて =try ... catch= を書くことをせずにすむと，
+異常系のコードの記述量が減り，ノイズが減って正常系と準正常系のロジックの見通しがよくなるだろう．うれしい．
+
+** 12.1 リンク
+
+#+begin_quote
+リンクとは、2 つのプロセス間で作成される、ある特殊な関係です。
+この関係が作成されると、別々のプロセスの生死が一つに縛られて、
+どれかのプロセスが予期せぬスローやエラー、あるいは終了(詳しくは第 7 章参照)で死んだ場合に他のリンクされたプロセスも死にます。
+#+end_quote
+
+なるほど．複数のプロセスの生死を同調させる．
+
+Erlang にある =link/1= は Elixir にも [[http://elixir-lang.org/docs/v1.3/elixir/Process.html#link/1][Process.link/1]] として存在する．
+
+また =exit/2= は [[http://elixir-lang.org/docs/v1.3/elixir/Process.html#exit/2][Process.exit/2]] に対応している．
+
+#+begin_quote
+リンクされたプロセスのうち片方が死んだときには、特別なメッセージが、何が起きたかに関係する情報と共に送られます。
+もしプロセスが自然な理由(つまりどの関数もきちんと実行された)で死んだ場合には、何のメッセージも送られません。
+#+end_quote
+
+なるほど．異常なときはお知らせ，正常なときは沈黙という方針はUnixシェル文化に似ているな．わかりやすい．
+
+#+begin_src elixir :tangle linkmon.exs
+defmodule Linkmon do
+  def myproc do
+    Process.sleep(5000)
+    exit(:reason)
+  end
+end
+#+end_src
+
+#+begin_src iex
+Eshell V8.0.2  (abort with ^G)
+Interactive Elixir (1.3.2) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> c("linkmon.exs")
+c("linkmon.exs")
+[Linkmon]
+iex(2)> spawn(Linkmon, :myproc, [])
+spawn(Linkmon, :myproc, [])
+#PID<0.92.0>
+iex(3)> Process.link(spawn(Linkmon, :myproc, []))
+Process.link(spawn(Linkmon, :myproc, []))
+true
+iex(4)> ** (EXIT from #PID<0.81.0>) :reason
+iex(4)>
+iex(4)> Interactive Elixir (1.3.2) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)>
+#+end_src
+
+確かに =link= したときは 5 秒待つとエラーが通知されてくる．
+
+#+begin_src elixir :tangle linkmon.exs
+defmodule Linkmon do
+  def myproc do
+    Process.sleep(5000)
+    exit(:reason)
+  end
+
+  def chain(0) do
+    receive do
+      _ -> :ok
+    after 2000 ->
+      exit("chain dies here")
+    end
+  end
+
+  def chain(n) do
+    pid = spawn(fn -> chain(n-1) end)
+    Process.link(pid)
+    receive do
+      _ -> :ok
+    end
+  end
+end
+#+end_src
+
+#+begin_src iex
+Eshell V8.0.2  (abort with ^G)
+Interactive Elixir (1.3.2) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> c("linkmon.exs")
+c("linkmon.exs")
+warning: redefining module Linkmon (current version loaded from Elixir.Linkmon.beam)
+  linkmon.exs:1
+
+[Linkmon]
+iex(2)> Process.link(spawn(Linkmon, :chain, [3]))
+Process.link(spawn(Linkmon, :chain, [3]))
+true
+iex(3)> ** (EXIT from #PID<0.81.0>) "chain dies here"
+iex(3)>
+iex(3)> Interactive Elixir (1.3.2) - press Ctrl+C to exit (type h() ENTER for help)
+iex(3)> iex(1)>
+#+end_src
+
+なるほど．プロセスが連鎖して死ぬ．
+
+=spawn= してから =link= するまでのあいだに，プロセスが死ぬと予期せぬ動作になってしまうので， =spawn_link= が言語に追加された．
+
+=spawn_link= は，プロセスを生成してリンクするまでをアトミックに行うので
+
+1. リンクしたプロセスが存在する
+2. プロセスが存在しない
+
+のどちらかにしかならない．特別な事情がない限りはこちらを使うのがよさそうだ．
