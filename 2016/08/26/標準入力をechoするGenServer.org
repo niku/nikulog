@@ -1,0 +1,136 @@
+* 標準入力をechoするGenServer
+
+Elixirでshellのように標準入力を待ち，quitと入力されたら処理を抜けるようなGenServerの作り方．
+
+#+begin_src elixir :tangle echo_shell.exs
+defmodule EchoShell do
+  use GenServer
+
+  def start_link do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  end
+
+  def init(_args) do
+    {:ok, task} = Task.start_link(do_gets(self))
+
+    {:ok, task}
+  end
+
+  def handle_info("quit", state) do
+    {:stop, :normal, state}
+  end
+
+  def handle_info(msg, _state) do
+    IO.puts msg
+    {:ok, task} = Task.start_link(do_gets(self))
+
+    {:noreply, task}
+  end
+
+  defp do_gets(pid) do
+    fn ->
+      # trim whitespace around a line
+      line = String.trim(IO.gets("> "))
+      send pid, line
+    end
+  end
+end
+#+end_src
+
+大事なところは以下のようになる
+
+- ブロッキングする処理 =do_gets= を =Task.start_link= を用いて，EchoShell とは別プロセスにして実行している
+- ブロッキングする処理 =do_gets= の中で，EchoShell のプロセスへメッセージを送っている
+- EchoShell の，GenServer 用ではないメッセージを処理する =handle_info= で送られてきたメッセージを処理する
+  - 必要があれば再度ブロッキングする処理を呼び出す
+
+実行してみるとこんな感じだ．
+
+#+begin_src
+% elixir --no-halt -r echo_shell.exs -e "EchoShell.start_link"
+> foo
+foo
+> bar
+bar
+> quit
+aaa
+bbb
+^C
+BREAK: (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
+       (v)ersion (k)ill (D)b-tables (d)istribution
+^C%
+#+end_src
+
+=quit= 以外では Echo して， =quit= で終了して，その後は受け付けていないのがわかるだろう．
+
+GenServer にしておくと，Supervisor をつけられて，そうすると shell が終了しても自動的に再起動してくれるのがいいところだ．
+
+#+begin_src elixir :tangle echo_shell2.exs
+defmodule EchoShell2 do
+  use GenServer
+
+  def start_link do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  end
+
+  def init(_args) do
+    {:ok, task} = Task.start_link(do_gets(self))
+
+    {:ok, task}
+  end
+
+  def handle_info("quit", state) do
+    {:stop, :normal, state}
+  end
+
+  def handle_info("boom", _state) do
+    raise "boom!!!"
+  end
+
+  def handle_info(msg, _state) do
+    IO.puts msg
+    {:ok, task} = Task.start_link(do_gets(self))
+
+    {:noreply, task}
+  end
+
+  defp do_gets(pid) do
+    fn ->
+      # trim whitespace around a line
+      line = String.trim(IO.gets("> "))
+      send pid, line
+    end
+  end
+end
+#+end_src
+
+#+begin_src
+% elixir -r echo_shell2.exs -e "import Supervisor.Spec; Supervisor.start_link([worker(EchoShell, [])], strategy: :one_for_one); Process.sleep(:infinity)"
+> foo
+foo
+> bar
+bar
+> boom
+>
+12:52:27.715 [error] GenServer EchoShell terminating
+** (RuntimeError) boom!!!
+    echo_shell2.exs:19: EchoShell.handle_info/2
+    (stdlib) gen_server.erl:601: :gen_server.try_dispatch/4
+    (stdlib) gen_server.erl:667: :gen_server.handle_msg/5
+    (stdlib) proc_lib.erl:247: :proc_lib.init_p_do_apply/3
+Last message: "boom"
+State: #PID<0.79.0>
+> baz
+baz
+> quit
+> aaa
+aaa
+> bbb
+bbb
+> ^C
+BREAK: (a)bort (c)ontinue (p)roc info (i)nfo (l)oaded
+       (v)ersion (k)ill (D)b-tables (d)istribution
+^C%
+#+end_src
+
+このやり方でちょっとエラーになっても初期化して再開してくれる基盤の上で，ブロッキングするような処理，無限ループするような処理を動かせるようになる．
