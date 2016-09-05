@@ -1,0 +1,111 @@
+* すごいE本をElixirでやる(29)
+
+第 12 章 エラーとプロセス - 12.1 リンク - 古い例外、新しいコンセプト から
+
+** 12.1 リンク
+
+*** 古い例外、新しいコンセプト
+
+捕捉されない結果，捕捉される結果の取得方法がよくわからなかった．
+
+大事なのだろうけど，幾つか悩んで試してもうまく得られなかったので先に進めよう．
+
+*** 優しく(そんなには優しくなく)殺して
+
+#+begin_quote
+通常、kill はどんな方法もうまくいかないときの最終手段です。
+終了理由 kill は決して捕捉されないため、他のプロセスがこのメッセージを受け取ったときには、killed に変更されなければいけません。
+変更されなければ、リン クされた他のすべてのプロセスが同じ理由 kill で順番に死に、さらに続けて近隣の プロセスが殺されていきます。
+#+end_quote
+
+なるほど．kill 他の方法がなくなったときに使う．
+
+** 12.2 モニター
+
+プロセスを殺す必要がない場合につかう．
+
+リンクとは
+
+1. 一方向である
+2. 2つのプロセス間で複数のモニターが持てる（スタックできて，それぞれに識別子がある）
+
+点が異なる．
+
+#+begin_quote
+モニター(とそのスタック)を使えば、他の関係ないモニターの利用を切り離してライブラリをプログラムできます。
+各モニターには一意な識別子があるので、参照したり操作したりするモニターを選択できる。
+#+end_quote
+
+（互いに存在を知らないような）複数のライブラリが，特定のプロセスで何が起きているかを知るのに役立つ．
+
+Elixir では [[http://elixir-lang.org/docs/v1.3/elixir/Process.html#monitor/1][Process.monitor/1]] が利用できる．
+
+#+begin_src iex
+iex(1)> Process.monitor(spawn(fn -> Process.sleep(500) end))
+Process.monitor(spawn(fn -> Process.sleep(500) end))
+#Reference<0.0.3.101>
+iex(2)> flush
+flush
+{:DOWN, #Reference<0.0.3.101>, :process, #PID<0.85.0>, :normal}
+:ok
+iex(3)>
+#+end_src
+
+アトミックにプロセス生成と監視を行うのには [[http://elixir-lang.org/docs/v1.3/elixir/Kernel.html#spawn_monitor/1][Kernel.spawn_monitor/1]] や [[http://elixir-lang.org/docs/v1.3/elixir/Kernel.html#spawn_monitor/3][Kernel.spawn_monitor/3]] が使える．
+
+プロセスの監視を止めるには [[http://elixir-lang.org/docs/v1.3/elixir/Process.html#demonitor/2][Process.demonitor/2]] が使える．
+
+#+begin_src iex
+iex(3)> {pid, ref} = spawn_monitor(fn ->
+  receive do
+    _ -> exit(:boom)
+  end
+end)
+{#PID<0.97.0>, #Reference<0.0.3.128>}
+iex(4)> Process.demonitor(ref, [:flush, :info])
+Process.demonitor(ref, [:flush, :info])
+true
+iex(5)> send(pid, :die)
+send(pid, :die)
+:die
+iex(6)> flush
+flush
+:ok
+iex(7)>
+#+end_src
+
+#+begin_quote
+info オプションは、モニターを削除しようとしたときにモニターが存在したかどうかを教えてくれ
+#+end_quote
+
+=iex(9)= で =false= が返ってきたのはこれが理由
+
+#+begin_quote
+オプションに flush を使うことで、メールボックスに DOWN メッセージがあった場合にはそれを削除でき
+#+end_quote
+
+=iex(10)= で =flush= を動かしても，何も返ってきていないのはこれが理由
+
+#+begin_src iex
+iex(7)> {pid, ref} = spawn_monitor(fn ->
+  receive do
+    _ -> exit(:boom)
+  end
+end)
+{pid, ref} = spawn_monitor(fn ->
+...(7)>   receive do
+...(7)>     _ -> exit(:boom)
+...(7)>   end
+...(7)> end)
+{#PID<0.109.0>, #Reference<0.0.3.158>}
+iex(8)> send(pid, :die)
+send(pid, :die)
+:die
+iex(9)> Process.demonitor(ref, [:flush, :info])
+Process.demonitor(ref, [:flush, :info])
+false
+iex(10)> flush
+flush
+:ok
+iex(11)>
+#+end_src
