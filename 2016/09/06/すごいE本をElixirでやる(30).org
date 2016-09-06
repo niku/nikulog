@@ -1,0 +1,61 @@
+* すごいE本をElixirでやる(30)
+
+第 12 章 エラーとプロセス - 12.3 プロセスに名前を付ける から
+
+** 12.3 プロセスに名前を付ける
+
+#+begin_src elixir :tangle linkmon.exs
+defmodule Linkmon do
+  def start_critic do
+    spawn(__MODULE__, :critic, [])
+  end
+
+  def judge(pid, band, album) do
+    send(pid, {self, {band, album}})
+    receive do
+      {pid, criticism} -> criticism
+    after 2000 ->
+      :timeout
+    end
+  end
+
+  def critic do
+    receive do
+      {from, {"Rage Against the Turing Machine", "Unit Testify"}} ->
+        send(from, {self, "They are great!"})
+      {from, {"System of a Downtime", "Memoize"}} ->
+        send(from, {self, "They're not Johnny Crash but they're good."})
+      {from, {"Jonney Crash", "The Token Ring of Fire"}} ->
+        send(from, {self, "Simply incredible."})
+      {from, {_band, _album}} ->
+        send(from, {self, "They are terrible!"})
+    end
+    critic
+  end
+end
+#+end_src
+
+#+begin_src iex
+iex(15)> c"linkmon.exs"
+c"linkmon.exs"
+warning: variable pid is unused
+  linkmon.exs:9
+
+[Linkmon]
+iex(16)> critic = Linkmon.start_critic
+critic = Linkmon.start_critic
+#PID<0.131.0>
+iex(17)> Linkmon.judge(critic, "Genesis", "The Lambda Lies Down on Broadway")
+Linkmon.judge(critic, "Genesis", "The Lambda Lies Down on Broadway")
+"They are terrible!"
+iex(18)> Process.exit(critic, :solar_storm)
+Process.exit(critic, :solar_storm)
+true
+iex(19)> Linkmon.judge(critic, "Genesis", "A trick of the Tail Recursion")
+Linkmon.judge(critic, "Genesis", "A trick of the Tail Recursion")
+:timeout
+iex(20)>
+#+end_src
+
+このままでは critic を exit したら，批評が聞けなくなる．
+そこでスーパバイザ(Supervisor)プロセスを次に書く．
