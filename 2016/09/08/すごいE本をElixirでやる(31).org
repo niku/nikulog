@@ -1,0 +1,156 @@
+* すごいE本をElixirでやる(31)
+
+第 12 章 エラーとプロセス - 12.3 プロセスに名前を付ける の続きから
+
+** 12.3 プロセスに名前を付ける
+
+名前登録するのには Elixir では [[http://elixir-lang.org/docs/v1.3/elixir/Process.html#register/2][Process.register/2]] を使う．
+名前登録したプロセスを取り除くするには [[http://elixir-lang.org/docs/v1.3/elixir/Process.html#unregister/1][Process.unregister/1]]，
+名前登録済みのプロセス一覧を知るには [[http://elixir-lang.org/docs/v1.3/elixir/Process.html#registered/0][Process.registered/0]]，
+名前から pid を取得するには [[http://elixir-lang.org/docs/v1.3/elixir/Process.html#whereis/1][Process.whereis/1]] が使える．
+
+#+begin_src elixir :tangle linkmon.exs
+defmodule Linkmon do
+  def start_critic do
+    spawn(__MODULE__, :critic, [])
+  end
+
+  def start_critic2 do
+    spawn(__MODULE__, :restarter, [])
+  end
+
+  def restarter do
+    :erlang.process_flag(:trap_exit, true)
+    pid = spawn_link(__MODULE__, :critic2, [])
+    Process.register(pid, :critic)
+    receive do
+      {:EXIT, pid, :normal} -> :ok   # not a crash
+      {:EXIT, pid, :shutdown} -> :ok # manual termination, not a crash
+      {:EXIT, pid, _} -> restarter
+    end
+  end
+
+  def judge(pid, band, album) do
+    send(pid, {self, {band, album}})
+    receive do
+      {pid, criticism} -> criticism
+    after 2000 ->
+      :timeout
+    end
+  end
+
+  def judge2(band, album) do
+    ref = make_ref
+    send(:critic, {self, ref, {band, album}})
+    receive do
+      {ref, criticism} -> criticism
+    after 2000 ->
+      :timeout
+    end
+  end
+
+  def critic do
+    receive do
+      {from, {"Rage Against the Turing Machine", "Unit Testify"}} ->
+        send(from, {self, "They are great!"})
+      {from, {"System of a Downtime", "Memoize"}} ->
+        send(from, {self, "They're not Johnny Crash but they're good."})
+      {from, {"Jonney Crash", "The Token Ring of Fire"}} ->
+        send(from, {self, "Simply incredible."})
+      {from, {_band, _album}} ->
+        send(from, {self, "They are terrible!"})
+    end
+    critic
+  end
+
+  def critic2 do
+    receive do
+      {from, ref, {"Rage Against the Turing Machine", "Unit Testify"}} ->
+        send(from, {ref, "They are great!"})
+      {from, ref, {"System of a Downtime", "Memoize"}} ->
+        send(from, {ref, "They're not Johnny Crash but they're good."})
+      {from, ref, {"Jonney Crash", "The Token Ring of Fire"}} ->
+        send(from, {ref, "Simply incredible."})
+      {from, ref, {_band, _album}} ->
+        send(from, {ref, "They are terrible!"})
+    end
+    critic2
+  end
+end
+#+end_src
+
+#+begin_quote
+Erlang における解決策の 1 つとして、プロセスに名前を付けるという方法があります。
+プロセスに名前を付けることで、予測不可能な pid をアトム に置き換えることができます。
+#+end_quote
+
+これよく使うし便利なんだけど，この名前はどの環境内で有用なのだろう．
+
+- アプリケーション内
+- ノード内
+- VM内
+
+など．今度調べてみよう．
+
+*** 競合状態(race condition)
+
+ErlangVM でも judge2 の書きかけの状態だった場合に競合状態が起きることがある．
+
+| judge2を実行しているプロセス | criticという名前がついたプロセス |
+| 1. send(:critic, message)    |                                  |
+|                              | 2. criticがreceive               |
+|                              | 3. criticが応答                  |
+|                              | 4. criticが死亡                  |
+| 5. Process.whereisが失敗     |                                  |
+|                              | 6. criticが再開される            |
+| 7. コードがクラッシュ        |                                  |
+
+↑本にはこれも書いてあるけど，
+ドキュメントを読むかぎり Erlang の =whereis= も失敗することはない(undefinedを返すことはある)から，
+これは起きないんじゃないのかなと思っている．
+
+pidがundefinedのものをreceiveするマッチングになり，決してマッチしないという結末になるんじゃないかな．
+
+| judge2を実行しているプロセス          | criticという名前がついたプロセス |
+| 1. send(:critic, message)             |                                  |
+|                                       | 2. criticがreceive               |
+|                                       | 3. criticが応答                  |
+|                                       | 4. criticが死亡                  |
+|                                       | 5. criticが再開される            |
+| 6. Process.whereisがおかしなpidを受信 |                                  |
+| 7. メッセージが決してマッチしない     |                                  |
+
+こちらは確かに起きそうだ．
+
+それを防止するために，一意な ref を取得する [[http://elixir-lang.org/docs/v1.3/elixir/Kernel.html#make_ref/0][Kernel.make_ref/0]] を judge2 に導入する．
+
+judge2のpidを使う版と，make_refを使う版，修正内容が少し異なるので意味をとらえにくかったが，
+
+- pid 版 :: =:critic= の pid を利用することで，期待している処理が行われた結果のメッセージであることを担保している
+- make_ref 版 :: =:critic= のプロセスに送る際に，一意な値を付与しておく． =:critic= のプロセスは返すメッセージにその値を含める．一意な値を付与することで，期待している処理が行われた結果のメッセージであることを担保している
+
+と「期待している処理が行われた結果のメッセージであることを担保している」という点は一緒だった．
+
+#+begin_src elixir
+Eshell V8.0.2  (abort with ^G)
+Interactive Elixir (1.3.2) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> c("linkmon.exs")
+c("linkmon.exs")
+[Linkmon]
+iex(2)> Linkmon.start_critic2
+Linkmon.start_critic2
+#PID<0.89.0>
+iex(3)> Linkmon.judge2("The Doors", "light my Firewall")
+Linkmon.judge2("The Doors", "light my Firewall")
+"They are terrible!"
+iex(4)> Process.exit(Process.whereis(:critic), :kill)
+Process.exit(Process.whereis(:critic), :kill)
+true
+iex(5)> Linkmon.judge2("Rage Against the Turing Machine", "Unit Testify")
+Linkmon.judge2("Rage Against the Turing Machine", "Unit Testify")
+"They are great!"
+iex(6)>
+
+#+end_src
+
+よし，うまく動いている．
