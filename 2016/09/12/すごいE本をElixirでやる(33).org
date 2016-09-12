@@ -1,0 +1,138 @@
+* すごいE本をElixirでやる(33)
+
+第 13 章 並行アプリケーションを設計する - 13.3 土台にすえる から
+
+** 13.3 土台にすえる
+
+標準的な Elixir のディレクトリ構成は，mix new で生成されたものが参考になるだろう．
+
+#+begin_src
+.
+├── README.md
+├── _build
+├── config
+│   └── config.exs
+├── lib
+│   └── foo.ex
+├── mix.exs
+└── test
+    ├── foo_test.exs
+    └── test_helper.exs
+#+end_src
+
+- _build :: コンパイルされたファイルの置き場所（コンパイル時に存在しなければ，自動的に作成される）
+- config :: 設定用のコードが置かれる
+- lib :: すべてのプロダクションコードが置かれる
+- test :: すべてのテストコードが置かれる
+
+** 13.4 イベントモジュール
+
+#+begin_quote
+たいていのメッセージは、{〔Pid〕, 〔Ref〕, 〔メッセージ〕}の形でラップされることになるでしょう。
+〔Pid〕は送信元、〔Ref〕は一意のメッセージ識別子で、これらにより、どの返信が誰から送られてきたかが分かります。
+#+end_quote
+
+*** イベントとループ
+
+本の中ではStateをレコードで表している．ElixirではこういものにはStructが良く使われる．
+
+#+begin_src elixir :tangle event.ex
+defmodule Event do
+  defmodule State, do: defstruct server: nil, name: "", to_go: 0
+
+  def loop(state = %State{server: server}) do
+    receive do
+      {server, ref, :cancel} ->
+        send(server, {ref, :ok})
+      after state.to_go * 1000 ->
+        send(server, {:done, state.name})
+    end
+  end
+end
+#+end_src
+
+#+begin_src
+iex(1)> c("event.ex")
+c("event.ex")
+[Event, Event.State]
+iex(2)> spawn(Event, :loop, [%Event.State{server: self, name: "test", to_go: 5}])
+spawn(Event, :loop, [%Event.State{server: self, name: "test", to_go: 5}])
+#PID<0.92.0>
+iex(3)> flush
+flush
+:ok
+iex(4)> flush
+flush
+{:done, "test"}
+:ok
+iex(5)> pid = spawn(Event, :loop, [%Event.State{server: self, name: "test", to_go: 500}])
+pid = spawn(Event, :loop, [%Event.State{server: self, name: "test", to_go: 500}])
+#PID<0.99.0>
+iex(6)> reply_ref = make_ref
+reply_ref = make_ref
+#Reference<0.0.4.146>
+iex(7)> send(pid, {self, reply_ref, :cancel})
+send(pid, {self, reply_ref, :cancel})
+{#PID<0.81.0>, #Reference<0.0.4.146>, :cancel}
+iex(8)> flush
+flush
+{#Reference<0.0.4.146>, :ok}
+:ok
+iex(9)> spawn(Event, :loop, [%Event.State{server: self, name: "test", to_go: 365*24*60*60}])
+spawn(Event, :loop, [%Event.State{server: self, name: "test", to_go: 365*24*60*60}])
+#PID<0.105.0>
+iex(10)>
+12:28:30.752 [error] Process #PID<0.105.0> raised an exception
+** (ErlangError) erlang error: :timeout_value
+    event.ex:7: Event.loop/1
+#+end_src
+
+期待のとおりに動いているようだ．
+本の中にある
+
+#+begin_quote
+Erlang のタイムアウト値はミリ秒でおよそ 50 日に制限されている
+#+end_quote
+
+を回避した版も作ろう．
+
+#+begin_src elixir :tangle event2.ex
+defmodule Event do
+  defmodule State, do: defstruct server: nil, name: "", to_go: 0
+
+  # Because Erlang is limited to about 49 days (49*24*60*60*1000) in
+  # milliseconds, the following function is used.
+  def normalize(n) do
+    limit = 49*24*60*60
+    [rem(n, limit) | List.duplicate(limit, div(n, limit))]
+  end
+
+  # Loop uses a list for times in order to go around the ~49 days limit
+  # on timeouts.
+  def loop(state = %State{server: server, to_go: [t|next]}) do
+    receive do
+      {server, ref, :cancel} ->
+        send(server, {ref, :ok})
+      after t * 1000 ->
+        case next do
+          [] -> send(server, {:done, state.name})
+          [_x] -> loop(%{state | to_go: next})
+        end
+    end
+  end
+end
+#+end_src
+
+こんな感じに利用する．
+
+#+begin_src
+iex(6)> c("event2.ex")
+c("event2.ex")
+[Event, Event.State]
+iex(7)> spawn(Event, :loop, [%Event.State{server: self, name: "test", to_go: Event.normalize(5)}])
+spawn(Event, :loop, [%Event.State{server: self, name: "test", to_go: Event.normalize(5)}])
+#PID<0.106.0>
+iex(8)> flush
+flush
+{:done, "test"}
+#+end_src
