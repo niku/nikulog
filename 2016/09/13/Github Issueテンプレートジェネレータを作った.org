@@ -1,0 +1,60 @@
+* Github Issueテンプレートジェネレータを作った
+
+Github Issueのテンプレートを手軽に書けるジェネレータを作った．
+
+[[./description.gif]]
+
+[[https://bl.ocks.org/niku/ec604092aeebc803c0e72d30ed16dd94][Github Issueテンプレートジェネレータ - bl.ocks.org]]
+
+現在，Github Issueをテンプレート化する方法は2つある
+
+1. [[http://qiita.com/yoshimikeisui/items/3e1873e3bf1bbafe8733][GitHub Issueはテンプレート化で、綺麗に書かせる！ - Qiita]] のように，リクエストパラメータに付与する方法
+2. [[https://help.github.com/articles/creating-an-issue-template-for-your-repository/][Creating an issue template for your repository - User Documentation]] のように，ISSUE_TEMPLATE を作る方法
+
+1 は昔から知られており，2 は [[https://github.com/blog/2111-issue-and-pull-request-templates][2016-02-18]] と最近できた．今回は 1 に対応したものである．
+
+場合に応じて複数のテンプレートを扱う場合は 1 の形式で行わなければならない．
+しかし文字を対応した URL へ変換することが必要で面倒だった．
+そこでジェネレータを作った．
+
+JavaScriptでの文字列変換には3種類 =escape=  =encode= =encodeURIcomponent= あったが，
+今回は =encodeURIcomponent= を使うと目的に合致した．
+
+#+begin_src html
+<!DOCTYPE html>
+<head>
+  <meta charset="UTF-8">
+  <title>Github Issueテンプレートジェネレータ</title>
+</head>
+<body>
+  <label for="title">title<br></label><input id="title" type="text" size="100"><br>
+  <label for="body">body<br></label><textarea id="body" cols="80" rows="20"></textarea><br>
+  <label for="result">result<br></label><textarea id="result" cols="80" rows="20" readonly></textarea><br>
+  <script type="text/javascript">
+   function generate() {
+       const title = document.getElementById("title").value;
+       const body = document.getElementById("body").value;
+       document.getElementById("result").value = build(title, body);
+   };
+   function build(title, body) {
+       let result = "";
+       if(title) {
+           result += "title=" + encodeURIComponent(title);
+       }
+       if(body) {
+           if(result) {
+               result += "&body=" + encodeURIComponent(body);
+           } else { // タイトルがない場合
+               result += "body=" + encodeURIComponent(body);
+           }
+       };
+       return result;
+   };
+   document.addEventListener('DOMContentLoaded', function() {
+       document.getElementById("title").addEventListener("input", generate);
+       document.getElementById("body").addEventListener("input", generate);
+   });
+  </script>
+</body>
+</html>
+#+end_src
