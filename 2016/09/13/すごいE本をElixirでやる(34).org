@@ -1,0 +1,99 @@
+* すごいE本をElixirでやる(34)
+
+第 13 章 並行アプリケーションを設計する - 13.3 土台にすえる - インターフェースを追加する から
+
+** 13.3 土台にすえる
+
+*** インターフェースを追加する
+
+前回
+
+=spawn(Event, :loop, [%Event.State{server: self, name: "test", to_go: Event.normalize(5)}])=
+
+のように呼び出せるところまで実装した．
+
+毎回 =Event.normalize(5)= の部分を手で書いて呼び出すのが面倒なので，
+呼び出す人が気にせずにすむように関数のインターフェースを整えよう．
+
+#+begin_src elixir :tangle event.ex
+defmodule Event do
+  defmodule State, do: defstruct server: nil, name: "", to_go: 0
+
+  def start(event_name, delay) do
+    spawn(__MODULE__, :init, [self, event_name, delay])
+  end
+
+  def start_link(event_name, delay) do
+    spawn_link(__MODULE__, :init, [self, event_name, delay])
+  end
+
+  # event's innerds
+  def init(server, event_name, delay) do
+    loop(%State{server: server, name: event_name, to_go: normalize(delay)})
+  end
+
+  def cancel(pid) do
+    # Monitor in case the process is already dead.
+    ref = Process.monitor(pid)
+    send(pid, {self, ref, :cancel})
+    receive do
+      {ref, :ok} ->
+        Process.demonitor(ref, [:flush])
+        :ok
+      {:DOWN, ref, :process, pid, _reason} ->
+        :ok
+    end
+  end
+
+  # Because Erlang is limited to about 49 days (49*24*60*60*1000) in
+  # milliseconds, the following function is used.
+  def normalize(n) do
+    limit = 49*24*60*60
+    [rem(n, limit) | List.duplicate(limit, div(n, limit))]
+  end
+
+  # Loop uses a list for times in order to go around the ~49 days limit
+  # on timeouts.
+  def loop(state = %State{server: server, to_go: [t|next]}) do
+    receive do
+      {server, ref, :cancel} ->
+        send(server, {ref, :ok})
+      after t * 1000 ->
+        case next do
+          [] -> send(server, {:done, state.name})
+          [_x] -> loop(%{state | to_go: next})
+        end
+    end
+  end
+end
+#+end_src
+
+Process.monitor と Process.demonitor の動作がピンとこないので後で復習してみよう．
+特に，monitor したプロセスがクラッシュしたとき，monitor したいプロセスが最初からないとき．
+
+#+begin_src
+iex(1)> c("event.ex")
+c("event.ex")
+warning: variable pid is unused
+  event.ex:25
+
+warning: variable ref is unused
+  event.ex:25
+
+[Event, Event.State]
+iex(2)> Event.start("Event", 0)
+Event.start("Event", 0)
+#PID<0.93.0>
+iex(3)> flush
+flush
+{:done, "Event"}
+:ok
+iex(4)> pid = Event.start("Event", 500)
+pid = Event.start("Event", 500)
+#PID<0.96.0>
+iex(5)> Event.cancel(pid)
+Event.cancel(pid)
+:ok
+#+end_src
+
+よし動く．
