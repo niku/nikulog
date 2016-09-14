@@ -1,0 +1,109 @@
+* すごいE本をElixirでやる(35)
+
+第 13 章 並行アプリケーションを設計する - 13.4 イベントモジュール - インターフェースを追加する の途中から
+
+** 13.4 イベントモジュール
+
+*** インターフェースを追加する
+
+#+begin_quote
+イベントモジュールで煩わしい最後の部分は、時間を秒で入力しなければならないことです。
+Erlangのdatetime ({{〔年〕,〔月〕,〔日〕}, {〔時間〕,〔分〕,〔秒〕}})のような標準のフォーマットが使えるほうがいいでしょう。
+#+end_quote
+
+Elixirには [[http://elixir-lang.org/blog/2016/06/21/elixir-v1-3-0-released/#calendar-types-and-sigils][v1.3 から]] [[http://elixir-lang.org/docs/v1.3/elixir/Time][Time]] [[http://elixir-lang.org/docs/v1.3/elixir/Date][Date]] [[http://elixir-lang.org/docs/v1.3/elixir/DateTime][DateTime]] [[http://elixir-lang.org/docs/v1.3/elixir/NaiveDateTime.html][NaiveDateTime]] というモジュール，Structが用意されている．
+
+複数のライブラリでAPIは異なっていても，モデルは大体同じものになるため，相互に運用できるようにモデルだけ導入された．
+というようなことがリンク先のブログ書いてあった．
+
+確かにどのモジュールの説明にも
+
+#+begin_quote
+Developers should avoid creating the Time(Date/DateTime/NaiveDateTime) struct directly
+and instead rely on the functions provided by this module as well as the ones in 3rd party calendar libraries.
+#+end_quote
+
+と書いてある．
+直接使うことを想定しているのではなく，サードパーティのライブラリが共通で利用することができるStructとして提供されているようだ．
+
+今回はライブラリ経由で使うのが手間なのでさぼって直接使った．
+
+#+begin_src elixir :tangle event.ex
+defmodule Event do
+  defmodule State, do: defstruct server: nil, name: "", to_go: 0
+
+  def start(event_name, delay) do
+    spawn(__MODULE__, :init, [self, event_name, delay])
+  end
+
+  def start_link(event_name, delay) do
+    spawn_link(__MODULE__, :init, [self, event_name, delay])
+  end
+
+  # event's innerds
+  def init(server, event_name, date_time) do
+    loop(%State{server: server, name: event_name, to_go: time_to_go(date_time)})
+  end
+
+  def cancel(pid) do
+    # Monitor in case the process is already dead.
+    ref = Process.monitor(pid)
+    send(pid, {self, ref, :cancel})
+    receive do
+      {ref, :ok} ->
+        Process.demonitor(ref, [:flush])
+        :ok
+      {:DOWN, ref, :process, pid, _reason} ->
+        :ok
+    end
+  end
+
+  def time_to_go(time_out=%DateTime{}) do
+    now = DateTime.utc_now
+    IO.inspect now
+    to_go = DateTime.to_unix(time_out) - DateTime.to_unix(now)
+    IO.inspect to_go
+    secs = case to_go do
+             x when 0 < x -> x
+             x when x <= 0 -> 0
+           end
+    normalize(secs)
+  end
+
+  # Because Erlang is limited to about 49 days (49*24*60*60*1000) in
+  # milliseconds, the following function is used.
+  def normalize(n) do
+    limit = 49*24*60*60
+    [rem(n, limit) | List.duplicate(limit, div(n, limit))]
+  end
+
+  # Loop uses a list for times in order to go around the ~49 days limit
+  # on timeouts.
+  def loop(state = %State{server: server, to_go: [t|next]}) do
+    receive do
+      {server, ref, :cancel} ->
+        send(server, {ref, :ok})
+      after t * 1000 ->
+        case next do
+          [] -> send(server, {:done, state.name})
+          [_x] -> loop(%{state | to_go: next})
+        end
+    end
+  end
+end
+#+end_src
+
+#+begin_src
+iex(5)> c("event.ex")
+c("event.ex")
+[Event, Event.State]
+iex(6)> Event.start("Event", DateTime.utc_now)
+Event.start("Event", DateTime.utc_now)
+#PID<0.96.0>
+iex(7)> flush
+flush
+{:done, "Event"}
+:ok
+#+end_src
+
+ちゃんと動作するようだ．
