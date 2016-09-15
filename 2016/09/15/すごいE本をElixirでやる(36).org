@@ -1,0 +1,75 @@
+* すごいE本をElixirでやる(36)
+
+第 13 章 並行アプリケーションを設計する - 13.5 イベントサーバ から
+
+** 13.5 イベントサーバ
+
+#+begin_quote
+サーバは状態として 2 つのものを保持する必要があります。
+サブスクライブしているクライアントのリストと、
+spawn したすべてのイベントプロセスのリストです。
+#+end_quote
+
+本が書かれた後に便利なモジュールが追加されたり，Elixir オリジナルの便利なモジュールが存在するので，以下の部分は本と異なる方法で実装した
+
+- =Record= のかわりに =Struct= を使う
+- =Orddict= のかわりに =Map= を使う
+- 時刻を表す =Tuple= のかわりに =NaiveDateTime= を使う
+
+*** メッセージを処理する
+
+#+begin_quote
+イベントが終わったときに通知しなければいけないので、すべてのサブスクライバの一覧を保持する必要があります。
+さらにプロトコルによれば、それらを監視する必要があります。クラッシュしたクライアントに意味もなく役に立たないメッセージを送りたくないので、その必要があるわけです。
+#+end_quote
+
+なるほど =:subscribe= のところ．こんな感じだろう．
+
+#+begin_src elixir
+      {pid, msg_ref, {:subscribe, client}} ->
+        ref = Process.monitor(client)
+        new_clients = Map.put_new(state.clients, ref, client)
+        send(pid, {msg_ref, :ok})
+        loop(%{state | clients: new_clients})
+#+end_src
+
+#+begin_src elixir :tangle evesrv.ex
+defmodule EveSrv do
+  defmodule State, do: defstruct events: %{}, clients: %{}
+  defmodule Event, do: defstruct name: "", description: "", pid: nil, timeout: ~N[1970-01-01 00:00:00]
+
+  def init do
+    # Loading events from a static file could be done here.
+    # You would need to pass an argument to init telling where the
+    # resource to find the events is. Then load it from here.
+    # Another option is to just pass the events straight to the server
+    # through this function.
+    loop(%State{})
+  end
+
+  def loop(state=%State{}) do
+    receive do
+      {pid, msg_ref, {:subscribe, client}} ->
+        ref = Process.monitor(client)
+        new_clients = Map.put_new(state.clients, ref, client)
+        send(pid, {msg_ref, :ok})
+        loop(%{state | clients: new_clients})
+      {pid, msg_ref, {:add, name, description, time_out}} ->
+        :do_something
+      {pid, msg_ref, {:cancel, name}} ->
+        :do_something
+      {:done, name} ->
+        :do_something
+      :shutdown ->
+        :do_something
+      {:DOWN, ref, :process, _pid, _reason} ->
+        :do_something
+      :code_change ->
+        :do_something
+      unknown ->
+        IO.puts("Unknown message: #{inspect unknown}")
+        loop(state)
+    end
+  end
+end
+#+end_src
