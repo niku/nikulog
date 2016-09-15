@@ -14,7 +14,17 @@ I went to the school yesterday.
 2は，もし =x= だったら，今 =y= しますという文章の =x= は過去形で表す．
 「もし =x= 」のところは， =y= より一つ前の時制で表現するらしい．
 
-I buy a coffee if I had 130 yen in my pocket.
+2016-09-15 12:39 追記: [[https://twitter.com/jj1bdx/status/776262808556048384][@jj1bdx]] さんに
+
+#+begin_quote
+仮定法による意思は would で受けるのが一般的です。現在形をいきなりは使いません。
+#+end_quote
+
+と教えていただいたので例文を修正．
+そうすると，投稿自体がおかしな感じになるが，そこは直さないでおく．
+整理して今後新たに投稿するものとする．
+
+I would buy a coffee if I had 130 yen in my pocket.
 （もし130円が私のポケットに入っていたらコーヒーを買います．）
 
 - 未来にやることなら，もしのところは現在形
