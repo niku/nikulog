@@ -1,0 +1,52 @@
+* すごいE本をElixirでやる(38)
+
+第 13 章 並行アプリケーションを設計する - 13.5 イベントサーバ - お熱いコードがお好き から
+
+ErlangVMのホットコードローディングを利用するために，とても大事なことが書かれていた．
+
+- Erlangにはコードサーバーという，ETSテーブルを管理しているプロセスがある
+- コードサーバーは，メモリ上に2つのバージョンを保持でき，両方を同時に実行できる
+- 最新バージョンを実行したいときは =〔モジュール〕.〔関数〕(〔引数〕)= 形式の完全修飾呼び出しを使い，同じバージョンを使いたいときは =〔名前〕(〔引数〕)= 形式のローカル呼び出しを使う
+
+ホットコードローディングを考慮したプログラミングをする場合は，完全修飾呼び出しとローカル呼び出しは等価ではない点に気をつけよう．
+
+** 13.5 イベントサーバ
+
+*** お熱いコードがお好き
+
+#+begin_quote
+ホットコードローディングをするために、Erlang にはコードサーバと呼ばれるものがあります。
+コードサーバは、ETS テーブル(仮想マシン上のネイティブなインメモリデータベーステーブル、第 25 章で説明します)を管理している仮想マシンのプロセスです。
+コードサーバは、メモリ上で 1 つのモジュールの 2 つのバージョンを保持し、両方を同時に実行できます。
+#+end_quote
+
+#+begin_quote
+Erlang にはローカル呼び出しと外部呼び出しの両方があります。
+ローカル呼び出しは、export されていない関数による関数呼び出しで、〔名前〕(〔引数〕) の形式をしています。
+一方の外部呼び出しは、export された関数 のみによるもので、〔モジュール〕:〔関数〕(〔引数〕) の形式をしています。
+外部呼び出しの正式な名前は完全修飾呼び出しです。
+#+end_quote
+
+#+begin_quote
+完全修飾呼び出しは、常にコードサーバ内にある最新のバージョンで行われます。
+#+end_quote
+
+#+begin_src elixir :tangle hotload.ex
+defmodule Hotload do
+  def server(state) do
+    receive do
+      :update ->
+        new_state = __MODULE__.update(state)
+        # Loop in the new version of the module.
+        __MODULE__.server(new_state)
+      some_message ->
+        # Do something here.
+        server(state) # Stay in the same version no matter what.
+    end
+  end
+
+  def upgrade(old_state) do
+    # Transform and return the state here.
+  end
+end
+#+end_src
