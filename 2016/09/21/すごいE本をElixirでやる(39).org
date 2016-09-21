@@ -1,0 +1,154 @@
+* すごいE本をElixirでやる(39)
+
+第 13 章 並行アプリケーションを設計する - 13.5 イベントサーバ - メッセージを隠せと言ったろう? から
+
+** 13.5 イベントサーバ
+
+*** メッセージを隠せと言ったろう?
+
+#+begin_quote
+注意してほしいのは、クライアントが受信するはずの{error, bad_timeout}も1でそのまま転送されることです。
+そうではなく、erlang:error(bad_timeout) を上げてクライアントをクラッシュさせることもできます。
+#+end_quote
+
+実装したコードでは bad_timeout が起こらないようになっているので， =add_event2= は省略する．
+
+#+begin_quote
+最後はクライアント向けのちょっとした関数です。一定期間すべてのメッセージを蓄積します。
+メッセージが見つかったら、すべて取り出し、できるだけ早く返します。
+#+end_quote
+
+#+begin_quote
+これは、クライアントが更新を待ってポーリングしているアプリケーションにとって便利な機能です。
+#+end_quote
+
+なるほど．便利そうだ． =listen(delay)= のやり方を覚えておこう．
+
+
+#+begin_src elixir :tangle evsrv.ex
+defmodule EvSrv do
+  defmodule State, do: defstruct events: %{}, clients: %{}
+  defmodule Event, do: defstruct name: "", description: "", pid: nil, time_out: ~N[1970-01-01 00:00:00]
+
+  def start do
+    pid = spawn(__MODULE__, :init, [])
+    Process.register(__MODULE__, pid)
+    pid
+  end
+
+  def start_link do
+    pid = spawn_link(__MODULE__, :init, [])
+    Process.register(__MODULE__, pid)
+    pid
+  end
+
+  def terminate do
+    send(__MODULE__, :shutdown)
+  end
+
+  def subscribe(pid) do
+    ref = Process.monitor(Process.whereis(__MODULE__))
+    send(__MODULE__, {self, ref, {:subscribe, pid}})
+    receive do
+      {ref, :ok} ->
+        {:ok, ref}
+      {:DOWN, ref, :process, _pid, reason} ->
+        {:error, reason}
+    after 5000 ->
+      {:error, :timeout}
+    end
+  end
+
+  def add_event(name, description, time_out) do
+    ref = make_ref
+    send(__MODULE__, {self, ref, {:add, name, description, time_out}})
+    receive do
+      {ref, msg} ->
+        msg
+      after 5000 ->
+        {:error, :timeout}
+    end
+  end
+
+  def cancel(name) do
+    ref = make_ref
+    send(__MODULE__, {self, ref, {:cancel, name}})
+    receive do
+      {ref, :ok} ->
+        :ok
+      after 5000 ->
+        {:error, :timeout}
+    end
+  end
+
+  def listen(delay) do
+    receive do
+      m = {:done, name, description} ->
+      [m | listen(0)]
+    after delay*1000 ->
+      []
+    end
+  end
+
+  def init do
+    # Loading events from a static file could be done here.
+    # You would need to pass an argument to init telling where the
+    # resource to find the events is. Then load it from here.
+    # Another option is to just pass the events straight to the server
+    # through this function.
+    loop(%State{})
+  end
+
+  def loop(state=%State{}) do
+    receive do
+      {pid, msg_ref, {:subscribe, client}} ->
+        ref = Process.monitor(client)
+        new_clients = Map.put_new(state.clients, ref, client)
+        send(pid, {msg_ref, :ok})
+        loop(%{state | clients: new_clients})
+      {pid, msg_ref, {:add, name, description, time_out}} ->
+        event_pid = Event.start_link(name, time_out)
+        new_events = Map.put_new(state.events, name, %EvSrv.Event{name: name,
+                                                                  description: description,
+                                                                  pid: event_pid,
+                                                                  time_out: time_out})
+        send(pid, {msg_ref, :ok})
+        loop(%{state | events: new_events})
+      {pid, msg_ref, {:cancel, name}} ->
+        events = case Map.fetch(state.events, name) do
+                   {:ok, e} ->
+                     Event.cancel(e.pid)
+                     Map.delete(state.events, name)
+                   :error ->
+                     state.events
+                 end
+        send(pid, {msg_ref, :ok})
+        loop(%{state | events: events})
+      {:done, name} ->
+        case Map.fetch(state.events, name) do
+          {:ok, e} ->
+            send_to_clients(state.clients, {:done, e.name, e.description})
+            new_events = Map.delete(state.events, name)
+            loop(%{state | events: new_events})
+          :error ->
+            # This may happen if we cancel an event and
+            # it fires at the same time.
+            loop(state)
+        end
+      :shutdown ->
+        exit(:shutdown)
+      {:DOWN, ref, :process, _pid, _reason} ->
+        loop(%{state | clients: Map.delete(state.clients, ref)})
+      :code_change ->
+        :do_something
+      unknown ->
+        IO.puts("Unknown message: #{inspect unknown}")
+        loop(state)
+    end
+  end
+
+  def send_to_clients(clients, msg) do
+    Map.values(clients) |> Enum.each(&(send(&1, msg)))
+  end
+end
+#+end_src
