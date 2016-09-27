@@ -1,0 +1,52 @@
+* Elixirでトップレベルのモジュール名を明示する
+
+Elixirでトップレベルのモジュール名を明示するには =Elixir= を接頭辞につける．
+Rubyでトップレベルのモジュール名を =::Foo= と記述するのと同じようなものだ．
+
+下記のコード =Bar.do_it= の中で =Foo= と書くと
+
+- =Bar.Foo= が宣言されている場合は， =Bar= の中の =Foo= つまり =Bar.Foo= のことだと解釈される．
+- =Bar.Foo= が宣言されていない場合は，トップレベルの =Foo= のことだと解釈される．
+
+トップレベルにある =Foo= のことを呼びたい場合は =Elixir.Foo= と書くとよい．
+
+#+begin_src elixir
+defmodule Foo do
+  def do_something do
+    "do_something"
+  end
+end
+
+
+defmodule Bar do
+  defmodule Foo do
+    def do_anything do
+      "do_anything"
+    end
+  end
+
+  def do_it do
+    # Foo.do_something
+    # と書いて実行すると以下のようなエラーが表示される
+    #>  ** (UndefinedFunctionError) function Bar.Foo.do_something/0 is undefined or private. Did you mean one of:
+    #>
+    #>        * do_anything/0
+    #>
+    #>      Bar.Foo.do_something()
+    #>      orgmode_elixir_src.exs:16: Bar.do_it/0
+    #>      (elixir) lib/code.ex:363: Code.require_file/2
+    Elixir.Foo.do_something
+  end
+end
+
+IO.puts Bar.do_it
+#+end_src
+
+公式 Getting Started の[[http://elixir-lang.org/getting-started/alias-require-and-import.html#alias][ alias, require and import - Elixir]] にも
+
+#+begin_quote
+All modules defined in Elixir are defined inside a main Elixir namespace. However, for convenience, you can omit “Elixir.” when referencing them.
+#+end_quote
+
+（訳：Elixirで定義された全てのモジュールはElixirという名前空間の中にある．しかし，便利なように，参照するときに"Elixir"と書かなくてもよい」）と，
+トップレベルは =Elixir= であることが書いてある．
