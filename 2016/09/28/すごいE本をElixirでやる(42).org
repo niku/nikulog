@@ -1,0 +1,148 @@
+* すごいE本をElixirでやる(42)
+
+第14章 OTPの紹介 から
+
+** OTPの紹介
+
+
+並行アプリケーションを書く方法について
+
+#+begin_quote
+不可欠な考え方や実装方法を、長年にわたって慎重に開発されバグもつぶされているライブラリへと落とし込んだのが、 OTP フレームワーク
+#+end_quote
+
+であるそうだ．
+
+*** 14.1 共通プロセスを抽象化すると
+
+#+begin_quote
+どんなふうに使われるプロセスであれ、 これから書くすべての並行プログラムには、通常はこれらの部分が含まれることになります。
+#+end_quote
+
+これまでにやってきたように，標準的なプロセスの使い方では多くの場合
+
+- spawn
+- 初期化
+- ループ
+- 終了
+
+が含まれる．OTPではそれらを（私達がやったのと同じように）抽象化してライブラリとした．しかも我々がこれまで書いてきたコードに比べて
+
+#+begin_quote
+現場で何年も使われてきたものであり、私たちの実装よりずっと慎重に作られています。
+#+end_quote
+
+*** 14.2 基本的なサーバ
+
+#+begin_src elixir :tangle kitty_server.ex
+defmodule KittyServer do
+  defmodule Cat, do: defstruct name: "", color: :green, description: ""
+
+  ### Client API
+  def start_link, do: spawn_link(&init/0)
+
+  ## Synchronous call
+  def order_cat(pid, name, color, description) do
+    ref = Process.monitor(pid)
+    send(pid, {self, ref, {:order, name, color, description}})
+    receive do
+      {ref, cat} ->
+        Process.demonitor(ref, [:flush])
+        cat
+      {:DOWN, ref, :process, pid, reason} ->
+        raise(reason)
+    after 5000 ->
+      raise(:timeout)
+    end
+  end
+
+  ## This call is asynchronous
+  def return_cat(pid, cat = %Cat{}) do
+    send(pid, {:return, cat})
+    :ok
+  end
+
+  ## Synchronous call
+  def close_shop(pid) do
+    ref = Process.monitor(pid)
+    send(pid, {self, ref, :terminate})
+    receive do
+      {ref, :ok} ->
+        Process.demonitor(ref, [:flush])
+        :ok
+      {:DOWN, ref, :process, pid, reason} ->
+        raise(reason)
+    after 5000 ->
+      raise(:timeout)
+    end
+  end
+
+  ### Server functions
+  def init, do: loop([])
+
+  def loop(cats) do
+    receive do
+      {pid, ref, {:order, name, color, description}} ->
+        case cats do
+          [] ->
+            send(pid, {ref, make_cat(name, color, description)})
+            loop(cats)
+          [h|t] ->
+            send(pid, {ref, h})
+            loop(t)
+        end
+      {:return, cat = %Cat{}} ->
+        loop([cat|cats])
+      {pid, ref, :terminate} ->
+        send(pid, {ref, :ok})
+        terminate(cats)
+      unknown ->
+        ## Do some logging here too.
+        IO.puts("Unknown message: #{inspect unknown}")
+        loop(cats)
+    end
+  end
+
+  defp make_cat(name, color, description), do: %Cat{name: name, color: color, description: description}
+  defp terminate(cats) do
+    for %Cat{name: name} <- cats, do: IO.puts("#{name} was set free.")
+    :ok
+  end
+end
+#+end_src
+
+#+begin_src elixir
+Eshell V8.1  (abort with ^G)
+Interactive Elixir (1.3.3) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> import_file("kitty_server.ex")
+{:module, KittyServer,
+ <<70, 79, 82, 49, 0, 0, 22, 44, 66, 69, 65, 77, 69, 120, 68, 99, 0, 0, 1, 189,
+   131, 104, 2, 100, 0, 14, 101, 108, 105, 120, 105, 114, 95, 100, 111, 99, 115,
+   95, 118, 49, 108, 0, 0, 0, 4, 104, 2, ...>>, {:terminate, 1}}
+iex(2)> pid = KittyServer.start_link
+#PID<0.91.0>
+iex(4)> cat1 = KittyServer.order_cat(pid, :carl, :brown, "loves to burn bridges")
+%KittyServer.Cat{color: :brown, description: "loves to burn bridges", name: :carl}
+iex(5)> KittyServer.return_cat(pid, cat1)
+:ok
+iex(6)> KittyServer.order_cat(pid, :jimmy, :orange, "cuddly")
+%KittyServer.Cat{color: :brown, description: "loves to burn bridges", name: :carl}
+iex(7)> KittyServer.order_cat(pid, :jimmy, :orange, "cuddly")
+%KittyServer.Cat{color: :orange, description: "cuddly", name: :jimmy}
+iex(8)> KittyServer.return_cat(pid, cat1)
+:ok
+iex(9)> KittyServer.close_shop(pid)
+carl was set free.
+:ok
+iex(10)> KittyServer.close_shop(pid)
+** (UndefinedFunctionError) function :noproc.exception/1 is undefined (module :noproc is not available)
+    :noproc.exception([])
+    iex:37: KittyServer.close_shop/1
+#+end_src
+
+#+begin_quote
+どんな猫が欲しいかを記述すれば、その猫が得られます。
+もし誰かが猫を返してきたら(return)、その猫をリストに追加し、次の注文時には顧客の希望とは関係なく自動的にそれを送ります
+#+end_quote
+
+=iex(6)= =iex(7)= で期待通りに動いていることがわかる．
