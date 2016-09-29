@@ -1,0 +1,239 @@
+* ElixirでidobataのAPIを利用する
+
+Elixirでidobata.ioの認証を行い(BOT)APIを利用する方法．
+
+- Websocketクライアント
+- HTTPクライアント
+- JSONパーサ/ビルダ
+
+の3つを用い，定型的な通信や認証を隠蔽しないので，他の言語で接続するときにも参考になるかもしれない．
+
+** 前書き
+
+サッポロビームでも便利に利用させてもらっている [[https://idobata.io/][Idobata.io]] (以下Idobata)という無料group chatサービスがある．
+Idobataには[[http://blog.idobata.io/post/75440832922][メッセージを受けとって反応するBOT API]]がある．
+
+#+begin_quote
+技術的には Hubot 以外の bot を一から作ることもできるのですが、API について決め切れていない部分が多いため、現時点では Hubot のみのサポートとさせてください。
+もちろん、hubot-idobata の実装から API を推測してオリジナルの bot を作っていただくことは何ら問題ありません
+#+end_quote
+
+API を調査した人がいて [[https://github.com/hanachin/idobata-api-doc][hanachin/idobata-api-doc]] にまとめられている．
+
+#+begin_quote
+Idobataでは、チャットのデータをリアルタイムでやりとりするためにPusherをつかっている。
+Pusherへの接続方法について、ドキュメントはないが以下のような実装がある。
+#+end_quote
+
+- [[https://github.com/idobata/hubot-idobata][idobata/hubot-idobata]]
+- [[https://github.com/yasslab/ruboty-idobata][yasslab/ruboty-idobata]]
+
+これらはBOT APIを利用するには便利なものの，Pusherライブラリを利用しているので，Pusherとidobataの協調を行う一部の認証については隠蔽されている．
+
+今回Elixirで良いPusherライブラリが見つけられなかったので
+
+1. Websocketクライアント
+2. HTTPクライアント
+3. JSONパーサ/ビルダ
+
+を利用してidobata.ioの認証を行い，idobataへ投稿されたメッセージをPusher経由のwebsocket接続で取得した．
+
+** 認証の概要
+
+公式ドキュメントの [[https://pusher.com/docs/authenticating_users#authentication_process][Authenticating users]] にあるシーケンス図のとおりにやると，認証できる．
+ただし，シーケンス図の Pusher JS Library の部分がないので，自分で実装しなければならない．
+
+0. api_tokenをパラメータに含めてIdobataへGET(HTTP)リクエストを送り，channel_nameを取得する
+1. [[https://pusher.com/docs/pusher_protocol#websocket-connection][PusherとWebsocketの接続を確立する]] シーケンス図(2)の部分
+2. [[https://pusher.com/docs/pusher_protocol#connection-events][接続したPusherとのWebsocketからsocket_idを取得する]] シーケンス図(3)の部分
+3. Idobataから取得したchannel_nameと，Pusherから取得したsocket_idをパラメータに含めてIdobataへPOST(HTTP)リクエストする シーケンス図(5)の部分
+4. IdobataへのPOSTリクエストのレスポンスからauthとchannel_dataを取得する シーケンス図(6)の部分
+5. [[https://pusher.com/docs/pusher_protocol#subscription-events][Idobataから取得したauthとchannel_dataをパラメータに含めてPusherとのWebsocketへ送信する]] シーケンス図(7)の部分
+6. [[https://pusher.com/docs/pusher_protocol#presence-channel-events][PusherとのWebsocketからpusher_internal:subscription_succeededを受信する]]
+7. （ブラウザでidobataへ投稿すると，Pusherと接続したWebsocket経由で投稿内容を取得できる）
+
+** Elixirで認証する
+
+以下の3つのライブラリを利用する
+
+- [[https://github.com/meh/elixir-socket][meh/elixir-socket]] :: Websocketクライアント
+- [[https://github.com/edgurgel/httpoison][edgurgel/httpoison]] :: HTTPクライアント
+- [[https://github.com/devinus/poison][devinus/poison]] :: JSONパーサ/ビルダ
+
+mix.exs はこうなる．
+
+#+begin_src elixir :tangle mix.exs
+defmodule IdobataClient.Mixfile do
+  use Mix.Project
+
+  def project do
+    [app: :idobata_client,
+     version: "0.1.0",
+     elixir: "~> 1.3",
+     build_embedded: Mix.env == :prod,
+     start_permanent: Mix.env == :prod,
+     deps: deps()]
+  end
+
+  def application do
+    [applications: [:logger,
+                    :socket,
+                    :httpoison]]
+  end
+
+  defp deps do
+    [{:socket, "~> 0.3"},
+     {:poison, "~> 2.2"},
+     {:httpoison, "~> 0.9"}]
+  end
+end
+#+end_src
+
+#+begin_src shell
+% mix deps.get
+% iex -S mix
+#+end_src
+
+でiexを起動する．
+
+*** 注意
+
+Pusherと接続したWebsocketは，[[https://pusher.com/docs/pusher_protocol#ping-pong][接続確認のためにサーバーからpingを送ってくる]]．
+クライアントからpongを送り返さなければ，サーバーは接続を切断してしまう．
+
+今回は説明を簡単にするため，ping に反応する処理を書いていない．
+そのため接続を確立したらできるだけ早く試すこと．
+
+#+begin_src elixir
+iex(14)> {:text, json} = Socket.Web.recv!(socket)
+** (MatchError) no match of right hand side value: {:ping, ""}
+#+end_src
+
+というエラーがでたら，ping が送られてきているので，もう一度最初から（接続確立から）試すとよい．
+
+*** 0. api_tokenをパラメータに含めてIdobataへGET(HTTP)リクエストを送り，channel_nameを取得する
+
+IdobataへのHTTPリクエストする際のヘッダは [[https://github.com/idobata/hubot-idobata/blob/v0.3.0/src/idobata.coffee#L106-L108][hubot-idobata/idobata.coffee#L106-L108]] にある通り
+
+- X-API-Token
+- User-Agent
+
+を設定する．
+
+X-API-Token の値はIdobataのBOT設定から取得する．
+
+[[idobata-bot-setting.png]]
+
+User-Agent の値は任意のようだ．今回は =elixir-access / v0.1.0= とした．
+
+リクエスト URL は [[https://github.com/idobata/hubot-idobata/blob/v0.3.0/src/idobata.coffee#L26][IdobataのBOTソースコード]] から調べた．
+
+#+begin_src elixir
+iex(1)> idobata_url = "https://idobata.io"
+"https://idobata.io"
+iex(2)> api_token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+iex(3)> %{body: body} = HTTPoison.get!(idobata_url <> "/api/seed", "X-API-Token": api_token, "User-Agent": "elixir-access / v0.1.0"); nil
+nil
+iex(4)> channel_name = Poison.decode!(body) |> get_in(["records", "bot", "channel_name"])
+"presence-guy_8085"
+#+end_src
+
+*** 1. PusherとWebsocketの接続を確立する
+
+Idobata の pusher_key は [[https://github.com/idobata/hubot-idobata/blob/v0.3.0/src/idobata.coffee#L10][IdobataのBOTソースコード]] から取得する．
+プロトコルのバージョンはPusherの[[https://pusher.com/docs/pusher_protocol][APIリファレンスの最新が7]] で，そのAPIを参照しているので7を指定する．
+
+リクエスト URL は [[https://pusher.com/docs/pusher_protocol#websocket-connection][Pusher Protocol のリファレンス]] から調べた．
+
+#+begin_src elixir
+iex(5)> protocol_version = 7
+7
+iex(6)> idobata_pusher_key = "44ffe67af1c7035be764"
+"44ffe67af1c7035be764"
+iex(7)> socket = Socket.Web.connect! "ws.pusherapp.com", secure: true, path: "/app/#{idobata_pusher_key}?protocol=#{protocol_version}"
+%Socket.Web{extensions: nil, headers: %{}, key: "xxxxxxxxxxxxxxxxxxxxxxxx",
+ mask: true, origin: nil, path: "/app/44ffe67af1c7035be764?protocol=7",
+ protocols: nil,
+ socket: {:sslsocket, {:gen_tcp, #Port<0.6251>, :tls_connection, :undefined},
+  #PID<0.181.0>}, version: 13}
+#+end_src
+
+*** 2. 接続したPusherとのWebsocketからsocket_idを取得する
+
+Pusherと接続したWebsocketから返ってくるデータは，dataフィールドを含んだJSON形式になってる．
+
+JSONのdataフィールドは，オブジェクトではなく，オブジェクトをシリアライズした文字列になっている．そこで
+
+1. Websocketから返ってくる文字列をJSON化する
+2. JSON化したdataフィールドの文字列をJSON化する
+
+という2回のデコードが必要になる．
+リファレンスにも [[https://pusher.com/docs/pusher_protocol#double-encoding][Double encoding]] というタイトルで記述されている．
+
+#+begin_src elixir
+iex(8)> {:text, json} = Socket.Web.recv!(socket)
+{:text,
+ "{\"event\":\"pusher:connection_established\",\"data\":\"{\\\"socket_id\\\":\\\"204923.1842685\\\"}\"}"}
+iex(9)> socket_id = Poison.decode!(json) |> Access.get("data") |> Poison.decode! |> Access.get("socket_id")
+"204923.1842685"
+#+end_src
+
+*** 3. Idobataから取得したchannel_nameと，Pusherから取得したsocket_idをパラメータに含めてIdobataへPOST(HTTP)リクエストする
+
+リクエスト URL は [[https://github.com/idobata/hubot-idobata/blob/v0.3.0/src/idobata.coffee#L50][IdobataのBOTソースコード]] から調べた．
+
+#+begin_src elixir
+iex(10)> %{body: body} = HTTPoison.post!(idobata_url <> "/pusher/auth", {:form, socket_id: socket_id, channel_name: channel_name}, "X-API-Token": api_token, "User-Agent": "elixir-access / v0.1.0"); nil
+nil
+#+end_src
+
+*** 4. IdobataへのPOSTリクエストのレスポンスからauthとchannel_dataを取得する
+
+#+begin_src elixir
+iex(11)> auth = Poison.decode!(body) |> Access.get("auth")
+"xxxxxxxxxxxxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+iex(12)> channel_data = Poison.decode!(body) |> Access.get("channel_data")
+"{\"user_id\":8085}"
+#+end_src
+
+*** 5. Idobataから取得したauthとchannel_dataをパラメータに含めてPusherとのWebsocketへ送信する
+
+準備が整ったので [[https://pusher.com/docs/pusher_protocol#subscription-events][pusher:subscribe]] する．
+
+#+begin_src elixir
+iex(13)> Socket.Web.send!(socket, {:text, Poison.encode!(%{event: "pusher:subscribe", data: %{channel: channel_name, auth: auth, channel_data: channel_data}})})
+:ok
+#+end_src
+
+*** 6. PusherとのWebsocketからpusher_internal:subscription_succeededを受信する
+
+subscribe がうまくいっていると =pusher_internal:subscription_succeeded= というイベントが返ってくる．
+
+#+begin_src elixir
+iex(14)> {:text, json} = Socket.Web.recv!(socket)
+{:text,
+ "{\"event\":\"pusher_internal:subscription_succeeded\",\"data\":\"{\\\"presence\\\":{\\\"count\\\":1,\\\"ids\\\":[\\\"8085\\\"],\\\"hash\\\":{\\\"8085\\\":null}}}\",\"channel\":\"presence-guy_8085\"}"}
+#+end_src
+
+*** 7. （ブラウザでidobataへ投稿すると，Pusherと接続したWebsocket経由で投稿内容を取得できる）
+
+ブラウザで Idobata へ投稿すると，Pusherと接続したWebsocket経由で投稿内容を取得できる．
+
+ブラウザで「こんばんは」と投稿したときの例
+
+#+begin_src elixir
+iex(15)> {:text, json} = Socket.Web.recv!(socket)
+{:text,
+ "{\"event\":\"message:created\",\"data\":\"{\\\"message\\\":{\\\"id\\\":18482097,\\\"body_plain\\\":\\\"こんばんは\\\",\\\"sender_name\\\":\\\"niku\\\",\\\"sender_icon_url\\\":\\\"https://idobata.s3.amazonaws.com/uploads/user/icon/157/a51816c3b11f79d9644a46105d513f1b.png\\\",\\\"created_at\\\":\\\"2016-09-29T16:05:57.089Z\\\",\\\"body\\\":\\\"<p>こんばんは</p>\\\",\\\"sender_id\\\":157,\\\"sender_type\\\":\\\"User\\\",\\\"room_id\\\":1332}}\",\"channel\":\"presence-guy_8085\"}"}
+#+end_src
+
+** まとめ
+
+1. Websocketクライアント
+2. HTTPクライアント
+3. JSONパーサ/ビルダ
+
+の3つがあればIdobataのBOTAPIとの接続を確立，認証して，サーバーで起きたイベントを取得することができる．
+
+今回はElxiirとライブラリを利用して行うことができた．
