@@ -1,0 +1,164 @@
+* すごいE本をElixirでやる(45)
+
+第14章 OTPの紹介 -14.3 特化 vs. 汎用 から
+
+** 第14章OTPの紹介
+
+*** 14.3 特化 vs. 汎用
+
+汎用の部分と特化した部分を切り離すと，嬉しいことがいくつかある．
+
+- 汎用の部分は，様々な人が様々な用途に使ってきたものになるので，品質が安定したものになりやすい
+- もし以前に汎用の部分を触ったり調べたことがあれば，その知識をそのまま生かせる
+- 汎用の部分を最適化すると，特化した部分でがんばらなくても処理速度が向上する
+- 汎用の部分に合わせて様々なツールが開発されているため，ツールの利用が容易
+- (OTPに限って言えば) 特化した部分は =handle_call= と =handle_cast= のところをテストすればよくなり，状態も引数として渡されるので，純粋な関数のテストとなる．テストしやすい．
+
+*** 14.4 コールバック・トゥ・ザ・フューチャー
+
+#+begin_quote
+OTP の gen_server は、プロセスの初期化と終了を扱うための関数、
+同期と非同期のリクエストをメッセージパッシングによって扱う関数、
+その他いくつかのタスクを処理する関数などを実装するように指定してきます。
+#+end_quote
+
+Elixirだと [[http://elixir-lang.org/docs/v1.3/elixir/GenServer.html][GenServer]] だ．GenServerには初期実装があるので，必要なもののみを上書き実装すればOKだ．
+
+**** init 関数
+
+#+begin_quote
+サーバの状態を初期化し、サーバが依存することになる一回限りのタスクをすべて行う
+#+end_quote
+
+**** handle_call 関数
+
+#+begin_quote
+同期メッセージと連携するときに使われます。この関数は Request、From、State の 3 つの引数を取ります
+#+end_quote
+
+**** handle_cast 関数
+
+#+begin_quote
+Message と State を引数に取り、非同期呼び出し処理に使います
+#+end_quote
+
+**** handle_info 関数
+
+#+begin_quote
+!演算子で直接送られてきたメッセージや、init/1 の timeout、モニターの通知、EXIT シグナルのような特別なメッセージためだけに存在する
+#+end_quote
+
+gen_serverのプロトコルに乗らないメッセージを扱う．
+
+**** terminate
+
+#+begin_quote
+3 つ の handle_〔something〕関 数が {stop, Reason, NewState} または {stop, Reason, Reply, NewState} という形式のタプルを返すとき、
+常にコールバック関数 terminate/2 が呼び出されます。この関数は Reason と State という 2 つの引数 を取ります。これらの引数は、タプル stop からの値に対応しています
+#+end_quote
+
+**** code_change 関数
+
+#+begin_quote
+コードをアップグレードできます。この関数は code_change(PreviousVersion, State, Extra).のような形で呼び出します
+#+end_quote
+
+*** 14.5 スコッティ、転送を頼む
+
+#+begin_quote
+gen_server: call には、タイムアウト値として 3 つめの引数をミリ秒単位で渡すこともできます。
+関数にタイムアウト値(あるいはアトム infinity)を設定しないと、デフォルト値は 5 秒に設定されます。
+時間切れになる前に返信を受け取れない場合、呼び出しはクラッシュします
+#+end_quote
+
+普段のプログラミングでも同期呼び出しがどのくらいの時間かかるかは意識しないといけないな．
+
+#+begin_quote
+一般的な経験則として、予期しないメッセージのログは常にhandle_cast/2と handle_info/2 でとるようにしましょう。
+handle_call/3 でもログをとりたくなるかもしれませんが、呼び出しに対して(デフォルトのタイムアウトである 5 秒で)返信しなければ一般的には同じ結果が得られます。
+#+end_quote
+
+ロギングの方針を決めるのに参考にしよう．
+
+
+#+begin_src elixir :tangle kitty_gen_server.ex
+defmodule KittyGenServer do
+  defmodule Cat, do: defstruct name: "", color: :green, description: ""
+
+  use GenServer
+
+  def start_link, do: GenServer.start_link(__MODULE__, [], [])
+
+  ## Synchronous call
+  def order_cat(pid, name, color, description) , do: GenServer.call(pid, {:order, name, color, description})
+
+  ## This call is asynchronous
+  def return_cat(pid, cat = %Cat{}), do: GenServer.cast(pid, {:return, cat})
+
+  ## Synchronous call
+  def close_shop(pid), do: GenServer.call(pid, :terminate)
+
+  ### GenServer
+  # def init([]), do: {:ok, []} ## use GenServer した場合の init のデフォルトと同じなので，追加不要
+
+  def handle_call({:order, name, color, description}, _from, cats) do
+    case cats do
+      [] ->
+        {:reply, make_cat(name, color, description), cats}
+      [h|t] ->
+        {:reply, h, t}
+    end
+  end
+
+  def handle_call(:terminate, _from, cats), do: {:stop, :normal, :ok, cats}
+
+  def handle_cast({:return, cat = %Cat{}}, cats), do: {:noreply, [cat|cats]}
+
+  def handle_info(msg, cats) do
+    IO.puts("Unexpected message: #{inspect msg}")
+    {:noreply, cats}
+  end
+
+  def terminate(:normal, cats) do
+    for %Cat{name: name} <- cats, do: IO.puts("#{name} was set free.")
+    :ok
+  end
+
+  # def code_change(_old_vsn, state, _extra), do: {:ok, state} ## use GenServer した場合の code_change のデフォルトと同じなので，追加不要
+
+  defp make_cat(name, color, description), do: %Cat{name: name, color: color, description: description}
+end
+#+end_src
+
+#+begin_src elixir
+Eshell V8.1  (abort with ^G)
+Interactive Elixir (1.3.3) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> import_file("kitty_gen_server.ex")
+{:module, KittyGenServer,
+ <<70, 79, 82, 49, 0, 0, 17, 200, 66, 69, 65, 77, 69, 120, 68, 99, 0, 0, 3, 64,
+   131, 104, 2, 100, 0, 14, 101, 108, 105, 120, 105, 114, 95, 100, 111, 99, 115,
+   95, 118, 49, 108, 0, 0, 0, 4, 104, 2, ...>>, {:make_cat, 3}}
+iex(2)> {:ok, pid} = KittyGenServer.start_link
+{:ok, #PID<0.91.0>}
+iex(3)> send(pid, "test handle_info")
+Unexpected message: "test handle_info"
+"test handle_info"
+iex(4)> cat = KittyGenServer.order_cat(pid, "Cat Stevens", :white, "not actually a cat")
+%KittyGenServer.Cat{color: :white, description: "not actually a cat",
+ name: "Cat Stevens"}
+iex(5)> KittyGenServer.return_cat(pid, cat)
+:ok
+iex(6)> cat = KittyGenServer.order_cat(pid, "Kitten Mittens", :black, "look at them little paws!")
+%KittyGenServer.Cat{color: :white, description: "not actually a cat",
+ name: "Cat Stevens"}
+iex(7)> cat = KittyGenServer.order_cat(pid, "Kitten Mittens", :black, "look at them little paws!")
+%KittyGenServer.Cat{color: :black, description: "look at them little paws!",
+ name: "Kitten Mittens"}
+iex(8)> KittyGenServer.return_cat(pid, cat)
+:ok
+iex(9)> KittyGenServer.close_shop(pid)
+Kitten Mittens was set free.
+:ok
+#+end_src
+
+期待通りに動作している．GenServerを知ってさえいれば，コードの見通しも自前での実装よりよくなった．
