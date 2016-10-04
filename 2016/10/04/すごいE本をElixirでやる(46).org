@@ -1,0 +1,162 @@
+* すごいE本をElixirでやる(46)
+
+第15章 レイジ・アゲインスト・ザ・有限ステート・マシーン から
+
+はい．タイトルはレイジ・アゲインスト・ザ・マシーン という有名なバンドが元ネタだろう．
+音楽がかっこよく，かつギターの[[https://ja.wikipedia.org/wiki/%E3%83%88%E3%83%A0%E3%83%BB%E3%83%A2%E3%83%AC%E3%83%AD][トム・モレロ]]さんが高学歴（ハーバード大学卒業）であることが印象に残っている．
+
+** 第15章 レイジ・アゲインスト・ザ・有限ステート・マシーン
+
+#+begin_quote
+典型的な Erlang の有限ステートマシンは、
+いくつかの関数(の状態)を実行してメッセージ(イベント)を受け取ることにより状態を変遷させるプロセスとして実装されています
+#+end_quote
+
+*** 15.1 有限ステートマシンとは何か
+
+#+begin_quote
+有限ステートマシン(FSM)は、マシンといっても機械ではなく、有限個のステート(状態)を持ったものです
+#+end_quote
+
+状態と，その状態を変化させるイベント，イベントによって遷移する次の状態を記述したものが有限ステートマシン．
+
+#+begin_src elixir :tangle cat_fsm.ex
+defmodule CatFSM do
+  def start, do: spawn(fn -> dont_give_crap end)
+
+  def event(pid, event) do
+    ref = make_ref # won't care for monitors here
+    send(pid, {self, ref, event})
+    receive do
+      {ref, msg} -> {:ok, msg}
+    after 5000 ->
+      {:error, :timeout}
+    end
+  end
+
+  def dont_give_crap do
+    receive do
+      {pid, ref, _msg} -> send(pid, {ref, :meh})
+      _ -> :ok
+    end
+    IO.puts("Switching to 'dont_give_crap' state")
+    dont_give_crap
+  end
+end
+#+end_src
+
+#+begin_src elixir
+Eshell V8.1  (abort with ^G)
+Interactive Elixir (1.3.3) - press Ctrl+C to exit (type h() ENTER for help)
+iex(2)> import_file("cat_fsm.ex")
+{:module, CatFSM,
+ <<70, 79, 82, 49, 0, 0, 8, 120, 66, 69, 65, 77, 69, 120, 68, 99, 0, 0, 0, 232,
+   131, 104, 2, 100, 0, 14, 101, 108, 105, 120, 105, 114, 95, 100, 111, 99, 115,
+   95, 118, 49, 108, 0, 0, 0, 4, 104, 2, ...>>, {:dont_give_crap, 0}}
+iex(3)> cat = CatFSM.start
+#PID<0.89.0>
+iex(4)> CatFSM.event(cat, :pet)
+Switching to 'dont_give_crap' state
+{:ok, :meh}
+iex(5)> CatFSM.event(cat, :love)
+Switching to 'dont_give_crap' state
+{:ok, :meh}
+iex(6)> CatFSM.event(cat, :cherish)
+Switching to 'dont_give_crap' state
+{:ok, :meh}
+iex(7)>
+#+end_src
+
+#+begin_quote
+猫が本当に見向きもしない(never give a crap)
+#+end_quote
+
+確かに見向きもしない．
+
+#+begin_src elixir :tangle dog_fsm.ex
+defmodule DogFSM do
+  def start, do: spawn(fn -> bark end)
+
+  def squirrel(pid), do: send(pid, :squirrel)
+
+  def pet(pid), do: send(pid, :pet)
+
+  def bark do
+    IO.puts("Dog says: BARK! BARK!")
+    receive do
+      :pet -> wag_tail
+      _ ->
+        IO.format("Dog is confused")
+        bark
+    after 2000 ->
+      bark
+    end
+  end
+
+  def wag_tail do
+    IO.puts("Dog wags its tail")
+    receive do
+      :pet -> sit
+      _ ->
+        IO.format("Dog is confused")
+        wag_tail
+    after 30000 ->
+      bark
+    end
+  end
+
+  def sit do
+    IO.puts("Dog is sitting. Goooooooooood boy!")
+    receive do
+      :squirrel -> bark
+      _ ->
+        IO.puts("Dog is confused")
+        sit
+    end
+  end
+end
+#+end_src
+
+#+begin_src elixir
+Eshell V8.1  (abort with ^G)
+Interactive Elixir (1.3.3) - press Ctrl+C to exit (type h() ENTER for help)
+iex(1)> import_file("dog_fsm.ex")
+{:module, DogFSM,
+ <<70, 79, 82, 49, 0, 0, 9, 224, 66, 69, 65, 77, 69, 120, 68, 99, 0, 0, 1, 58,
+   131, 104, 2, 100, 0, 14, 101, 108, 105, 120, 105, 114, 95, 100, 111, 99, 115,
+   95, 118, 49, 108, 0, 0, 0, 4, 104, 2, ...>>, {:sit, 0}}
+iex(2)> pid = DogFSM.start
+Dog says: BARK! BARK!
+#PID<0.88.0>
+iex(3)> Dog says: BARK! BARK!
+iex(3)> Dog says: BARK! BARK!
+iex(3)> Dog says: BARK! BARK!
+iex(3)> DogFSM.pet(pid)
+DogFSM.pet(pid)
+:pet
+iex(4)> DogFSM.pet(pid)
+Dog is sitting. Goooooooooood boy!
+:pet
+iex(5)> DogFSM.squirrel(pid)
+Dog says: BARK! BARK!
+:squirrel
+iex(6)> Dog says: BARK! BARK!
+iex(6)> DogFSM.pet(pid)
+Dog wags its tail
+:pet
+iex(7)> ## wait 30 seconds
+nil
+iex(8)> Dog says: BARK! BARK!
+iex(8)> Dog says: BARK! BARK!
+iex(8)> Dog says: BARK! BARK!
+iex(8)> DogFSM.pet(pid)
+DogFSM.pet(pid)
+:pet
+iex(9)> DogFSM.pet(pid)
+Dog is sitting. Goooooooooood boy!
+:pet
+iex(10)>
+#+end_src
+
+こちらもうまく動いているようだ．
+本と同じ動作になっている．
