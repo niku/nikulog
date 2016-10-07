@@ -1,0 +1,101 @@
+* Elixirの無名関数で再帰する
+
+Elixirの無名関数で再帰するにはいくつかやり方があるので参考になるURLと，その中で気にいったものを一つ挙げる．
+
+また，それを応用して無名関数の中で =receive= を続けるような処理を記述する．
+
+** 準備
+
+=x= という無名関数宣言の中では，宣言中の =x= という関数を指定できない．
+そこで =x= の引数でコールバックを取るようにし，宣言を一度完了させる．
+
+次に =x= のコールバックとして，自身の =x= を渡すようにすれば，再帰できる．
+
+#+begin_src elixir
+# (数値, コールバック) という2引数を取る関数としてxを宣言する
+x = fn
+  # この中では x を使えない
+  0, _f -> 1
+  1, _f -> 1
+  n,  f -> n * f.(n - 1, f)
+end
+
+x.(5, x) # => 120
+#+end_src
+
+** 完成
+
+=x.(5, x)= のように，第二引数へ =x= を渡さなければならないのは面倒なので，関数でラップする．
+
+#+begin_src elixir
+fact = fn n ->
+  x = fn
+    0, _f -> 1
+    1, _f -> 1
+    n,  f -> n * f.(n - 1, f)
+  end
+
+  x.(n, x)
+end
+
+fact.(5) # => 120
+#+end_src
+
+** どのように使おうとしているか
+
+1 つの pid の中で receive を続けるのに使いたい．
+具体的には Websocket のデータ受信を待ち続けるような処理に使おうとしている．
+
+#+begin_src elixir
+iex(1)> dispatch = fn to_pid ->
+...(1)>   x = fn f ->
+...(1)>     receive do
+...(1)>       :foo -> send(to_pid, "foo")
+...(1)>       :bar -> send(to_pid, "bar")
+...(1)>     after 10000 ->
+...(1)>       send(to_pid, "?")
+...(1)>     end
+...(1)>     f.(f)
+...(1)>   end
+...(1)>
+...(1)>   x.(x)
+...(1)> end
+#Function<6.52032458/1 in :erl_eval.expr/5>
+iex(2)>
+nil
+iex(3)> me = self
+#PID<0.80.0>
+iex(4)> {:ok, pid} = Task.start_link(fn -> dispatch.(me) end)
+{:ok, #PID<0.97.0>}
+iex(5)> send(pid, :foo)
+:foo
+iex(6)> flush
+"foo"
+:ok
+iex(7)>
+nil
+iex(8)> send(pid, :bar)
+:bar
+iex(9)> flush
+"bar"
+:ok
+iex(10)> ## 10秒待つ
+nil
+iex(11)> flush
+"?"
+:ok
+iex(12)> send(pid, :bar)
+:bar
+iex(13)> flush
+"bar"
+:ok
+iex(14)>
+#+end_src
+
+dispatch を動かしている =pid= に対してメッセージを送ると反応する．
+複数回メッセージを送ってもきちんと反応し，タイムアウトしてもその後きちんと反応しているので，再帰によるループができていると判断してよい．
+
+** 参考
+
+- [[http://stackoverflow.com/questions/21982713/recursion-and-anonymous-functions-in-elixir][Recursion and anonymous functions in elixir - Stack Overflow]]
+- [[https://www.reddit.com/r/elixir/comments/41bva5/recursive_anonymous_functions_in_elixir/][Recursive Anonymous Functions in Elixir : elixir]]
