@@ -1,0 +1,66 @@
+* org-modeでplantumlを使う
+
+[[http://plantuml.com/][plantuml]] を使って，テキストからUMLを生成する．
+
+- [[http://qiita.com/ogomr/items/0b5c4de7f38fd1482a48][PlantUML Cheat Sheet - Qiita]] が，どんな記法でどんな図を作れるのかわかりやすかった．
+- [[http://yohshiy.blog.fc2.com/blog-entry-152.html][PlantUML の使い方 | プログラマーズ雑記帳]] が，それぞれの図についての詳しいパラメータを解説していてわかりやすかった
+
+[[https://www.ymotongpoo.com/works/lyse-ja/ja/18_ratfsm.html#id3][Learn You Some Erlang for Great Good!]] からいくつか画像を借りてサンプルを作ってみる．
+
+** シーケンス図
+
+[[file:fsm_overview.png]]
+
+#+begin_src plantuml :file plantuml-sequence.svg
+hide footbox
+
+actor あなた
+あなた -> あなたのFSM: ask Jim
+あなたのFSM ->> JimのFSM: negotiate?
+actor Jim
+Jim -> JimのFSM: ok
+JimのFSM ->> あなたのFSM: ok
+あなた -> あなたのFSM: offerまたはcancel
+Jim -> JimのFSM: offerまたはcancel
+あなたのFSM <<->> JimのFSM
+あなた -> あなたのFSM: ready
+Jim -> JimのFSM: ready
+あなたのFSM <-> JimのFSM: 取引
+#+end_src
+
+[[file:plantuml-sequence.svg]]
+
+
+** ステートマシーン
+
+[[file:fsm_general.png]]
+
+#+begin_src plantuml :file plantuml-statemachine.svg
+[*] --> idle
+idle --> idle_wait
+idle_wait --> negotiate
+negotiate --> negotiate
+idle --> negotiate
+negotiate --> wait
+wait --> negotiate
+wait --> ready
+ready --> stop
+stop --> [*]
+#+end_src
+
+[[file:plantuml-statemachine.svg]]
+
+** ユースケース
+
+[[file:fsm_initiate_nego.png]]
+
+#+begin_src plantuml :file plantuml-usecase.svg
+actor あなた
+actor JimのFSM
+
+あなた -> (idle) : Jimと交渉\n(negotiate)
+(idle) -> JimのFSM : 交渉を申し込む\n(ask negotiate)
+(idle) -- (idle_wait)
+#+end_src
+
+[[file:plantuml-usecase.svg]]
