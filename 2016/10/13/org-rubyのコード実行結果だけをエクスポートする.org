@@ -1,0 +1,33 @@
+* org-rubyのコード実行結果だけをエクスポートする
+
+=#+begin_src= と =#+end_src= に囲まれたソースコードの部分はHTMLに出力せず =#+RESULTS:= の結果部分はHTMLに出力する方法．
+
+具体的なユースケースは，
+=#+begin_src= と =#+end_src= に囲まれたソースコードの部分にplantuml記法で図の元となるテキストを入力，ブロック内で =C-c C-c= を押して，plantuml実行結果の画像を生成する．
+このときHTMLには元のテキストは不要，実行結果の画像のみを含めたい．
+という場合．
+
+=#+begin_src plantuml :exports results :file idle_to_negotiate.svg= のように =:exports results= を含めると，該当のコード(画像を生成するためのテキスト)はHTMLへ出力されず，コードの実行結果(画像)はHTMLへ出力される．
+
+[[file:emacs.png]]
+
+Emacs上のorg-modeで図のようなコードを書いておくと，下の図のようなHTMLが出力される．
+
+[[file:html.png]]
+
+** 調べたこと
+
+org-modeのマニュアルに [[http://orgmode.org/manual/Exporting-code-blocks.html][Exporting code blocks]] という章がある．
+
+#+begin_quote
+It is possible to export the code of code blocks,
+the results of code block evaluation,
+both the code and the results of code block evaluation, or none.
+#+end_quote
+
+であるそうだ．org-modeではコードブロックに =:exports= というヘッダをつけると可能らしい．
+
+この日記でも使っている，org-mode の Ruby 実装であるところの [[https://github.com/wallyqs/org-ruby][wallyqs/org-ruby]] でも利用可能だろうか．
+org-rubyのコードを =:exports= で grep すると [[https://github.com/wallyqs/org-ruby/blob/6f43f43bd96306589bac26a74d9c5bb5a91399c9/lib/org-ruby/line.rb#L233-L251][org-ruby/line.rb at 6f43f43bd96306589bac26a74d9c5bb5a91399c9 · wallyqs/org-ruby]] のあたりが引っ掛かり，使えそうなことがわかる．
+
+[[./%E3%81%99%E3%81%94%E3%81%84E%E6%9C%AC%E3%82%92Elixir%E3%81%A7%E3%82%84%E3%82%8B(48).html][すごいE本をElixirでやる(48)]] で試したところ使えた．
