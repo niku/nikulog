@@ -1,0 +1,100 @@
+* すごいE本をElixirでやる(48)
+
+第15章 レイジ・アゲインスト・ザ・有限ステート・マシーン - 15.3 取引システムの仕様 - 状態ダイアグラムと遷移の定義 から
+
+** 第15章 レイジ・アゲインスト・ザ・有限ステート・マシーン
+
+*** 15.3 取引システムの仕様
+
+**** 状態ダイアグラムと遷移の定義
+
+#+begin_quote
+ここがいちばん大変な部分です。状態ダイアグラムと状態遷移の仕方を定義します。
+通常はここでかなり多くの考察が必要です。
+なぜなら、どんな些細なことでも、 おかしくなりそうな点はすべて考えなければいけないからです
+(何度も定義を見直したあとでさえ、おかしくなる部分はあるでしょう)
+#+end_quote
+
+#+begin_src plantuml :exports results :file statemachine.svg
+[*] --> idle
+idle --> idle_wait
+idle_wait --> negotiate
+negotiate --> negotiate
+idle --> negotiate
+negotiate --> wait
+wait --> negotiate
+wait --> ready
+ready --> stop
+stop --> [*]
+#+end_src
+
+#+RESULTS:
+[[file:statemachine.svg]]
+
+2つの有限ステートマシン(FSM)は，はじめは両方とも =idle= 状態にあり，唯一できることは相手のプレーヤーに取引を持ちかけることのみだ．
+
+自分側のFSMは要求を伝えたら，その結果となる返事を待つために =idle_wait= 状態へと変わる．
+相手側のFSMが返信を送ってくると，自分側のFSMは =negotiate= 状態へと切り替わる．
+
+また，相手側のFSMも，返信を送ったあと =negotiate= 状態になるべきだ．
+
+#+begin_src plantuml :exports results :file idle_to_negotiate.svg
+hide footbox
+
+actor あなた
+participant あなたのFSM
+participant JimのFSM
+actor Jim
+
+note over あなたのFSM : idle
+note over JimのFSM : idle
+あなた -> あなたのFSM : Jimと交渉\n(negotiate)
+あなたのFSM ->> JimのFSM : 交渉を申し込む\n(ack negotiate)
+note over あなたのFSM : idle_wait
+JimのFSM <- Jim : 受け入れて\n(accept)
+あなたのFSM <<- JimのFSM : 受け入れた\n(accepted)
+note over JimのFSM : negotiate
+note over あなたのFSM : negotiate
+#+end_src
+
+#+RESULTS:
+[[file:idle_to_negotiate.svg]]
+
+
+相手が取引を申し込むのと同時にこちらが取引を申し込んだときはどうなるだろうか．
+
+両方のクライアントが自分のFSMに対して，相手のFSMと交渉(negotiate)するように求める．
+両方のFSMは交渉依頼(ack negotiate)のメッセージを送るとすぐに待ち(idle_wait)状態に切り替わる．(図のparのところ)
+
+自分のFSMが待ち状態のときに交渉依頼のメッセージを受けるのは，両方が同時に交渉依頼メッセージを送った場合のみであり，
+双方が交渉したいと望んでいることが推察できるので，交渉(negotiate)状態へと移る．
+
+#+begin_src plantuml :exports results :file conflict_negotiation.svg
+hide footbox
+
+actor あなた
+participant あなたのFSM
+participant JimのFSM
+actor Jim
+
+note over あなたのFSM : idle
+note over JimのFSM : idle
+あなた -> あなたのFSM : Jimと交渉\n(negotiate)
+JimのFSM <- Jim : あなたと交渉\n(negotiate)
+par
+  あなたのFSM ->> JimのFSM : 交渉を申し込む\n(ack negotiate)
+  note over あなたのFSM : idle_wait
+else
+  あなたのFSM <<- JimのFSM : 交渉を申し込む\n(ack negotiate)
+  note over JimのFSM : idle_wait
+end
+note over JimのFSM : negotiate
+note over あなたのFSM : negotiate
+#+end_src
+
+#+RESULTS:
+[[file:conflict_negotiation.svg]]
+
+** 今日のまとめ
+
+FSMが交渉(negotiate)状態になるまでのケースを網羅した．
