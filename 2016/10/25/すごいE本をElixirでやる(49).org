@@ -1,0 +1,95 @@
+* すごいE本をElixirでやる(49)
+
+第15章 レイジ・アゲインスト・ザ・有限ステート・マシーン - 15.3 取引システムの仕様 - 状態ダイアグラムと遷移の定義 から
+
+両方のFSMがidle，idle_waitを経てnegotiate状態になるところまで進んだので，そこから続き．
+
+** 第15章 レイジ・アゲインスト・ザ・有限ステート・マシーン
+
+*** 15.3 取引システムの仕様
+
+**** 状態ダイアグラムと遷移の定義
+
+あなたのFSMがメッセージacceptedをJimのFSMへ送るか，
+あなたのFSMがメッセージacceptedををJimのFSMから受け取ると，
+あなたのFSMはnegotiate状態になる．
+
+negotiate状態になったときにできることは2つ．
+
+1. アイテムを提案(offer)する
+2. 提案を撤回(retract)する
+
+どちらも，ユーザー(あなた/Jim)がFSMへメッセージを送り，FSMは受け取ったメッセージをそのまま相手のFSMへ送る．
+
+offer/retractメッセージを送っても，offer/retractメッセージを受けとっても，negotiate状態は変わらない．
+
+お互いに好きな回数アイテムの提示を行い，交換を提示するアイテムを追加できる．
+
+#+begin_src plantuml :exports results :file negotiate_to_finish.svg
+actor あなた
+participant あなたのFSM
+participant JimのFSM
+actor Jim
+
+note over あなたのFSM : idle
+note over JimのFSM : idle
+あなた -> あなたのFSM : Jimと交渉\n(negotiate)
+あなたのFSM ->> JimのFSM : 交渉を申し込む\n(ack negotiate)
+note over あなたのFSM : idle_wait
+JimのFSM <- Jim : 受け入れて\n(accept)
+あなたのFSM <<- JimのFSM : 受け入れた\n(accepted)
+note over JimのFSM : negotiate
+note over あなたのFSM : negotiate
+
+par
+  あなた -> あなたのFSM : 提案(offer)\nor\n撤回(retract)
+  あなたのFSM ->> JimのFSM : 提案(offer)\nor\n撤回(retract)
+else
+  JimのFSM <- Jim : 提案(offer)\nor\n撤回(retract)
+  あなたのFSM <<- JimのFSM : 提案(offer)\nor\n撤回(retract)
+end
+
+あなた -> あなたのFSM :: 準備(ready)
+あなたのFSM ->> JimのFSM :: 準備できてる？(are you ready?)
+note over あなたのFSM : wait
+
+alt 準備完了しているとき
+  note over JimのFSM : wait
+  あなたのFSM <<- JimのFSM : 準備完了！(ready)
+  note over JimのFSM : ready
+  note over あなたのFSM : ready
+  あなたのFSM <<- JimのFSM : ack
+  あなたのFSM ->> JimのFSM : コミット確認
+  あなたのFSM <<- JimのFSM : ok
+  あなたのFSM ->> JimのFSM : コミット
+  note over JimのFSM : ……保存
+  あなたのFSM <<- JimのFSM : ok
+  note over あなたのFSM : 保存……
+  note over JimのFSM : 停止
+  note over あなたのFSM : 停止
+else まだのとき
+  あなたのFSM <<- JimのFSM : not yet
+else JimのFSMから新たな提案(offer)や撤回(retract)があったとき
+  あなたのFSM <<- JimのFSM : 提案(offer)/撤回(retract)
+  note over あなたのFSM : wait
+end
+#+end_src
+
+#+RESULTS:
+[[file:negotiate_to_finish.svg]]
+
+長かった．
+
+#+begin_quote
+たくさんの人に私のプロトコルが正しいかどうかレビューしてもらいましたが、そのときも全員が見逃していた競合状態がいくつかあります。
+それらに気がついたのは、あとで自分でコードをレビューしているときでした。コードを 2 度以上読む必要が出てくるのは普通です。
+#+end_quote
+
+自分でプロトコルを設計してみた後で，以下の質問を自分のプロトコルにぶつけてみるとよいそうだ．
+
+- もし両者が同じ動作をとても素早く行ったらどうなるだろうか?
+- 両者が 2 つのイベントを素早く連続で行ったら何が起こるだろうか?
+- 状態を変えるときに知らないメッセージがきたらどうすればいいだろうか?
+
+なるほど．非同期プロトコルを作るのは大変なのだな．
+（この日記を書くのも大変だった）
