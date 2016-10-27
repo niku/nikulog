@@ -1,0 +1,53 @@
+* すごいE本をElixirでやる(50)
+
+第15章 レイジ・アゲインスト・ザ・有限ステート・マシーン - 15.4 プレーヤー二人のゲーム内取引 から
+
+** 第15章 レイジ・アゲインスト・ザ・有限ステート・マシーン
+
+*** 15.4 プレーヤー二人のゲーム内取引
+
+#+begin_quote
+取引システムプロトコルを OTP の gen_fsm を使って実装する上で最初に必要なことは、インターフェースの作成です
+#+end_quote
+
+**** public なインターフェース
+
+私たちのモジュールには
+
+1. プレーヤー
+2. gen_fsmビヘイビア
+3. 他プレーヤーのFSM
+
+という 3 つの呼び出し元がある．
+
+パブリックにしなければならないのは，プレーヤー関数とgen_fsm関数のみである．
+なぜなら，他プレーヤーのFSMも同じモジュール内にあり，モジュール内でアクセスできるため．
+
+#+begin_src elixir :tangle trade_fsm.ex
+  defmodule TradeFSM do
+    #
+    # PUBLIC API
+    #
+    def start(name), do: :gen_fsm.start(__MODULE__, [name], [])
+    def start_link(name), do: :gen_fsm.start_link(__MODULE__, [name], [])
+
+    # Ask for a begin session. Return when/if the other accepts.
+    def trade(own_pid, other_pid), do: :gen_fsm.sync_send_event(own_pid, {:negotiate, other_pid}, 30_000)
+
+    # Accept someone's trade offer
+    def accept_trade(own_pid), do: :gen_fsm.sync_send_event(own_pid, :accept_negotiate)
+
+    # Send an item on the table to be traded
+    def make_offer(own_pid, item), do: :gen_fsm.send_event(own_pid, {:make_offer, item})
+
+    # Cancel trade offer.
+    def retract_offer(own_pid, item), do: :gen_fsm.send_event(own_pid, {:retract_offer, item})
+
+    # Mention that you're ready for a trade. When the other
+    # player also declares they're ready, the trade is done.
+    def ready(own_pid), do: :gen_fsm.sync_send_event(own_pid, :ready, :infinity)
+
+    # Cancel the transaction.
+    def cancel(own_pid), do: :gen_fsm.sync_send_all_state_event(own_pid, :cancel)
+  end
+#+end_src
