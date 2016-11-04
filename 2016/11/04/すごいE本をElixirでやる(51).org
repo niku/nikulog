@@ -1,0 +1,105 @@
+* すごいE本をElixirでやる(51)
+
+第15章 レイジ・アゲインスト・ザ・有限ステート・マシーン - 15.4 プレーヤー二人のゲーム内取引 - FSM-to-FSM 関数 から
+
+** 第15章 レイジ・アゲインスト・ザ・有限ステート・マシーン
+
+*** 15.4 プレーヤー二人のゲーム内取引
+
+**** FSM-to-FSM 関数
+
+私たちのモジュールには
+
+1. プレーヤー
+2. gen_fsmビヘイビア
+3. 他プレーヤーのFSM
+
+という 3 つの呼び出し元がある．
+
+プレーヤー関数は実装したので，次にFSM間の関数を実装する．
+
+- 他のユーザに取引への参加を求めるときのセットアップ
+  - ask_negotiate/2
+  - accept_negotiate/2
+- 提案とキャンセル
+  - do_offer/2
+  - undo_offer/2
+- 取引の準備が完了しているかどうかに関する呼び出し
+  - are_you_ready/1
+  - not_yet/1
+  - am_ready/1
+- ready状態でコミットするときに双方のFSMが使う関数
+  - ack_trans/1
+  - ask_commit/1
+  - do_commit/1
+- 他のFSMに取引をキャンセルしたことを伝える
+  - notify_cancel/1
+
+#+begin_src elixir :tangle trade_fsm.ex
+defmodule TradeFSM do
+  #
+  # PUBLIC API
+  #
+  def start(name), do: :gen_fsm.start(__MODULE__, [name], [])
+  def start_link(name), do: :gen_fsm.start_link(__MODULE__, [name], [])
+
+  # Ask for a begin session. Return when/if the other accepts.
+  def trade(own_pid, other_pid), do: :gen_fsm.sync_send_event(own_pid, {:negotiate, other_pid}, 30_000)
+
+  # Accept someone's trade offer
+  def accept_trade(own_pid), do: :gen_fsm.sync_send_event(own_pid, :accept_negotiate)
+
+  # Send an item on the table to be traded
+  def make_offer(own_pid, item), do: :gen_fsm.send_event(own_pid, {:make_offer, item})
+
+  # Cancel trade offer.
+  def retract_offer(own_pid, item), do: :gen_fsm.send_event(own_pid, {:retract_offer, item})
+
+  # Mention that you're ready for a trade. When the other
+  # player also declares they're ready, the trade is done.
+  def ready(own_pid), do: :gen_fsm.sync_send_event(own_pid, :ready, :infinity)
+
+  # Cancel the transaction.
+  def cancel(own_pid), do: :gen_fsm.sync_send_all_state_event(own_pid, :cancel)
+
+  #
+  # FSM to FSM API
+  #
+
+  # Ask the other FSM's Pid for a trade session.
+  defp ask_negotiate(other_pid, own_pid), do: :gen_fsm.send_event(other_pid, {:ask_negotiate, :own_pid})
+
+  # Forward the client message accepting the transaction
+  defp accept_negotiate(other_pid, own_pid), do: :gen_fsm.send_event(other_pid, {:accept_negotiate, :own_pid})
+
+  # Forward a client's offer.
+  defp do_offer(other_pid, item), do: :gen_fsm.send_event(other_pid, {:do_offer, item})
+
+  # Forward a client's offer cancellation.
+  defp undo_offer(other_pid, item), do: :gen_fsm.send_event(other_pid, {:undo_offer, item})
+
+  # Ask the other side if he's ready to trade.
+  defp are_you_ready(other_pid), do: :gen_fsm.send_event(other_pid, :are_you_ready)
+
+  # Reply that the sid is not ready to trade.
+  # i.e. is not in 'wait' state.
+  defp not_yet(other_pid), do: :gen_fsm.send_event(other_pid, :not_yet)
+
+  # Tells the other fsm that the user is currently waiting
+  # for the ready state. State should transition to 'ready'.
+  defp am_ready(other_pid), do: :gen_fsm.send_event(other_pid, "ready!")
+
+  # Acknowledge that the fsm is in a ready state.
+  defp ack_trans(other_pid), do: :gen_fsm.send_event(other_pid, :ack)
+
+  # Ask if ready to commit.
+  defp ask_commit(other_pid), do: :gen_fsm.sync_send_event(other_pid, :ask_commit)
+
+  # Begin the synchronus commit.
+  defp do_commit(other_pid), do: :gen_fsm.sync_send_event(other_pid, :do_commit)
+
+  defp notify_cancel(other_pid), do: :gen_fsm.send_all_state_event(other_pid, :cancel)
+end
+#+end_src
+
+am_ready/1 だけ send_event へ渡す引数の型が atom ではないのはなぜだろう．後でわかるかな．
