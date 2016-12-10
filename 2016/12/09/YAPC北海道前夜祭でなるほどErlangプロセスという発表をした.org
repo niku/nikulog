@@ -1,0 +1,32 @@
+* YAPC北海道前夜祭でなるほどErlangプロセスという発表をした
+
+[[http://passmarket.yahoo.co.jp/event/show/detail/0170cmyfxi8j.html][YAPC北海道前夜祭]]でなるほどErlangプロセスという発表をした．
+
+#+begin_html
+<iframe src="https://slide.rabbit-shocker.org/authors/niku/yapc-hokkaido-2016-eve-naruhodo-erlang-process/viewer.html"
+        width="640" height="524"
+        frameborder="0"
+        marginwidth="0"
+        marginheight="0"
+        scrolling="no"
+        style="border: 1px solid #ccc; border-width: 1px 1px 0; margin-bottom: 5px"
+        allowfullscreen> </iframe>
+<div style="margin-bottom: 5px">
+  <a href="https://slide.rabbit-shocker.org/authors/niku/yapc-hokkaido-2016-eve-naruhodo-erlang-process/" title="なるほど Erlang プロセス">なるほど Erlang プロセス</a>
+</div>
+#+end_html
+
+** ふりかえり
+
+雑多に．
+
+- 当日スライド完成させるのをやめたい……
+- 20分で49枚のスライドは急いでしゃべっても間に合わなかったなあ
+  - 自分で調べて試して書いたので，「自分が」Erlangのプロセスを説明するのには便利な資料になった気がする
+- rabbitで画面サイズを変えるのがオプションにあった気がするけど忘れた．調べるか．
+- Erlangプロセスに馴染みの少ない人には，プロセスの性質を説明するんじゃなくて，安定稼動のためにErlangプロセスが備えていることという説明でいくほうがよかったなあ
+- すぐに検証できるコードを含めておいたのはよかったと思う
+  - Erlangプロセスのワード数の計算方法を知らなかったけど，Erlang公式サイトに[[http://erlang.org/doc/efficiency_guide/processes.html#id69717][書いてあった]]
+- インプットが少ないせいか，アプトプットが上手にできていないせいかわからないけど，とにかく上手に伝えられなかった感触があるなあ
+  - まず問題意識を整理するところをやってから話すんだったなあ
+- 今後も機会をもらったら積極的にやっていこう
