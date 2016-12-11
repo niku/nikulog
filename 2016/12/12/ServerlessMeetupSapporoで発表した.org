@@ -1,0 +1,30 @@
+* ServerlessMeetupSapporoで発表した
+
+[[https://serverless.connpass.com/event/43745/][Serverless Meetup Sapporo]] というイベントが開催されたので発表させてもらった．
+
+#+begin_html
+<iframe src="https://slide.rabbit-shocker.org/authors/niku/serverlessmeetup-sapporo-2016-12-11/viewer.html"
+        width="640" height="524"
+        frameborder="0"
+        marginwidth="0"
+        marginheight="0"
+        scrolling="no"
+        style="border: 1px solid #ccc; border-width: 1px 1px 0; margin-bottom: 5px"
+        allowfullscreen> </iframe>
+<div style="margin-bottom: 5px">
+  <a href="https://slide.rabbit-shocker.org/authors/niku/serverlessmeetup-sapporo-2016-12-11/" title="ErlangVMを触ってみたら分散と非同期って難しいんだなあという気分になりましたのでFaaS使いの皆さんがどうしているのか教えてほしい">ErlangVMを触ってみたら分散と非同期って難しいんだなあという気分になりましたのでFaaS使いの皆さんがどうしているのか教えてほしい</a>
+</div>
+#+end_html
+
+僕がわからないことを教えてもらえて，あわよくばみんなが同じような疑問を持っていても解消できればいいなあと思ったのでこんな発表になったのだった．
+
+何だか辛辣な疑問が並んでしまったけど，それらがないから使えないというわけではなくて，
+ないことを知ってそれを前提にアプリケーションを組まないと事故が起きるので，事故を防ぐために知りたかったのだった．
+
+そのあと AWS の西谷さんの [[http://www.slideshare.net/keisuke69/whats-new-with-serverless-70024684][What's new with Serverless]] を聞いて，
+僕が必要なんじゃないかなあと思ってたイベント再送やバッファリングの仕組みが既にマネージドサービスになっていたのでさすが AWS さんだなあと思いました．
+(こなみ
+
+あとドキュメントに書いてあるとうれしいなあと思ったけど，
+疑問に思われる全てのことをドキュメントに書くのは厳しいので，
+ドキュメントで補いきれないところはコミュニティで聞いたりするのがいいのかもしれない．
