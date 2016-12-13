@@ -1,0 +1,85 @@
+* gistに置いたmixプロジェクトをeescriptとしてインストールする
+
+Elixir1.4 から =mix escript.install git https://path/to/git/repo= という URL を指定する書き方でも escript をインストールできるようになった．
+
+github や hex.pm に上げるほどでもない，ちょっとしたスクリプトを Elixir で書いて，それを gist へとアップロードし共有．
+そこから escript をインストールする方法を書く．
+
+** つまづきどころ1
+
+=.exs= の拡張子のファイルは，escript 化したときに含まれない．
+
+=.exs= はメモリ内に展開され，beam ファイルが作られないものを意図しているので，
+beam ファイルを元に作成される escript には含まれない．
+
+escript に含めたいファイルは =.ex= で宣言すること．
+
+** つまづきどころ2
+
+gist はディレクトリ構造を扱わない．
+そのため，ファイル構成をフラットにしなければならない．
+
+=mix= のデフォルトのコンパイル対象のパスは =lib/= であり，
+そのままだと gits から取得したファイルのコンパイルを行えない．
+
+そこで =mix.exs= にコンパイル対象のパスを追加してやり，
+プロジェクト直下のファイルも読み込み対象へと追加すること．
+
+** 実装
+
+以下のような構成を gist へアップロードする．
+
+#+begin_src bash
+% tree
+.
+├── cli.ex
+└── mix.exs
+#+end_src
+
+#+begin_src elixir
+# mix.exs
+defmodule MyApp.Mixfile do
+  use Mix.Project
+
+  def project do
+    [app: :my_app,
+     version: "0.0.1",
+     elixirc_paths: ["."], # <- つまづきどころ2
+     escript: escript()]
+  end
+
+  def escript do
+    [main_module: MyApp.CLI]
+  end
+end
+#+end_src
+
+#+begin_src elixir
+# cli.ex <- つまづきどころ1
+defmodule MyApp.CLI do
+  def main(_args) do
+    IO.puts("Hello from MyApp!")
+  end
+end
+#+end_src
+
+Elixir1.4 からだとこのように利用することができる
+
+#+begin_src bash
+/Users/niku% mix escript.install git https://gist.github.com/niku/9be74fbcdb5d2b9e36b4259fe85e08a8
+* Getting new package (https://gist.github.com/niku/9be74fbcdb5d2b9e36b4259fe85e08a8)
+remote: Counting objects: 4, done.
+remote: Compressing objects: 100% (4/4), done.
+remote: Total 4 (delta 0), reused 0 (delta 0), pack-reused 0
+Compiling 1 file (.ex)
+Generated my_app app
+Generated escript my_app with MIX_ENV=prod
+Are you sure you want to install escript "my_app"? [Yn]
+* creating /Users/niku/.mix/escripts/my_app
+/Users/niku% my_app
+Hello from MyApp!
+#+end_src
+
+** 資料
+
+[[https://elixirforum.com/t/cant-find-the-module-in-the-escript-made-by-one-mix-exs-file-at-runtime][Can't find the module in the escript made by one `mix.exs` file at runtime]] で質問して教えてもらった．
