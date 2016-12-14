@@ -1,4 +1,4 @@
-* gistに置いたmixプロジェクトをeescriptとしてインストールする
+* gistに置いたmixプロジェクトをescriptとしてインストールする
 
 Elixir1.4 から =mix escript.install git https://path/to/git/repo= という URL を指定する書き方でも escript をインストールできるようになった．
 
