@@ -1,0 +1,13 @@
+* GenStageを試した
+
+サッポロビームの時間でそのうち Elixir のコアへと入りそうな GenStage を試した．
+
+** やったこと
+
+1. [[http://qiita.com/k1complete/items/1559e9708064a23042df][Announcing GenStage]] を読んで，なぜこのライブラリが登場したのかを知る
+2. [[https://github.com/elixir-lang/gen_stage][gen_stage]] を clone して =mix do deps.get, run examples/gen_event.exs= などと examples を動かして感触を確かめる
+3. [[https://gist.github.com/niku/c7186587fd1090b47ba52d4d646737f7][gen_stage で FizzBuzz]] を作ってみる
+
+** わかったこと
+
+GenStage の一機能であるブロードキャストは便利かもしれないので，もうちょっと追い掛けてみる．
