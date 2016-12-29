@@ -1,0 +1,100 @@
+* OpenAPI(Swagger)定義を読み込んでcodeを生成する
+
+[[https://github.com/OAI/OpenAPI-Specification][OpenAPI]] (旧 Swagger) とは
+
+- REST API が対象
+- 特定の言語に限定しない
+- 人間と機械両方が解釈できる形式で記述する
+
+ための標準的なインターフェースを定義したもの．
+
+単に定義してあるだけではなく [[http://swagger.io/tools/][ツール]] が充実しているので
+
+- [[http://swagger.io/swagger-editor/][定義を書く]] (Swagger-Editor)
+- [[http://swagger.io/swagger-codegen/][定義からコードを生成する]] (Swagger-CodeGen)
+- [[http://swagger.io/swagger-ui/][定義を読みやすい形で眺める]] (Swagger-UI)
+- [[https://github.com/swagger-api/swagger-node#now-call-the-api][定義どおりに動作するWebサーバーを立てる]] (Swagger-Node)
+
+といったことが容易にできる．
+
+今回は Swagger-CodeGen を利用して，Elixir 用のコード生成を試みる．
+
+** インストール
+
+[[https://github.com/swagger-api/swagger-codegen/blob/v2.2.1/README.md#os-x-users][OS X Users]] によると Java 7 以上が必要だ．
+
+[[https://github.com/swagger-api/swagger-codegen/blob/v2.2.1/README.md#getting-started][Getting Started]] を参考に，最終安定版(v2.2.1)のコードを clone して，PHP のコードを生成してみた．
+
+#+begin_src shell
+/Users/niku/src% java -version
+java version "1.8.0_102"
+Java(TM) SE Runtime Environment (build 1.8.0_102-b14)
+Java HotSpot(TM) 64-Bit Server VM (build 25.102-b14, mixed mode)
+/Users/niku/src% git clone -b v2.2.1 https://github.com/swagger-api/swagger-codegen
+(...snip...)
+/Users/niku/src% cd swagger-codegen
+/Users/niku/src/swagger-codegen % mvn clean package
+(...snip...)
+/Users/niku/src/swagger-codegen% java -jar modules/swagger-codegen-cli/target/swagger-codegen-cli.jar generate \
+   -i http://petstore.swagger.io/v2/swagger.json \
+   -l php \
+   -o /var/tmp/php_api_client
+/Users/niku/src/swagger-codegen% ls /var/tmp/php_api_client/SwaggerClient-php/
+LICENSE  README.md  autoload.php  composer.json  docs  git_push.sh  lib  test
+#+end_src
+
+なるほど．
+
+** コードの雛形を作る
+
+[[https://github.com/swagger-api/swagger-codegen/blob/v2.2.1/README.md#making-your-own-codegen-modules][Making your own codegen modules]] というセクションに
+
+#+begin_quote
+If you're starting a project with a new language and don't see what you need,
+swagger-codegen can help you create a project to generate your own libraries:
+#+end_quote
+
+とある．
+
+=/Users/niku/src/swagger-codegen% java -jar modules/swagger-codegen-cli/target/swagger-codegen-cli.jar help meta=
+
+すると引数に何を渡すといいかわかる．
+
+CodeGen の名前は既存のディレクトリを参考にするとよい．
+
+#+begin_src bash
+/Users/niku/src/swagger-codegen% ls -1 modules/swagger-codegen/src/main/java/io/swagger/codegen/languages=
+AbstractCSharpCodegen.java
+AbstractJavaCodegen.java
+AbstractJavaJAXRSServerCodegen.java
+AbstractPhpCodegen.java
+AbstractTypeScriptClientCodegen.java
+AkkaScalaClientCodegen.java
+AndroidClientCodegen.java
+AspNet5ServerCodegen.java
+AsyncScalaClientCodegen.java
+CSharpClientCodegen.java
+ClojureClientCodegen.java
+(...snip...)
+#+end_src
+
+Ruby だと =SinatraServerCodegen.java= といったようなものがあるから，Elixir の Plug で作るから =PlugServerCodegen= という名前にしよう．
+
+#+begin_src bash
+/Users/niku/src/swagger-codegen% java -jar modules/swagger-codegen-cli/target/swagger-codegen-cli.jar meta -o output/myLibrary -n PlugServer
+(...snip...)
+/Users/niku/src/swagger-codegen% head output/myLibrary/src/main/java/io/swagger/codegen/PlugserverGenerator.java
+package io.swagger.codegen;
+
+import io.swagger.codegen.*;
+import io.swagger.models.properties.*;
+
+import java.util.*;
+import java.io.File;
+
+public class PlugserverGenerator extends DefaultCodegen implements CodegenConfig {
+#+end_src
+
+Elixir コードを生成するための Java コードの雛形を作れた．
+
+(つづく)
