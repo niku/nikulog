@@ -1,0 +1,172 @@
+* OpenAPI(Swagger)定義を読み込んでcodeを生成する(2)
+
+前回コードの雛形を作るところまでやったが，サーバーよりクライアントを実装する方が簡単そうなので，方針転換してまずはクライアントを実装する．
+
+** コードの雛形を作る
+
+[[https://github.com/swagger-api/swagger-codegen/blob/v2.2.1/README.md#making-your-own-codegen-modules][Making your own codegen modules]] というセクションに
+
+#+begin_quote
+If you're starting a project with a new language and don't see what you need,
+swagger-codegen can help you create a project to generate your own libraries:
+#+end_quote
+
+とある．
+
+=/Users/niku/src/swagger-codegen% java -jar modules/swagger-codegen-cli/target/swagger-codegen-cli.jar help meta=
+
+すると引数に何を渡すといいかわかる．
+
+CodeGen の名前は既存のディレクトリを参考にするとよい．
+
+#+begin_src bash
+/Users/niku/src/swagger-codegen% ls -1 modules/swagger-codegen/src/main/java/io/swagger/codegen/languages
+AbstractCSharpCodegen.java
+AbstractJavaCodegen.java
+AbstractJavaJAXRSServerCodegen.java
+AbstractPhpCodegen.java
+AbstractTypeScriptClientCodegen.java
+AkkaScalaClientCodegen.java
+AndroidClientCodegen.java
+AspNet5ServerCodegen.java
+AsyncScalaClientCodegen.java
+CSharpClientCodegen.java
+ClojureClientCodegen.java
+(...snip...)
+#+end_src
+
+実際に生成したテンプレートをみると =名前 + Generator.java= というコード名になるようだ．
+既存のファイルになぜ =名前 + Codegen.jsva= という名前が多いのかは，わからなかった．
+
+名前は =言語名 + Client= が多いので =ElixirClient= とする．
+
+=java -jar modules/swagger-codegen-cli/target/swagger-codegen-cli.jar meta -o output/myLibrary -n ElixirClient= すると，
+=output/myLibrary= に，ElixirClient を作るためのプロジェクトのテンプレートが生成される．ひさしぶりの Java だ！
+
+#+begin_src bash
+/Users/niku/src/swagger-codegen% java -jar modules/swagger-codegen-cli/target/swagger-codegen-cli.jar meta -o output/myLibrary -n ElixirClient
+(...snip...)
+/Users/niku/src/swagger-codegen% tree output/myLibrary/
+output/myLibrary/
+├── README.md
+├── pom.xml
+└── src
+    └── main
+        ├── java
+        │   └── io
+        │       └── swagger
+        │           └── codegen
+        │               └── ElixirclientGenerator.java
+        └── resources
+            ├── ElixirClient
+            │   ├── api.mustache
+            │   └── model.mustache
+            └── META-INF
+                └── services
+                    └── io.swagger.codegen.CodegenConfig
+
+10 directories, 6 files
+#+end_src
+
+** コードの雛形から，目的のコードを生成する
+
+ここから何をすればよいかは =output/myLibrary/README.md= に書いてある．
+[[https://github.com/swagger-api/swagger-codegen/blob/v2.2.1/modules/swagger-codegen/src/main/resources/codegen/README.mustache][README.mdの元になるテンプレート]] を見つけたので，まだ動かしてみていない人はこれを参考にしてもよい．
+
+#+begin_quote
+You _will_ need to make changes in at least the following:
+
+`{{generatorClass}}.java`
+
+Templates in this folder:
+
+`src/main/resources/{{name}}`
+#+end_quote
+
+=ElixirclientGenerator.java= と =src/main/resources/ElixirClient= 以下を書き換えて，
+
+#+begin_quote
+Once modified, you can run this:
+
+```
+mvn package
+```
+#+end_quote
+
+=mvn package= する．
+
+#+begin_quote
+In your generator project.  A single jar file will be produced in `target`.  You can now use that with codegen:
+
+```
+java -cp /path/to/swagger-codegen-distribution:/path/to/your/jar io.swagger.codegen.Codegen -l {{name}} -o ./test
+```
+
+Now your templates are available to the client generator and you can write output values
+#+end_quote
+
+=mvn package= すると =target= ディレクトリのなかに jar ファイルができる．
+その jar ファイルを利用して =java -cp /path/to/swagger-codegen-distribution:/path/to/your/jar io.swagger.codegen.Codegen -l ElixirClient -o ./test= で
+=test= ディレクトリにコードができる？
+
+#+begin_src shell
+/Users/niku/src/swagger-codegen% cd output/myLibrary/
+/Users/niku/src/swagger-codegen/output/myLibrary% mvn package
+(...snip...)
+/Users/niku/src/swagger-codegen/output/myLibrary% java -cp ../../modules/swagger-codegen-cli/target/swagger-codegen-cli.jar:target/ElixirClient-swagger-codegen-1.0.0.jar io.swagger.codegen.Codegen -l ElixirClient -o ./test
+[main] ERROR io.swagger.codegen.Codegen - missing swagger input or config!
+java.lang.RuntimeException: missing swagger input or config!
+        at io.swagger.codegen.DefaultGenerator.generate(DefaultGenerator.java:132)
+        at io.swagger.codegen.Codegen.main(Codegen.java:118)
+#+end_src
+
+動かない……．input が必要そうなので， =-i= オプションでリポジトリの中から適当に探した swagger 定義ファイルを指定する．
+
+#+begin_src shell
+/Users/niku/src/swagger-codegen/output/myLibrary% java -cp ../../modules/swagger-codegen-cli/target/swagger-codegen-cli.jar:target/ElixirClient-swagger-codegen-1.0.0.jar io.swagger.codegen.Codegen generate -l ElixirClient -o ./test -i ../../modules/swagger-codegen/src/test/resources/2_0/petstore.json
+[main] INFO io.swagger.parser.Swagger20Parser - reading from ../../modules/swagger-codegen/src/test/resources/2_0/petstore.json
+[main] INFO io.swagger.codegen.ignore.CodegenIgnoreProcessor - No .swagger-codegen-ignore file found.
+(...snip...)
+[main] ERROR io.swagger.codegen.AbstractGenerator - ElixirClient/myFile.mustache (No such file or directory)
+[main] ERROR io.swagger.codegen.AbstractGenerator - can't load template ElixirClient/myFile.mustache
+[main] ERROR io.swagger.codegen.Codegen - Could not generate supporting file 'SupportingFile:
+        templateFile: myFile.mustache
+        folder:
+        destinationFilename: myFile.sample
+'
+java.lang.RuntimeException: Could not generate supporting file 'SupportingFile:
+        templateFile: myFile.mustache
+        folder:
+        destinationFilename: myFile.sample
+'
+        at io.swagger.codegen.DefaultGenerator.generate(DefaultGenerator.java:603)
+        at io.swagger.codegen.Codegen.main(Codegen.java:118)
+Caused by: java.lang.RuntimeException: can't load template ElixirClient/myFile.mustache
+        at io.swagger.codegen.AbstractGenerator.readTemplate(AbstractGenerator.java:50)
+        at io.swagger.codegen.DefaultGenerator.generate(DefaultGenerator.java:562)
+        ... 1 more
+/Users/niku/src/swagger-codegen/output/myLibrary% tree test
+test
+└── src
+    └── io
+        └── swagger
+            └── client
+                ├── api
+                │   ├── PetApi.sample
+                │   ├── StoreApi.sample
+                │   └── UserApi.sample
+                └── model
+                    ├── Category.sample
+                    ├── Order.sample
+                    ├── Pet.sample
+                    ├── Tag.sample
+                    └── User.sample
+
+6 directories, 8 files
+#+end_src
+
+まだエラーにはなるが，それっぽく動いて何か生成はされているようだ．
+
+それでは改造していこう．
+
+(つづく)
