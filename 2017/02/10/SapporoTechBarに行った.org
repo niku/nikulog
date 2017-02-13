@@ -1,0 +1,80 @@
+* SapporoTechBarに行った
+
+[[http://www.db-tech-showcase.com/events-seminars/db-tech-salon/20170210_sapporo_tech_bar][Sapporo Tech Bar ～データベースとデータ分析の勉強会]] に行きました．
+
+データ分析界隈の今の概要がわかっておもしろかったです．
+Sapporo Tech Bar は次回以降も大体第二金曜日にやるそうです．
+
+- タイトル :: PyData & Apache Spark
+- 発表 :: 玉川竜司 さん
+  - セレッソ大阪が好き
+
+** 目標
+
+Python 界隈のデータ処理事情の「地図」がわかる
+
+** PyData
+
+[[http://pydata.org/][PyData]]
+
+データ処理を目的とした Python を使ったコミュニティ
+
+- IPython
+- matplotlib
+- NumPy
+- Scipy
+- pandas
+- scikit-learn
+
+などのツールが属している．
+
+** pandas
+
+- 多次元データ処理ライブラリ
+- DataFrame(スキーマ付き二次元配列)
+- 現場叩きあげの超多機能
+
+*** おすすめ
+
+ちょっと古いけど 「Pythonによるデータ分析入門」
+
+** jupyter
+
+[[http://jupyter.org/][Project Jupyter]]
+
+データ探索用のREPL(のようなもの)
+
+- Julia
+- Python
+- R
+
+をくみあわせて Jupyter らしい．
+
+** Apache Spark
+
+[[http://spark.apache.org/][Apache Spark]]
+
+pandas に比べると……
+
+- 理解しなければならないことが増える
+- 性能を引き出すのが大変
+
+** Apache Parquet
+
+[[https://parquet.apache.org/][Apache Parquet]]
+
+#+begin_quote
+Apache Parquet is a columnar storage format available to any project in the Hadoop ecosystem,
+#+end_quote
+
+かなりいいよ．列指向のストレージフォーマット．
+
+今日一番覚えて帰ってほしい．
+
+** Machine Learning
+
+- いわゆる機械学習
+  - 小規模 :: scikit-learn
+  - 大規模 :: Spark の MLlib / ML
+- ディープラーニング
+  - TensorFlow
