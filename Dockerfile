@@ -1,7 +1,7 @@
-FROM nginx
+FROM debian:stable-slim AS build-env
 MAINTAINER niku
 
-WORKDIR /var/tmp
+WORKDIR /app
 
 ENV LANG=C.UTF-8 \
     NWIKI_REPO=https://github.com/niku/nikulog \
@@ -10,27 +10,28 @@ ENV LANG=C.UTF-8 \
     NWIKI_ENDPOINT="http://niku.name/" \
     NWIKI_TRACKING_ID=UA-26456277-1
 
-RUN BUILD_DEPS="git bundler rake ruby-dev build-essential cmake pkg-config libssl-dev libssh-dev" && \
+RUN BUILD_DEPS="git ruby ruby-bundler rake ruby-rugged ruby-nokogiri" && \
     apt-get update -qq && \
-    apt-get install --no-install-recommends --no-install-suggests -y $BUILD_DEPS && \
-    git clone https://github.com/niku/nwiki.git && \
-    cd nwiki && \
-    sed -i -e 's/"bundler".*$/"bundler"/g' nwiki.gemspec && \
-    bundle install --path vendor/bundle --jobs 4 && \
-    bundle exec rake \
-        nwiki:get_head \
+    apt-get install --no-install-recommends --no-install-suggests -y $BUILD_DEPS
+
+RUN git clone https://github.com/niku/nwiki.git
+
+WORKDIR /app/nwiki
+
+RUN bundle install --jobs 4
+
+COPY . /app/nwiki/tmp
+
+RUN bundle exec rake \
         nwiki:convert \
         nwiki:add_metadata \
         nwiki:generate_index \
         nwiki:add_highlightjs \
-        nwiki:add_analytics \
-        && \
-    cp conf/niku.name.conf /etc/nginx/conf.d/default.conf && \
-    cp -pr tmp/* /usr/share/nginx/html && \
-    cd .. && \
-    apt-get purge --auto-remove -y $BUILD_DEPS && \
-    apt-get clean && \
-    rm -rf \
-       /var/cache/apt/archives/* \
-       /var/lib/apt/lists/* \
-       nwiki
+        nwiki:add_analytics
+
+FROM nginx:stable
+
+ENV LANG=C.UTF-8
+
+COPY --from=build-env /app/nwiki/conf/niku.name.conf /etc/nginx/conf.d/default.conf
+COPY --from=build-env /app/nwiki/tmp/ /usr/share/nginx/html/
