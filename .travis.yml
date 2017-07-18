@@ -1,0 +1,38 @@
+language: ruby
+sudo: required
+dist: trusty
+
+servicies:
+  - docker
+
+before_install:
+  - docker pull niku/nwiki
+
+script:
+  # `>-` indicates folding lines(even without backslash)
+  - >-
+    docker run
+    -e "LANG=C.UTF-8"
+    -e "NWIKI_SITE_NAME=ヽ（´・肉・｀）ノログ"
+    -e "NWIKI_TAGLINE=How do we fighting without fighting?"
+    -e "NWIKI_ENDPOINT=http://niku.name/"
+    -e "NWIKI_TRACKING_ID=UA-26456277-1"
+    -v `pwd`:/app/tmp
+    niku/nwiki rake
+    nwiki:convert
+    nwiki:add_metadata
+    nwiki:generate_index
+    nwiki:add_highlightjs
+    nwiki:add_analytics
+
+after_script:
+  - ls -la
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  on:
+    branch: master
+  repo: niku/niku.github.io
+  target_branch: master
