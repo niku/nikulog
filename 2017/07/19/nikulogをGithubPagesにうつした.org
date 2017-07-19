@@ -1,0 +1,11 @@
+* nikulogをGithubPagesにうつした
+
+今までも静的なHTMLを生成するだけだったのでいつでも移せたのだけど，Debianサーバーを運営してみたいという気持ち，Dockerで運営してみたいという気持ちからSakuraのVPS上で動かしていた．
+
+ひとまずその興味は一段落したので
+
+1. 手元からnikulogというリポジトリにpushするとTravis-CIが稼動してHTMLを生成
+2. HTMLがTravis-CIによりniku.github.ioリポジトリへpushされる
+3. niku.github.ioには独自ドメインを割り当てられるのでniku.nameを割り当てた
+
+ということでGithubPagesでの運営へと切り替えた．
