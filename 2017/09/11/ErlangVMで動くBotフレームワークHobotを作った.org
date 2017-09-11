@@ -1,0 +1,49 @@
+* ErlangVMで動くBotフレームワークHobotを作った
+
+[[http://sapporo-beam.github.io/][ErlangVMに関することやそうでないことを話すサッポロビーム]]の時間にコツコツと作っていた
+
+- Botフレームワーク [[https://github.com/niku/hobot][hobot]]
+- 簡単なプラグイン [[https://github.com/niku/hobot_plugin_handler_idobata_webhook][hobot_plugin_handler_idobata_webhook]] [[https://github.com/niku/hobot_plugin_adapter_twitter_streaming][hobot_plugin_adapter_twitter_streaming]]
+- フレームワークとプラグインを利用したアプリケーション [[https://github.com/niku/eloido][eloido]]
+
+が期待通り動いたようなので区切りとして 30 分くらいで書く．
+
+** モチベーション
+
+*** きちんとドキュメントがあり自分でも利用するようなフレームワークを作ってみたい
+
+今までは自分には便利だが，沢山の人に利用してもらえるような何かを世の中に提供してみたことがなかった．
+自分にも便利で，さらに沢山の人に利用してもらえるような何かを世の中に提供してみたかった．
+
+そのために，まず自分の使いたいように動くこと，
+さらに他の人が使いやすいようにテストやドキュメントがきちんと準備されているとよいだろうと考えた．
+自分の使いたいようには何となく動きそうな気がするので，今後テストやドキュメントを書いていく予定．
+
+*** ErlangVM からならどの言語でも簡単に使えるようなライブラリを作ってみたい
+
+本体は Elixir で書いたものの，
+ErlangVM 標準添付ライブラリである OTP の GenServer や Supervisor の仕組みを生かしているので
+どの ErlangVM 言語でもいい感じにプラグインやアプリケーションを作れる．
+
+実際にはまだ [[https://www.erlang.org/][Erlang]] や [[http://lfe.io/][Lisp Flavoured Erlang]] や [[https://github.com/alpaca-lang/alpaca][alpaca-lang]] などで
+プラグインやアプリケーションを作ってみてはいないので，今後試してみる予定．
+
+** 思ったこと
+
+ErlangVM の仕組みはプラガブルな仕組みを作るのに向いていると思った．具体的に言うと以下のようなエラーハンドリングと非同期通信，そしてPubSubに便利だった．
+
+- プラグインや，プラグインとコアを繋ぐミドルウェアで何があってもコアには絶対に影響しないよう，プラグインや，プラグインとコアを繋ぐミドルウェアを別プロセス動作させるようになっている
+- プラグインや，プラグインとコアを繋ぐミドルウェアの処理が遅くてもコアには絶対に影響しないよう，プラグインや，プラグインとコアを繋ぐミドルウェアを非同期に動作させるようになっている
+- プラグインが検出した内容を，他のプラグインへと一斉に通知する仕組みが標準ライブラリで用意に実装できる
+
+悩んだら [[https://github.com/hubotio/hubot][hubot]] や [[https://github.com/r7kamura/ruboty][ruboty]] そして [[https://medium.com/@r7kamura/%E3%83%81%E3%83%A3%E3%83%83%E3%83%88%E3%83%9C%E3%83%83%E3%83%88%E3%83%95%E3%83%AC%E3%83%BC%E3%83%A0%E3%83%AF%E3%83%BC%E3%82%AF-ruboty-%E3%82%92%E6%8C%AF%E3%82%8A%E8%BF%94%E3%82%8B-be95e56d2400][チャットボットフレームワーク Ruboty を振り返る]] をとても参考にした．
+hubot は以前 CoffeeScript で書かれていたが，最近は TypeScript になっているので，以前より読みやすくなっていると思う．
+また Ruboty 作者 r7kamura さんによるボットフレームワークの振り返りは，結果コードには表れない，選択肢の中から判断したところが文章になっておりすごくおもしろく参考になった．
+
+**  まとめ
+
+まだ書きたいことがあったのだが 30 分がきてしまった．
+Bot フレームワークを作りたい人がいれば雑談したり，機会があればこの知見をどこかで共有したい．
+サッポロビームには [[https://idobata.io/#/organization/sapporobeam/room/lobby][idobata のチャンネル]]もあるのでオンラインでも雑談しましょう．
+
+来年 [[https://www.slideshare.net/ohr486/elixirconfjapan2017sessionohr486#32][ErlangConf Japan 2018]] があるそうなので，セッションの一つとしてどうですか．
