@@ -1,0 +1,69 @@
+* ErlangVMのプロセスみたいなRubyオブジェクトを作ってみる
+
+ErlangVM のプロセスってこんなのだよなあと思い描く練習に，Ruby のオブジェクトで ErlamgVM のプロセスを模してみる．以下のコードで
+
+- マルチスレッド環境でいろんなスレッドからいっぺんに動かそうとしても処理が壊れない
+- 処理がエラーになっても，復活して動き続ける
+
+ことはできた．
+
+コードを書いてみて ErlangVM ではプロセス間のやりとりは，プロセスにメッセージを =send= するという処理で行っているのだけど，
+実際にはプロセスが必ず持っている *キュー* にメッセージを =send= しているのだろうなあと改めて思った．
+
+あと ErlangVM の =send(プロセス名, メッセージ)= は英語っぽい並びだなと思った．
+例えば Send me a letter だと「手紙を私に送って」だ．
+
+Ruby みたいなオブジェクトが最初に来るプログラムだと =obj.send(message)= だとしっくりこない(し，そういうメソッドがもうある)ので，
+=obj.receive(message)= にしたけど，もっとしっくりくるメソッド名はあるんだろうか．
+
+#+begin_src ruby
+class PesudoProcess
+  attr_reader :message_box
+
+  def initialize(&process)
+    @message_box = Queue.new
+    @process = process
+    do_loop
+  end
+
+  def receive(message)
+    # マルチスレッド環境だとこの時点で @message_box が初期化されていないことを考えないといけないが
+    # 今回は面倒なのでやっていない
+    @message_box.push(message)
+  end
+
+  private
+  def do_loop
+    Thread.start(@message_box, @process) do |message_box, process|
+      loop do
+          message = message_box.pop
+        begin
+          process.call(message)
+        rescue => e
+          p e
+          # Do something
+        end
+      end
+    end
+  end
+end
+
+pr = PesudoProcess.new do |message|
+  puts(Integer(message) * 2)
+end
+
+pr.receive(1)
+pr.receive("hello")
+pr.receive(2)
+pr.receive(5)
+
+# 終了待ち
+sleep(1)
+
+# => 2
+# => #<ArgumentError: invalid value for Integer(): "hello">
+# => 4
+# => 10
+#+end_src
+
+こんなオブジェクトと処理に興味がある人は，るびまに [[http://magazine.rubyist.net/?0056-naruhodo_erlang_process][なるほど Erlang プロセス]] という記事を寄稿したので，そちらを見てもおもしろいかもしれない．
