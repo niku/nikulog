@@ -1,0 +1,53 @@
+* Botフレームワークによるプラグイン読み込みと初期化を調べた
+
+[[https://github.com/r7kamura/ruboty][Ruboty(Ruby)]], [[https://github.com/hubotio/hubot][Hubot(JavaScript)]], [[https://github.com/niku/hobot][Hobot(Elixir)]] の Bot フレームワークでどのようにプラグインの読み込みと初期化を実装しているかをここに記す．
+2017 Elixir アドベントカレンダー用の記事を書いているときに用意したのだが，詳細に立ち入りすぎているので記事からは消した．
+誰かの役に立つかもしれないので，この日記にメモしておく．
+
+Bot フレームワークに限らず，プラグインを利用したフレームワークを作ると避けられない課題に「フレームワークによるプラグイン読み込みと初期化」がある．
+各種Bot フレームワークではどのようにプラグインを読み込み，初期化しているだろうか．
+
+** Ruboty
+
+Ruboty ではベースになるようなクラス ([[https://github.com/r7kamura/ruboty/blob/v1.3.0/lib/ruboty/adapters/base.rb][Ruboty::Adapters::Base]]) を準備し， [[https://docs.ruby-lang.org/ja/2.4.0/method/Class/i/inherited.html][Class#inherited]] を利用して， *プラグインのクラスを読み込む* 時にベースとなるクラスを継承したプラグインクラスを [[https://github.com/r7kamura/ruboty/blob/master/lib/ruboty/adapters/base.rb#L9][Adapter 一覧へ加えている]]．
+
+その後 *Bot を動かす* [[https://github.com/r7kamura/ruboty/blob/v1.3.0/lib/ruboty/robot.rb#L24][Robot#run]] 時に Adapter 一覧の中で最後に追加されたクラスを new で初期化して Adapter として利用している ([[https://github.com/r7kamura/ruboty/blob/v1.3.0/lib/ruboty/robot.rb#L60][Rubot#adapter]] -> [[https://github.com/r7kamura/ruboty/blob/v1.3.0/lib/ruboty/adapter_builder.rb#L20][Rubot::AdapterBuilder#adapter_class]])．
+
+フレームワークがプラグイン製作者やBot起動者に課していること
+
+- 利用したい Ruboty::Adapters::Base を継承した Adapter プラグインがクラスパス内に存在すること
+- 利用したい Ruboty::Adapters::Base を継承した Adapter プラグインが最後にロードされるようにすること（大抵は一つしかロードしないので問題ない）
+
+** Hubot
+
+Hubot では *Robot オブジェクトの初期化*  ([[https://github.com/hubotio/hubot/blob/v3.0.1/src/robot.js#L61][Robot#constructor]]) の時に利用したい Adapter の名前を require へ渡す．
+
+すると require がクラスパスの中から該当の Adapter が記述されたファイルを探し出し，読み込み，評価している ([[https://github.com/hubotio/hubot/blob/v3.0.1/src/robot.js#L503][Robot#loadAdapter]])．
+
+Hubot ではプラグイン実装者にクラスが use 関数を持つことを課しており =require("xxx").use= という形で初期化を行っている．
+
+フレームワークがプラグイン製作者やBot起動者に課していること．
+
+- 利用したい Adapter を継承した Adapter プラグインがクラスパス内に存在すること
+- 利用したい Adapter の名前が =hubot-xxx= であること
+- 利用したい Adapter クラスが =use= 関数を持つこと
+
+** Hobot
+
+Hobot では， *個別の Bot プロセスツリーを作る* 時に，利用したい Adapter の名前を渡す([[https://github.com/niku/hobot/blob/v0.2.0/lib/hobot.ex#L17][Hobot.create/4]])．
+
+するとコンパイル済モジュールの中から該当するモジュールを探し出す．
+
+フレームワークでは Adapter プラグインとして利用可能なモジュールは =gen_server= のビヘイビア（規定の関数呼び出しを実装している = 規定のインターフェースを持つ） を持つモジュールであることをプラグイン実装者に課している．
+
+そこでフレームワークは見つけたモジュールを =gen_server= プロセスとして起動，初期化している([[https://github.com/niku/hobot/blob/v0.2.0/lib/hobot/bot/supervisor.ex#L24-L35][Hobot.Bot.Supervisor.init/1]])．
+
+フレームワークがプラグイン製作者やBot起動者に課していること．
+
+- 利用したい Adapter モジュールがコンパイル済モジュールの中に存在していること
+- 利用したい Adapter モジュールが =gen_server= のビヘイビアを実装していること
+
+** まとめ
+
+フレームワークは何かの前提を元にプラグインを読みだしているので，
+フレームワーク製作者は，プラグイン製作者やBot起動者に対してその条件を明示してあげるとよい．
