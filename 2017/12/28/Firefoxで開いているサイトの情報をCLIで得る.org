@@ -1,0 +1,140 @@
+* Firefoxで開いているサイトの情報を外から得る
+
+Firefox で開いているページの URL とタイトルを CLI から取得する方法．
+
+[[./run_firerox_marionette.gif]]
+
+Firefox には [[https://github.com/bard/mozrepl][mozrepl]] という，ブラウザがサーバーとして振る舞うようになり，ブラウザ外から文字列によるブラウザ操作を受けつけるアドオンがあったが，Firefox55 から内部構造の変更により動かなくなってしまった．
+
+一方，いつからか Firefox には [[https://firefox-source-docs.mozilla.org/testing/marionette/marionette/index.html][Marionette]] という，ブラウザがサーバーとして振る舞うようになり，ブラウザ外から文字列によるブラウザ操作を受けつける機能が標準で組込まれるようになった．
+
+私は mozrepl を使って Firefox で開いているページの URL とタイトルを CLI で取得していたが，新しい Firefox では利用できないため，今回 Marionette を使い同様なことができるようにする．
+
+** 必要なもの
+
+- Firefox
+- Marionette に TCP 接続でき，[[https://firefox-source-docs.mozilla.org/testing/marionette/marionette/Protocol.html][Marionette の Protocol]] でやりとりできる仕組み
+  - 通信の概要は上のリンクに書いてあったが，どんなコマンド（ Firefox への命令）があるのかの一覧は探せなかった
+
+** 今回使うもの
+
+OSXで作業する．
+
+- Firefox(57.0.1 (64-bit))
+- [[http://marionette-client.readthedocs.io/en/master/][Marionette Python Client]]
+  - python2
+  - pip
+
+** 処理
+
+*** pip経由でmarionette_driverをインストールする
+
+Python3 で使えないか試したがmozrunnerでエラーになるようだったので断念した．
+
+#+begin_src zsh
+/Users/niku% pip3 install marionette_driver
+Collecting marionette_driver
+  Using cached marionette_driver-2.5.0.tar.gz
+Collecting mozrunner>=6.13 (from marionette_driver)
+  Using cached mozrunner-6.14.tar.gz
+    Complete output from command python setup.py egg_info:
+    Traceback (most recent call last):
+      File "<string>", line 1, in <module>
+      File "/private/var/folders/3x/_15gn8l57x57gr8g6cbtz6lr0000gn/T/pip-build-angswvj4/mozrunner/setup.py", line 26, in <module>
+        assert sys.version_info[0] == 2
+    AssertionError
+
+    ----------------------------------------
+Command "python setup.py egg_info" failed with error code 1 in /private/var/folders/3x/_15gn8l57x57gr8g6cbtz6lr0000gn/T/pip-build-angswvj4/mozrunner/
+#+end_src
+
+Python2 で使うためにインストールする．
+
+#+begin_src zsh
+/Users/niku% python2 --version
+Python 2.7.14
+/Users/niku% pip2 --version
+pip 9.0.1 from /usr/local/lib/python2.7/site-packages (python 2.7)
+/Users/niku% docker-compose run --rm web pip --help
+/Users/niku% pip2 install marionette_driver
+#+end_src
+
+*** FirefoxをMarionetteサーバー有効状態で起動する
+
+#+begin_quote
+Marionette is available in all Firefox builds; it is not enabled, however, unless you launch Firefox with the -marionette command-line argument.
+#+end_quote
+
+[[https://developer.mozilla.org/en-US/docs/Mozilla/QA/Marionette/Builds][Getting a Marionette-enabled Firefox Build]]
+
+とあるように， *全ての Firefox で Marionette が使える* ．オプションに =-marionette= をつけて Firefox を起動すると有効になる．
+私の場合はターミナルから以下のようなコマンドで起動している．
+（Firefox が完全に終了している状態から始める）
+
+#+begin_src
+/Users/niku% /Applications/Firefox.app/Contents/MacOS/firefox -marionette
+#+end_src
+
+うまく起動すると，ブラウザの URL 入力覧がオレンジに，ロボット（？）が表示された状態になる．
+
+[[./marionette_enabled.png]]
+
+通常時のマリオネットが起動していない Firefox と見比べるとわかりやすい．
+
+[[./marionette_disabled.png]]
+
+*** Marionette Python ClientをMarionetteサーバーへ接続する
+
+以下Marionetteサーバーを起動したFirefoxがある状態で作業する．
+python を起動して REPL で =client.start_session()= を実行したときに値が返ってきていれば，Marionetteサーバーへの接続が成功している．
+
+#+begin_src zsh
+/Users/niku% python2
+Python 2.7.14 (default, Sep 25 2017, 09:53:17)
+[GCC 4.2.1 Compatible Apple LLVM 8.0.0 (clang-800.0.42.1)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from marionette_driver.marionette import Marionette
+>>> client = Marionette('localhost', port=2828)
+>>> client.start_session()
+{u'rotatable': False, u'browserVersion': u'57.0.1', u'acceptInsecureCerts': False, u'moz:headless': False, u'moz:webdriverClick': False, u'moz:accessibilityChecks': False, u'timeouts': {u'pageLoad': 300000, u'implicit': 0, u'script': 30000}, u'browserName': u'firefox', u'moz:profile': u'/Users/niku/Library/Application Support/Firefox/Profiles/d3kntwb9.Default User', u'platformVersion': u'15.6.0', u'moz:processID': 91903, u'pageLoadStrategy': u'normal', u'platformName': u'darwin'}
+>>>
+#+end_src
+
+*** Marionette Python ClientでMarionetteサーバーからブラウザの情報を取得する
+
+以下Marionette Python ClientをMarionetteサーバーへ接続した状態で作業する．（上の続き）
+
+Firefoxで適当なページにアクセスする．今回は [[https://github.com/][https://github.com/]] へアクセスした．
+その状態で REPL から 操作すると以下のように URL やページタイトルが取得できている．
+
+#+begin_src
+>>> client.get_url()
+u'https://github.com/'
+>>> client.title
+u'GitHub'
+#+end_src
+
+** 試していない/わからなかったこと
+
+*** Marionetteサーバーをオプションなしで起動させる
+
+about:config に
+
+#+begin_quote
+marionette.defaultPrefs.enabled -> true
+marionette.defaultPrefs.port -> 2828
+#+end_quote
+
+と書くことでも[[https://developer.mozilla.org/en-US/docs/Mozilla/QA/Marionette/Developer_setup#Starting_a_Marionette-Enabled_Firefox_without_runtests.py][動かせるようだ]]が試していない．
+
+*** Marionette Python Clientでセッションをスタートさせたあと，Firefoxの新規タブを作ったときにブラウザがフォーカスしているタブの情報を取る方法がわからない
+
+=client.start_session()= したあと，ブラウザのタブを増やして，
+そのタブを使って Web ページを見ているときに「ブラウザがフォーカスしているタブ」という情報を client で取得する方法がわからない．
+
+=client.delete_session()= して再度 =client.start_session()= するとブラウザがフォーカスしているタブの情報が取得できるので，ワークアラウンドとして利用している．
+
+** まとめ
+
+- 通常の Firefox にオプションをつけて起動することで，外部からブラウザの状態が取れるようになる．
+- その機能を利用してコマンドラインから Firefox が今開いているタイトルや URL を取得できる．
