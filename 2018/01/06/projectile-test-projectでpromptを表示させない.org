@@ -1,0 +1,58 @@
+* projectile-test-projectでpromptを表示させない
+
+=projectile-test-project= でプロンプトを表示させずに直接テストを行うためには =compilation-read-command= を =nil= に設定する．
+
+[[https://github.com/niku/uti/commit/43596bd1be11c05b486a1e5c541567a60a5780b3][設定例]]
+
+** 試したこと
+
+プロジェクトに関する処理を行う [[http://projectile.readthedocs.io/en/latest/][Projectile]] という Emacs 拡張がある．
+
+- プロジェクト内のファイルを開く
+- プロジェクト内の実装コードとそのテストコードを行き来する
+- プロジェクト内のテストを実行する
+- プロジェクト内を grep する
+- 別のプロジェクトを開く
+
+などということが統一されたインターフェースで行える．IntelliJ などの IDE には最初から備わっている便利機能だ．
+
+その中の一つ，プロジェクト内のテストを実行するときは =projectile-test-project= という elisp 関数を呼び出す．
+ただこの関数で私が一つ不満な点がある，これは呼び出しのたびに「この(デフォルト)コマンドを実行するか」と尋ねてくるので，毎回変更せずにリターンキーを押さなければいけない．
+コードをこまめにテストするにあたり，コマンド固定でかまわないから1つの操作でテスト実行をしたかった．
+
+Emacs で =(describe-function 'projectile-test-project)= を実行すると，このプロンプトを抑制する方法がドキュメントに書いてあった．
+
+#+begin_quote
+Normally you’ll be prompted for a compilation command, unless
+variable ‘compilation-read-command’.  You can force the prompt
+with a prefix ARG.
+#+end_quote
+
+「 =compilation-read-command= ではない限り．通常はコンパイルコマンドの入力を求められる」
+
+ここの unless の解釈が難しいが
+
+=(describe-variable 'compilation-read-command)= に
+
+#+begin_quote
+Non-nil means M-x compile reads the compilation command to use.
+Otherwise, M-x compile just uses the value of ‘compile-command’.
+#+end_quote
+
+とあるので「 =nil= なら入力を求めない」ということなのだろう．
+
+#+begin_src elisp
+(custom-set-variables
+ '(compilation-read-command nil))
+#+end_src
+
+を init.el に追記して試したところ，確かにプロンプトは出なくなった．
+
+** まとめ
+
+=projectile-test-project= でプロンプトを表示させずに直接テストを行うためには =compilation-read-command= を =nil= に設定する．
+
+- =t= はデフォルト値で *プロンプトを出す*
+- =nil= にすると *プロンプトを抑制する*
+
+なので間違えないようにすること．私は =t= と =nil= を読み違えていて約 1 日溶かした．
