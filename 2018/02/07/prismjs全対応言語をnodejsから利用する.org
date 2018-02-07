@@ -1,0 +1,97 @@
+* prismjs全対応言語をnodejsから利用する
+
+シンタックスハイライトをつけてくれる [[http://prismjs.com/][prismjs]] は [[http://prismjs.com/#basic-usage][node を使ってサーバーから利用]]できる．
+prismjs に対応している全ての言語のシンタックスハイライトを node から利用するための方法．
+
+prismjs は components という仕組みで対応言語拡張を行っている．
+通常 prismjs はブラウザから利用される．その場合は prismjs のダウンロード時に対応させたい言語を選択する．
+
+一方 node を使ってサーバーから利用する場合，対応させたい言語は =require= を利用して読み込む．
+例えば Elixir 用のシンタックスハイライトを利用したい場合は以下のように書く
+
+#+begin_src js
+const Prism = require("prismjs");
+require("prismjs/components/prism-elixir");
+
+const elixirCode = `defmodule Foo do
+  def bar(x) when is_binary(x) do
+    IO.inspect x
+  end
+end`;
+
+const result = Prism.highlight(elixirCode, Prism.languages.elixir);
+console.log(result);
+#+end_src
+
+するとこんな出力が得られる
+
+#+begin_src html
+<span class="token keyword">defmodule</span> Foo <span class="token keyword">do</span>
+  <span class="token keyword">def</span> bar<span class="token punctuation">(</span>x<span class="token punctuation">)</span> <span class="token keyword">when</span> is_binary<span class="token punctuation">(</span>x<span class="token punctuation">)</span> <span class="token keyword">do</span>
+    IO<span class="token punctuation">.</span>inspect x
+  <span class="token keyword">end</span>
+<span class="token keyword">end</span>
+#+end_src
+
+=require("prismjs/components/prism-elixir");= のように読み込む言語を毎回指定するのが面倒だったので，あらかじめ全ての対応言語を読み込ませるにはどうしたらいいか．
+
+prismjs のコードがどこにダウンロードされているかを把握していなければいけないが，以下のコードで全ての対応言語を読み込むことができた．
+この場合は =node_modules= にダウンロードされている．
+
+#+begin_src js
+const fs = require("fs");
+const Prism = require("prismjs");
+
+const componentsjsPath = "node_modules/prismjs/components.js";
+
+const loadComponent = (languages, k) => {
+  const v = languages[k];
+  if(k == "meta" || v.option == "default") {
+    return
+  }
+  if(v.require) {
+    if (Array.isArray(v.require)) {
+      v.require.forEach(require => loadComponent(languages, require))
+    } else {
+      loadComponent(languages, v.require)
+    }
+  }
+  require(`prismjs/components/prism-${k}`);
+};
+
+console.log(`Before: ${Object.keys(Prism.languages).length}`);
+fs.readFile(componentsjsPath, { encoding: "utf-8" }, (err, data) => {
+  if(err) {
+    console.log(err)
+    return;
+  }
+  eval(data); // define variable `components`
+  const languages = components.languages;
+  Object.keys(languages).forEach(key => loadComponent(languages, key))
+
+  //
+  // Do highlighting
+  //
+  const elixirCode = `
+defmodule Foo do
+  def bar(x) when is_binary(x) do
+    IO.inspect x
+  end
+end
+`;
+  const result = Prism.highlight(elixirCode, Prism.languages.elixir);
+  console.log(`After: ${Object.keys(Prism.languages).length}`);
+  console.log(Prism.highlight(elixirCode, Prism.languages.elixir));
+});
+#+end_src
+
+#+begin_src
+Before: 12
+After: 148
+
+<span class="token keyword">defmodule</span> Foo <span class="token keyword">do</span>
+  <span class="token keyword">def</span> bar<span class="token punctuation">(</span>x<span class="token punctuation">)</span> <span class="token keyword">when</span> is_binary<span class="token punctuation">(</span>x<span class="token punctuation">)</span> <span class="token keyword">do</span>
+    IO<span class="token punctuation">.</span>inspect x
+  <span class="token keyword">end</span>
+<span class="token keyword">end</span>
+#+end_src
