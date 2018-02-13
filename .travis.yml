@@ -2,6 +2,10 @@ language: ruby
 sudo: required
 dist: trusty
 
+env:
+  global:
+    - PAGES=$(mktemp --directory --tmpdir=`pwd`)
+    - PAGES_BASENAME=$(basename $PAGES)
 servicies:
   - docker
 
@@ -14,22 +18,18 @@ script:
     docker run
     -e "LANG=C.UTF-8"
     -e "NWIKI_SITE_NAME=ヽ（´・肉・｀）ノログ"
-    -e "NWIKI_TAGLINE=How do we fighting without fighting?"
+    -e "NWIKI_TAGLINE=How do we fight without fighting?"
     -e "NWIKI_ENDPOINT=http://niku.name/"
-    -e "NWIKI_TRACKING_ID=UA-26456277-1"
-    -v `pwd`:/app/tmp
-    niku/nwiki rake
-    nwiki:convert
-    nwiki:add_metadata
-    nwiki:generate_index
-    nwiki:add_highlightjs
-    nwiki:add_analytics
-
-after_script:
-  - ls -la
+    -e "NWIKI_GA_TRACKING_ID=UA-26456277-1"
+    -v `pwd`:/app/repo
+    -v $PAGES:/app/pages
+    niku/nwiki rake nwiki:run
 
 deploy:
   provider: pages
+  # local-dir must be relative path to the current directory.
+  # https://docs.travis-ci.com/user/deployment/pages/#Further-configuration
+  local-dir: $PAGES_BASENAME
   skip_cleanup: true
   github_token: $GITHUB_TOKEN
   on:
