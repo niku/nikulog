@@ -1,0 +1,12 @@
+* Elixir1.6からSupervisorのstrategyのtypespecにsimple_one_for_oneが含まれない
+
+Elixir1.6 は Supervisor の strategy の typespecから =:simple_one_for_one= を取り除いている．
+
+- 1.5 にはある :: [[https://hexdocs.pm/elixir/1.5.3/Supervisor.html#t:strategy/0][https://hexdocs.pm/elixir/1.5.3/Supervisor.html#t:strategy/0]]
+- 1.6 にはない :: [[https://hexdocs.pm/elixir/1.6.1/Supervisor.html#t:strategy/0][https://hexdocs.pm/elixir/1.6.1/Supervisor.html#t:strategy/0]]
+
+この影響で Elixir1.6 にすると simple_one_for_one を利用していたコードの dialyzer がエラーになる．（コードは依然期待通りに動作する）
+
+1.6 からは simple_one_for_one は全て [[https://hexdocs.pm/elixir/1.6.1/DynamicSupervisor.html][DynamicSupervisor]] で代替することになったので取り除いたのだろう．
+
+Elixir は廃止予定のコードに deplication warning を出してくれて，数世代経過後に取り除くといったことをしているが，型情報では deplication warning を出す方法もなかったのかもしれない．
