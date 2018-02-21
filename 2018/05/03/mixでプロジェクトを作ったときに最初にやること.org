@@ -1,0 +1,118 @@
+* mixでプロジェクトを作ったときに最初にやること
+
+Elixirのプロジェクトは =mix new= で作り始めることが多い．私が =mix new= した直後に行っていることを列挙する．
+Elixir 本体のバージョンアップに追随するのが面倒でやめてしまったが， =mix niku.new= という[[https://github.com/niku/mix_tasks_niku_new/commits/master][コマンドを作っていた]]ことがある．そこで行っていることを備忘録として文章に落としたもの．
+
+** ライセンスを足す
+
+[[https://help.github.com/articles/adding-a-license-to-a-repository/][https://help.github.com/articles/adding-a-license-to-a-repository/]]
+
+私が個人で作っているライブラリのライセンスはMITにしている．
+
+** Property based testingのためにstream_dataを足す
+
+[[https://github.com/whatyouhide/stream_data][https://github.com/whatyouhide/stream_data]]
+
+#+begin_src elixir
+property "sort two values" do
+  check all term1 <- term(),
+            term2 <- term() do
+    [a, b | []] = Enum.sort([term1, term2])
+    assert a <= b
+  end
+end
+#+end_src
+
+規則にのっとった値をランダムに生成して，期待通りに動作することのチェックをする Property based testing のために stream_data を足す．
+
+将来(1.7以降)の Elixir に含まれるかもしれないようだ．
+
+[[https://elixir-lang.org/blog/2017/10/31/stream-data-property-based-testing-and-data-generation-for-elixir/][https://elixir-lang.org/blog/2017/10/31/stream-data-property-based-testing-and-data-generation-for-elixir/]]
+
+** ドキュメント生成のためにex_docを足す
+
+[[https://github.com/elixir-lang/ex_doc][https://github.com/elixir-lang/ex_doc]]
+
+=mix docs= で =doc/index.html= へドキュメントが生成されるようにする．
+
+** Lintチェックのためにcredoを足す
+
+[[https://github.com/rrrene/credo][https://github.com/rrrene/credo]]
+
+=mix credo= でコーディングスタイルなどのチェックができるようにする．
+
+** 型チェックのためにdialyxirを足す
+
+[[https://github.com/jeremyjh/dialyxir][https://github.com/jeremyjh/dialyxir]]
+
+=mix dialyzer= で型チェックができるようにする．
+
+** CIを行うためにtravis.ymlを足す
+
+[[https://docs.travis-ci.com/user/languages/elixir/][https://docs.travis-ci.com/user/languages/elixir/]]
+
+=travis= というコマンドが入っている環境なら =travis enable= する．
+入っていない環境なら travisci の web サイトからリポジトリを有効化する．
+
+そして =travis.yml= を追加する．
+
+CIを動かしはじめて数回はPLTをキャッシュできずタイムアウトしてしまうことがあるが気にしないこと．
+いくつか直す方法を思いつくが管理が煩雑になりそうなので試していない．
+何回か動かしているとうまくいくようになる．
+
+#+begin_src yaml
+language: elixir
+sudo: false
+otp_release:
+  - 20.3.4
+elixir:
+  - 1.6
+cache:
+  directories:
+    - _build
+    - deps
+before_install:
+  # https://docs.travis-ci.com/user/encrypting-files/
+  # Decrypt the file about configuration(auth and so on) of hex.pm
+  - mkdir -p ~/.hex/
+  # You need execution command `travis encrypt-file ~/.hex/hex.config` in the repository and adding generated line following like:
+  # - openssl aes-256-cbc -K $encrypted_36030c2fae51_key -iv $encrypted_36030c2fae51_iv -in hex.config.enc -out ~/.hex/hex.config -d
+script:
+  - MIX_ENV=test mix test
+  # You need to compile following the line at first in the development environment (MIX_ENV=dev)
+  - mix compile --warnings-as-errors
+  - mix format --check-formatted
+  - mix credo --strict
+  # https://github.com/jeremyjh/dialyxir#command-line-options
+  # > exit immediately with same exit status as dialyzer. useful for CI
+  - mix dialyzer --halt-exit-status
+deploy:
+  # https://docs.travis-ci.com/user/deployment/script/
+  # > `script` must be a scalar pointing to an executable file or command.
+  provider: script
+  # http://yaml.org/spec/1.2/spec.html#id2779048
+  # `>-` indicates the line folding.
+  # Comment out the following script part if you needed publshing to hex.pm
+  # script: >-
+  #   mix deps.get &&
+  #   echo $HEX_LOCAL_PASSWORD | mix hex.publish --no-confirm &&
+  #   mix clean &&
+  #   mix deps.clean --all
+  on:
+    tags: true
+#+end_src
+
+** (Optional) tagがpushされてテストが全て通ったらライブラリを公開する
+
+#+begin_src
+mix hex.user auth
+travis env set HEX_LOCAL_PASSWORD 'YOUR_LOCAL_PASSWORD'
+travis encrypt-file ~/.hex/hex.config
+#+end_src
+
+すると =hex.config.enc= というファイルが生成される．
+
+=.travis.yml= の
+=openssl aes-256-cbc -K $encrypted_36030c2fae51_key -iv $encrypted_36030c2fae51_iv -in hex.config.enc -out ~/.hex/hex.config -d= の部分を
+=travis encrypt-file ~/.hex/hex.config= 時の出力で上書きし
+=script: >-= 以下の行をコメントアウトする．
