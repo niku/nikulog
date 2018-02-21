@@ -1,0 +1,86 @@
+* RedashのデータソースにPythonを使う
+
+[[https://redash.io/][Redash]] ではデータソースに Python を選ぶことができ，既存のデータソースが未対応な場合でも Python コードを実行して値を取得できる．
+
+** 公式のhelp
+
+[[https://redash.io/help-onpremise/setup/supported-data-sources-options-reqs.html#python][https://redash.io/help-onpremise/setup/supported-data-sources-options-reqs.html#python]]
+
+Python をデータソースに使うためには，Redash の設定をかきかえて再起動しなければいけない．
+また，RestrictedPython という形式で動作するため，通常の Python と異なるところがあった．後述する．
+
+** Python バージョンは 2
+
+現行 Redash(3.0.0+b3134) 上では Python2 が動作するようだ．
+
+** どうやって表を出力するか
+
+変数 =result= という Dictionary を自分で用意して，そこに設定やデータを書き加える．
+プログラムが最後まで動き終わったときに Redash がその =result= から表を作ってくれる．
+
+** result に変更を加えるのに便利なメソッド
+
+どんな便利メソッドがあるのか，ヘルプからは見つけられなかった．
+どんなメソッドがあり，どんなことができるかコードのドキュメントに記載があるので，コードを読むとよい．
+
+- [[https://github.com/getredash/redash/blob/900d5588578eae027dd7a6caf5f91383d8893da2/redash/query_runner/python.py#L143][add_result_row]]
+- [[https://github.com/getredash/redash/blob/900d5588578eae027dd7a6caf5f91383d8893da2/redash/query_runner/python.py#L121][add_result_column]]
+- [[https://github.com/getredash/redash/blob/900d5588578eae027dd7a6caf5f91383d8893da2/redash/query_runner/python.py#L156][execute_query]]
+- [[https://github.com/getredash/redash/blob/900d5588578eae027dd7a6caf5f91383d8893da2/redash/query_runner/python.py#L197][get_query_result]]
+
+あたりを良く使うだろう．
+
+** ライブラリを import したい
+
+*** 標準ライブラリ以外の import 準備
+
+標準モジュール以外はあらかじめ Redash サーバー上で pip install して利用可能にしておく必要がある．
+例: =pip install boto3=
+
+*** ライブラリの import
+
+データソースを設定するところ redashのurl/data_sources で Python を選択する．
+そのときに Modules to import prior to running the script という欄があるので，そこに =,= 区切りで import するモジュールを書く．
+例: =boto3,re,datetime,io,csv=
+
+import を足したあとは（サーバーではなく），celery ワーカーを再起動させる =sudo supervisorctl restart redash_celery=
+させないと以下のようなエラーが出ることがある
+
+[[https://gist.github.com/arikfr/be7c2888520c44cf4f0f#gistcomment-2185637][https://gist.github.com/arikfr/be7c2888520c44cf4f0f#gistcomment-2185637]]
+
+*** def の中で使うライブラリは def の中で import しないといけない
+
+前述した通り RestrictedPython という形式で動作しているため，トップレベルで import しても def の中では利用できないので注意すること．
+
+[[http://www.ehfeng.com/redash-python-functions/#importing-the-standard-library][http://www.ehfeng.com/redash-python-functions/#importing-the-standard-library]]
+
+以下は動作しない
+
+#+begin_src python
+import datetime
+
+def hello():
+   print(datetime.datetime.now())
+#+end_src
+
+以下は動作する
+
+#+begin_src python
+def hello():
+   import datetime
+   print(datetime.datetime.now())
+#+end_src
+
+** NonAscii な文字を含む csv を処理して Redash へ渡す
+
+Python2 で NonAscii な文字を含む CSV 文字列を処理して，Redash へ渡すための知見
+
+*** io.BytesIOを使う
+
+単なる文字列だと改行が扱えず 1 行の CSV とみなされるため，io.BytesIO か io.StringIO が必要になる．
+io.StringIO を使った場合，NonAscii 文字が含まれていると csv.DictReader がハンドリングできずにエラーになるので，io.BytesIO を利用している．
+
+*** csv.DictReaderを使う
+
+=add_result_row= の第二引数は Dict 形式を求めているので，そこへ渡すのに都合がよい．
+csv.reader を使った場合，行が配列で表示されるので =add_result_row= に渡しにくい．
