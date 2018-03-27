@@ -1,0 +1,257 @@
+* 非同期クライアントとGenServer.reply/2
+
+ErlangVMで非同期処理が必要な場合はメッセージパッシングを利用することになる．
+GenServerから非同期処理をするクライアントを利用する場合の悩みとGenServer.reply/2を用いた解決策を書いた．
+
+** 非同期クライアント
+
+非同期なクライアントを用意するため，たらい回し関数を計算して値をメッセージで返してくれるTaraiモジュールを書いた．
+初期設定でxとyを与えておき，別のタイミングでzを渡すと計算をしてくれる．
+
+#+begin_src elixir
+defmodule Tarai do
+  def calc(x, y, _z) when x <= y, do: y
+  def calc(x, y, z) do
+    calc(calc(x - 1, y, z),
+         calc(y - 1, z, x),
+         calc(z - 1, x, y))
+  end
+
+  def init(x, y) do
+    spawn(fn -> loop(x, y) end)
+  end
+
+  def async(pid, z) do
+    current = self()
+    send(pid, {current, z})
+    :ok
+  end
+
+  defp loop(x, y) do
+    receive do
+      {callback, z} ->
+        send(callback, {z, calc(x, y, z)})
+        loop(x, y)
+    end
+  end
+end
+
+IO.puts "#{inspect :calendar.local_time()}: たらい回し関数にxとyを与えて初期化します"
+pid = Tarai.init(13, 10)
+IO.puts "#{inspect :calendar.local_time()}: たらい回し関数にzを与えて計算します"
+Tarai.async(pid, 0)
+IO.puts "#{inspect :calendar.local_time()}: 処理が手元に戻ってくるので色々な処理をここで行えます"
+IO.puts "#{inspect :calendar.local_time()}: 1 + 1 は #{1 + 1} です"
+
+receive do
+  {0, result} ->
+    IO.puts "#{inspect :calendar.local_time()}: たらい回し関数結果は#{result}です"
+end
+#+end_src
+
+自由に試せるよう [[https://wandbox.org/permlink/0RHZsGaxFotQaWPv][wandbox]] にコードを置いた．
+
+非同期に計算を行い3秒後に値を返してくれているのがわかる．
+
+#+begin_src
+{{2018, 3, 27}, {22, 47, 40}}: たらい回し関数にxとyを与えて初期化します
+{{2018, 3, 27}, {22, 47, 40}}: たらい回し関数にzを与えて計算します
+{{2018, 3, 27}, {22, 47, 40}}: 処理が手元に戻ってくるので色々な処理をここで行えます
+{{2018, 3, 27}, {22, 47, 40}}: 1 + 1 は 2 です
+{{2018, 3, 27}, {22, 47, 43}}: たらい回し関数結果は13です
+#+end_src
+
+** GenServerから非同期なクライアントを呼び出す
+
+*** handle_call内にreceiveを書く
+
+GenServerの内部で非同期なクライアントを保持しておき =handle_call= で利用したいことがある．
+安易な手段で実装すると以下のように =handle_call= 内に =receive= を書くことになるだろう．
+だがこれでは複数のリクエストをうまく処理できない．結果の部分で説明しよう．
+
+#+begin_src elixir
+# Taraiモジュールは同じなので省略
+
+defmodule GS1 do
+  use GenServer
+
+  def init({x, y}) do
+    tarai_pid = Tarai.init(x, y)
+    {:ok, tarai_pid}
+  end
+
+  def handle_call(z, _from, tarai_pid) do
+    IO.puts "#{inspect :calendar.local_time()}: #{z} の計算を開始します"
+    Tarai.async(tarai_pid, z)
+    receive do
+      {^z, reply} ->
+        {:reply, reply, tarai_pid}
+    end
+  end
+end
+
+{:ok, pid} = GenServer.start_link(GS1, {13, 10})
+spawn(fn ->
+  IO.puts "#{inspect :calendar.local_time()}: 0 の呼び出し開始"
+  result = GenServer.call(pid, 0)
+  IO.puts "#{inspect :calendar.local_time()}: 0 の結果は #{result} です"
+end)
+spawn(fn ->
+  IO.puts "#{inspect :calendar.local_time()}: 1 の呼び出し開始"
+  result = GenServer.call(pid, 1)
+  IO.puts "#{inspect :calendar.local_time()}: 1 の結果は #{result} です"
+end)
+spawn(fn ->
+  IO.puts "#{inspect :calendar.local_time()}: 2 の呼び出し開始"
+  result = GenServer.call(pid, 2)
+  IO.puts "#{inspect :calendar.local_time()}: 2 の結果は #{result} です"
+end)
+
+:timer.sleep(10000) # 終了の待ちあわせ
+#+end_src
+
+自由に試せるよう [[https://wandbox.org/permlink/eRGcVRh6DQIJOeWj][wandbox]] にコードを置いた．
+
+実行すると以下になる．
+
+全ての呼び出し( =GenServer.call= )はほぼ同じタイミングで行われている．
+同様に計算の開始もほぼ同じタイミングで行われることを期待していたのだがそうなっていない．
+
+「0 の計算を開始した時刻」と「1 の計算を開始した時刻」を比較すると 4 秒間のずれがある．
+
+#+begin_src
+{{2018, 3, 27}, {22, 50, 25}}: 0 の呼び出し開始
+{{2018, 3, 27}, {22, 50, 25}}: 1 の呼び出し開始
+{{2018, 3, 27}, {22, 50, 25}}: 2 の呼び出し開始
+{{2018, 3, 27}, {22, 50, 25}}: 0 の計算を開始します
+{{2018, 3, 27}, {22, 50, 29}}: 1 の計算を開始します
+{{2018, 3, 27}, {22, 50, 29}}: 0 の結果は 13 です
+{{2018, 3, 27}, {22, 50, 30}}: 2 の計算を開始します
+{{2018, 3, 27}, {22, 50, 30}}: 1 の結果は 13 です
+{{2018, 3, 27}, {22, 50, 30}}: 2 の結果は 13 です
+#+end_src
+
+これはGenServerのhandle_call中にreceiveを実行してしまったことでこのプロセスの処理をブロックしてしまい，
+GenServerプロセスが次の処理を受けつけられていなかったためである．
+
+*** GenServer.reply/2を使う
+
+先程の実装ではGenServeに来る複数の処理をうまく捌けないことがわかった．
+
+1. 非同期なクライアントは実行結果をメッセージの形でプロセスへと戻してくるため =receive= を使いたい
+2. GenServerプロセスでreceiveを実行してしまうとGenServerプロセスが複数の処理を受けつけられない
+
+というGenServerで非同期クライアントを使う悩みになる．
+
+その解決策として =handle_call= の実装を変更する．
+
+#+begin_src elixir
+# Taraiモジュールは同じなので省略
+
+defmodule GS2 do
+  use GenServer
+
+  def init({x, y}) do
+    tarai_pid = Tarai.init(x, y)
+    {:ok, tarai_pid}
+  end
+
+  def handle_call(z, from, tarai_pid) do
+    IO.puts "#{inspect :calendar.local_time()}: #{z} の計算を開始します"
+    spawn(fn ->
+      Tarai.async(tarai_pid, z)
+      receive do
+        {^z, reply} ->
+          GenServer.reply(from, reply)
+      end
+    end)
+    {:noreply, tarai_pid}
+  end
+end
+
+{:ok, pid} = GenServer.start_link(GS2, {13, 10})
+spawn(fn ->
+  IO.puts "#{inspect :calendar.local_time()}: 0 の呼び出し開始"
+  result = GenServer.call(pid, 0)
+  IO.puts "#{inspect :calendar.local_time()}: 0 の結果は #{result} です"
+end)
+spawn(fn ->
+  IO.puts "#{inspect :calendar.local_time()}: 1 の呼び出し開始"
+  result = GenServer.call(pid, 1)
+  IO.puts "#{inspect :calendar.local_time()}: 1 の結果は #{result} です"
+end)
+spawn(fn ->
+  IO.puts "#{inspect :calendar.local_time()}: 2 の呼び出し開始"
+  result = GenServer.call(pid, 2)
+  IO.puts "#{inspect :calendar.local_time()}: 2 の結果は #{result} です"
+end)
+
+:timer.sleep(10000) # 終了の待ちあわせ
+#+end_src
+
+自由に試せるよう [[https://wandbox.org/permlink/wbJPlgMJBVbKOR26][wandbox]] にコードを置いた．
+
+以下の部分が異なっている
+
+#+begin_src diff
+@@ -1,4 +1,4 @@
+-defmodule GS1 do
++defmodule GS2 do
+   use GenServer
+
+   def init({x, y}) do
+@@ -6,17 +6,20 @@
+     {:ok, tarai_pid}
+   end
+
+-  def handle_call(z, _from, tarai_pid) do
++  def handle_call(z, from, tarai_pid) do
+     IO.puts "#{inspect :calendar.local_time()}: #{z} の計算を開始します"
++    spawn(fn ->
+     Tarai.async(tarai_pid, z)
+     receive do
+       {^z, reply} ->
+-        {:reply, reply, tarai_pid}
++          GenServer.reply(from, reply)
+     end
++    end)
++    {:noreply, tarai_pid}
+   end
+ end
+
+-{:ok, pid} = GenServer.start_link(GS1, {13, 10})
++{:ok, pid} = GenServer.start_link(GS2, {13, 10})
+ spawn(fn ->
+   IO.puts "#{inspect :calendar.local_time()}: 0 の呼び出し開始"
+   result = GenServer.call(pid, 0)
+#+end_src
+
+1. handle_infoでは{:noreply, state}を返してしまう．
+2. GenServer.callの返り値は，GenServer.replyを利用して返す．
+
+を行うとGenServerプロセスをブロックせずに非同期クライアントを利用した値の取得がうまく行える．
+
+以下の実行でも「0 の計算を開始した時刻」と「1 の計算を開始した時刻」にずれがなくなったことがわかるだろう．
+
+#+begin_src
+{{2018, 3, 27}, {23, 7, 41}}: 0 の呼び出し開始
+{{2018, 3, 27}, {23, 7, 41}}: 1 の呼び出し開始
+{{2018, 3, 27}, {23, 7, 41}}: 2 の呼び出し開始
+{{2018, 3, 27}, {23, 7, 41}}: 0 の計算を開始します
+{{2018, 3, 27}, {23, 7, 41}}: 1 の計算を開始します
+{{2018, 3, 27}, {23, 7, 41}}: 2 の計算を開始します
+{{2018, 3, 27}, {23, 7, 45}}: 0 の結果は 13 です
+{{2018, 3, 27}, {23, 7, 46}}: 1 の結果は 13 です
+{{2018, 3, 27}, {23, 7, 46}}: 2 の結果は 13 です
+#+end_src
+
+** まとめ
+
+GenServerの中で非同期クライアントを利用し，GenServer.callへ値を返すときに発生する悩み
+=receive= をどこに書きその結果をどのように戻せばいいかについて書いた．
+
+1. handle_infoでは{:noreply, state}を返してしまう．
+2. GenServer.callの返り値は，GenServer.replyを利用して返す．
+
+私は[[https://hexdocs.pm/elixir/1.6.4/GenServer.html#reply/2][GenServer.reply/2]]を知らなくて悩みをtwitterに書いていたところ[[https://twitter.com/voluntas/status/976794050303950848][voluntasさんから]]gen_server:replyを教えていただき，うまく動いたのでこの記事を書いた．
+この場を借りて感謝いたします．
