@@ -1,0 +1,405 @@
+* GenServerからping-pongを送る3つの方法
+
+プログラムが外部と接続し続けているとき，ping-pongやheartbeatなどと呼ばれる，外部との接続が正常に行えていることを確認するための通信を一定時間毎に行うことがある．
+これをGenServerで行うためのイディオムを以下の3つ考えた
+
+1. タイマーを利用して一定時間毎にpingを送る
+2. タイマーを利用して通信してから一定時間毎にpingを送る
+3. OTPのタイムアウトを利用して一定時間毎にpingを送る
+
+まず全てのコードを示し，続いてそれぞれのメリットデメリットを述べる．どれにもメリットデメリットがあり，どれを選ぶといいかは場合によりそうだ．
+
+** 1. タイマーを利用して一定時間毎にpingを送る
+
+[[https://hexdocs.pm/elixir/1.6.4/GenServer.html#module-receiving-regular-messages][GenServerドキュメントのReceiving “regular” messages節]]にあるようなコードを書く．
+
+[[https://wandbox.org/permlink/g54xKZ4XGAy5zue4][wandboxでタイマーを利用して一定時間毎にpingを送るを試す]]
+
+#+begin_src elixir :exports both :tangle periodically1.exs
+defmodule ExternalConnection do
+  def create do
+    spawn_link __MODULE__, :loop, []
+  end
+
+  def ping(pid) do
+    send(pid, :ping)
+  end
+
+  def do_something(pid) do
+    send(pid, :do_something)
+  end
+
+  def loop do
+    IO.puts("#{Time.utc_now}: connection created")
+    do_loop()
+  end
+
+  defp do_loop do
+    receive do
+      :ping ->
+        IO.puts("#{Time.utc_now}: connection refreshed by ping")
+      :do_something ->
+        IO.puts("#{Time.utc_now}: connection refreshed by do_something")
+    end
+    do_loop()
+  end
+end
+
+defmodule Periodically1 do
+  use GenServer
+
+  def start_link do
+    GenServer.start_link(__MODULE__, [])
+  end
+
+  def init([]) do
+    schedule_work()
+    {:ok, ExternalConnection.create()}
+  end
+
+  def handle_cast(:do_something, conn) do
+    ExternalConnection.do_something(conn)
+    {:noreply, conn}
+  end
+
+  def handle_info(:do_ping, conn) do
+    schedule_work()
+    # 外部と通信する処理をここに書く
+    ExternalConnection.ping(conn)
+    {:noreply, conn}
+  end
+
+  defp schedule_work() do
+    Process.send_after(self(), :do_ping, 10 * 1000) # In 10 seconds
+  end
+end
+
+{:ok, pid} = Periodically1.start_link
+Process.sleep(25 * 1000) # 25 seconds
+GenServer.cast(pid, :do_something)
+IO.puts("do_somethingから10秒後ではなく，定期的なpingが5秒後に送られる")
+Process.sleep(6 * 1000)
+GenServer.stop(pid)
+#+end_src
+
+#+RESULTS:
+: 10:46:14.374198: connection created
+: 10:46:24.374062: connection refreshed by ping
+: 10:46:34.374534: connection refreshed by ping
+: do_somethingから10秒後ではなく，定期的なpingが5秒後に送られる
+: 10:46:39.373880: connection refreshed by do_something
+: 10:46:44.376170: connection refreshed by ping
+: :ok
+
+** 2. タイマーを利用して通信してから一定時間毎にpingを送る
+
+ping以外でもとにかく何かを送ることができたなら，pingを送るのはそれが起きてからの一定間隔後でかまわない．
+そこで先程の例でdo_somethingから5秒後にpingが送られていたのを，do_somethingから10秒後にpingが送られるように変更する．
+
+[[https://wandbox.org/permlink/fNb74UlTIY1i5oT4][wandboxでタイマーを利用して通信してから一定時間毎にpingを送るを試す]]
+
+#+begin_src elixir :exports both :tangle periodically2.exs
+defmodule ExternalConnection do
+  def create do
+    spawn_link __MODULE__, :loop, []
+  end
+
+  def ping(pid) do
+    send(pid, :ping)
+  end
+
+  def do_something(pid) do
+    send(pid, :do_something)
+  end
+
+  def loop do
+    IO.puts("#{Time.utc_now}: connection created")
+    do_loop()
+  end
+
+  defp do_loop do
+    receive do
+      :ping ->
+        IO.puts("#{Time.utc_now}: connection refreshed by ping")
+      :do_something ->
+        IO.puts("#{Time.utc_now}: connection refreshed by do_something")
+    end
+    do_loop()
+  end
+end
+
+defmodule Periodically2 do
+  use GenServer
+
+  def start_link do
+    GenServer.start_link(__MODULE__, [])
+  end
+
+  def init([]) do
+    timer_ref = schedule_work()
+    {:ok, {ExternalConnection.create(), timer_ref}}
+  end
+
+  def handle_cast(:do_something, {conn, timer_ref}) do
+    ExternalConnection.do_something(conn)
+    Process.cancel_timer(timer_ref)
+    new_timer_ref = schedule_work()
+    {:noreply, {conn, new_timer_ref}}
+  end
+
+  def handle_info(:do_ping, {conn, _timer_ref}) do
+    new_timer_ref = schedule_work()
+    # 外部と通信する処理をここに書く
+    ExternalConnection.ping(conn)
+    {:noreply, {conn, new_timer_ref}}
+  end
+
+  defp schedule_work() do
+    Process.send_after(self(), :do_ping, 10 * 1000) # In 10 seconds
+  end
+end
+
+{:ok, pid} = Periodically2.start_link
+Process.sleep(25 * 1000) # 25 seconds
+GenServer.cast(pid, :do_something)
+IO.puts("do_somethingから10秒後にpingが送られる")
+Process.sleep(11 * 1000)
+GenServer.stop(pid)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+11:11:44.452650: connection created
+11:11:54.453452: connection refreshed by ping
+11:12:04.454514: connection refreshed by ping
+do_somethingから10秒後にpingが送られる
+11:12:09.453764: connection refreshed by do_something
+11:12:19.456743: connection refreshed by ping
+:ok
+#+end_example
+
+Periodically1とPeriodically2の差分はこのようになる．
+
+#+begin_src diff
+--- periodically1.exs	2018-04-19 20:12:43.000000000 +0900
++++ periodically2.exs	2018-04-19 20:12:43.000000000 +0900
+@@ -27,7 +27,7 @@
+   end
+ end
+
+-defmodule Periodically1 do
++defmodule Periodically2 do
+   use GenServer
+
+   def start_link do
+@@ -35,20 +35,22 @@
+   end
+
+   def init([]) do
+-    schedule_work()
+-    {:ok, ExternalConnection.create()}
++    timer_ref = schedule_work()
++    {:ok, {ExternalConnection.create(), timer_ref}}
+   end
+
+-  def handle_cast(:do_something, conn) do
++  def handle_cast(:do_something, {conn, timer_ref}) do
+     ExternalConnection.do_something(conn)
+-    {:noreply, conn}
++    Process.cancel_timer(timer_ref)
++    new_timer_ref = schedule_work()
++    {:noreply, {conn, new_timer_ref}}
+   end
+
+-  def handle_info(:do_ping, conn) do
+-    schedule_work()
++  def handle_info(:do_ping, {conn, _timer_ref}) do
++    new_timer_ref = schedule_work()
+     # 外部と通信する処理をここに書く
+     ExternalConnection.ping(conn)
+-    {:noreply, conn}
++    {:noreply, {conn, new_timer_ref}}
+   end
+
+   defp schedule_work() do
+@@ -56,9 +58,9 @@
+   end
+ end
+
+-{:ok, pid} = Periodically1.start_link
++{:ok, pid} = Periodically2.start_link
+ Process.sleep(25 * 1000) # 25 seconds
+ GenServer.cast(pid, :do_something)
+-IO.puts("do_somethingから10秒後ではなく，定期的なpingが5秒後に送られる")
+-Process.sleep(6 * 1000)
++IO.puts("do_somethingから10秒後にpingが送られる")
++Process.sleep(11 * 1000)
+ GenServer.stop(pid)
+#+end_src
+
+** 3. OTPのタイムアウトを利用して一定時間毎にpingを送る
+
+明示的なタイマーを利用するのではなく，OTPに備わっているタイムアウト機能を利用する方法もある．
+タイムアウトした場合は [[https://hexdocs.pm/elixir/1.6.4/GenServer.html#c:handle_info/2][handle_info(:timeout, state)]] コールバックが呼ばれる．
+
+[[https://wandbox.org/permlink/jId7ULIxqNWVVpHp][wandboxでOTPのタイムアウトを利用して一定時間毎にpingを送るを試す]]
+
+#+begin_src elixir :exports both :tangle periodically3.exs
+defmodule ExternalConnection do
+  def create do
+    spawn_link __MODULE__, :loop, []
+  end
+
+  def ping(pid) do
+    send(pid, :ping)
+  end
+
+  def do_something(pid) do
+    send(pid, :do_something)
+  end
+
+  def loop do
+    IO.puts("#{Time.utc_now}: connection created")
+    do_loop()
+  end
+
+  defp do_loop do
+    receive do
+      :ping ->
+        IO.puts("#{Time.utc_now}: connection refreshed by ping")
+      :do_something ->
+        IO.puts("#{Time.utc_now}: connection refreshed by do_something")
+    end
+    do_loop()
+  end
+end
+
+defmodule Periodically3 do
+  use GenServer
+
+  def start_link do
+    GenServer.start_link(__MODULE__, [])
+  end
+
+  def init([]) do
+    {:ok, ExternalConnection.create(), 10 * 1000}
+  end
+
+  def handle_cast(:do_something, conn) do
+    ExternalConnection.do_something(conn)
+    {:noreply, conn, 10 * 1000}
+  end
+
+  def handle_info(:timeout, conn) do
+    # 外部と通信する処理をここに書く
+    ExternalConnection.ping(conn)
+    {:noreply, conn, 10 * 1000}
+  end
+end
+
+{:ok, pid} = Periodically3.start_link
+Process.sleep(25 * 1000) # 25 seconds
+GenServer.cast(pid, :do_something)
+IO.puts("do_somethingから10秒後にpingが送られる")
+Process.sleep(11 * 1000)
+GenServer.stop(pid)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+11:28:02.051877: connection created
+11:28:12.052628: connection refreshed by ping
+11:28:22.053611: connection refreshed by ping
+do_somethingから10秒後にpingが送られる
+11:28:27.052555: connection refreshed by do_something
+11:28:37.053755: connection refreshed by ping
+:ok
+#+end_example
+
+Periodically1とPeriodically3の差分はこのようになる．
+タイマーに関するコードが全て消去できているのがわかるだろう．
+
+#+begin_src diff
+--- periodically1.exs	2018-04-19 20:25:33.000000000 +0900
++++ periodically3.exs	2018-04-19 20:25:33.000000000 +0900
+@@ -27,7 +27,7 @@
+   end
+ end
+
+-defmodule Periodically1 do
++defmodule Periodically3 do
+   use GenServer
+
+   def start_link do
+@@ -35,30 +35,24 @@
+   end
+
+   def init([]) do
+-    schedule_work()
+-    {:ok, ExternalConnection.create()}
++    {:ok, ExternalConnection.create(), 10 * 1000}
+   end
+
+   def handle_cast(:do_something, conn) do
+     ExternalConnection.do_something(conn)
+-    {:noreply, conn}
++    {:noreply, conn, 10 * 1000}
+   end
+
+-  def handle_info(:do_ping, conn) do
+-    schedule_work()
++  def handle_info(:timeout, conn) do
+     # 外部と通信する処理をここに書く
+     ExternalConnection.ping(conn)
+-    {:noreply, conn}
+-  end
+-
+-  defp schedule_work() do
+-    Process.send_after(self(), :do_ping, 10 * 1000) # In 10 seconds
++    {:noreply, conn, 10 * 1000}
+   end
+ end
+
+-{:ok, pid} = Periodically1.start_link
++{:ok, pid} = Periodically3.start_link
+ Process.sleep(25 * 1000) # 25 seconds
+ GenServer.cast(pid, :do_something)
+-IO.puts("do_somethingから10秒後ではなく，定期的なpingが5秒後に送られる")
+-Process.sleep(6 * 1000)
++IO.puts("do_somethingから10秒後にpingが送られる")
++Process.sleep(11 * 1000)
+ GenServer.stop(pid)
+#+end_src
+
+** まとめ
+
+- 1. タイマーを利用して一定時間毎にpingを送る
+  - メリット
+    - コードが明示的で，タイマーが存在するのだなというのが伝わりやすい
+    - =schedule_work()= を =init= と =handle_info(:do_ping, state)= の2箇所に書いておけば，通常の処理ではタイマーを気にしなくてよい
+    - GenServerのstateにタイマーを保持しなくてもよく変数を一つ抑制できる
+  - デメリット
+    - pingは通常の通信と独立して一定間隔で行われるために，本来は必要ないpingが送られることも多い
+- 2. タイマーを利用して通信してから一定時間毎にpingを送る
+  - メリット
+    - コードが明示的で，タイマーが存在するのだなというのが伝わりやすい
+    - 前回通信時からの経過時間で賢くpingできる
+  - デメリット
+    - タイマーをキャンセルする準備のため，GenServerのstateに一つ変数を追加しなければいけない( =timer_ref= )
+    - タイマーキャンセルとタイマー再スケジュールを通信がある全ての処理で明示的に行わなければいけない
+- 3. OTPのタイムアウトを利用して一定時間毎にpingを送る
+  - メリット
+    - タイマーのコードがないため，pingではない通信の記述に着目しやすい
+    - 前回通信時からの経過時間で賢くpingできる
+  - デメリット
+    - GenServerの知識がないと何が起こっているのかわかりにくい
+    - 通信がある全ての処理のコールバックにタイムアウトを記述しなければいけない
+    - タイムアウトをタイマーの役割として利用してしまうと，タイムアウトを他の役割で利用するときにコードが複雑になる
+
+どれも長短あり悩ましい．
+
+私は主に使う人が私だったり，あるいは文脈が共有できそうな簡潔なプログラムなら3にしようかなと思っている．
+
+ただタイマーをタイマーと明示することは，コードを一瞥したときに「タイマーがあるんだ」と意識させる意義のあることのようにも思えるので，広く使われたいプログラムでは1や2を使うかもしれない．
+
+あなたはどのpingを利用するだろうか．その理由と共に教えてほしい．また他の方法も思いつけばぜひ教えてほしい．
