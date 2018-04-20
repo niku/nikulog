@@ -237,10 +237,13 @@ Periodically1とPeriodically2の差分はこのようになる．
  GenServer.stop(pid)
 #+end_src
 
-** 3. OTPのタイムアウトを利用して一定時間毎にpingを送る
+** 3. OTPのタイムアウトを利用して通信してから一定時間後にpingを送る
 
+もし *全てのコールバックが外部と通信する* という前提をたてられるのであれば，
 明示的なタイマーを利用するのではなく，OTPに備わっているタイムアウト機能を利用する方法もある．
 タイムアウトした場合は [[https://hexdocs.pm/elixir/1.6.4/GenServer.html#c:handle_info/2][handle_info(:timeout, state)]] コールバックが呼ばれる．
+
+外部と通信しないコールバックがある場合にはこの方法は利用できない．理由は後述する．
 
 [[https://wandbox.org/permlink/jId7ULIxqNWVVpHp][wandboxでOTPのタイムアウトを利用して一定時間毎にpingを送るを試す]]
 
@@ -371,6 +374,47 @@ Periodically1とPeriodically3の差分はこのようになる．
  GenServer.stop(pid)
 #+end_src
 
+*** 外部と通信しないコールバックがある場合にはこの方法は利用できない
+
+先程外部と通信しないコールバックがある場合にはこの方法は利用できないと述べた，その理由を説明する．
+例えば外部と通信しない =def handle_call(:get, conn)= を追加する．
+
+#+begin_src elixir
+defmodule Periodically3 do
+  use GenServer
+
+  def start_link do
+    GenServer.start_link(__MODULE__, [])
+  end
+
+  def init([]) do
+    {:ok, ExternalConnection.create(), 10 * 1000}
+  end
+
+  # 追加
+  def handle_call(:get, conn) do
+    {:ok, conn, conn}
+  end
+
+  def handle_cast(:do_something, conn) do
+    ExternalConnection.do_something(conn)
+    {:noreply, conn, 10 * 1000}
+  end
+
+  def handle_info(:timeout, conn) do
+    # 外部と通信する処理をここに書く
+    ExternalConnection.ping(conn)
+    {:noreply, conn, 10 * 1000}
+  end
+end
+#+end_src
+
+=handle_call= が呼ばれたときタイマーはどのように設定しなおせばよいか．
+前回外部と通信した時間から， =handle_call= が呼ばれた時間までに経過した時間を差し引いて，次のタイマーを設定したい．
+しかしそれを知ることはできない．
+
+改めて同じ時間のタイムアウトを設定することはできるが，外部と通信する時間間隔は広がってしまう．
+
 ** まとめ
 
 - 1. タイマーを利用して一定時間毎にpingを送る
@@ -387,18 +431,19 @@ Periodically1とPeriodically3の差分はこのようになる．
   - デメリット
     - タイマーをキャンセルする準備のため，GenServerのstateに一つ変数を追加しなければいけない( =timer_ref= )
     - タイマーキャンセルとタイマー再スケジュールを通信がある全ての処理で明示的に行わなければいけない
-- 3. OTPのタイムアウトを利用して一定時間毎にpingを送る
+- 3. OTPのタイムアウトを利用して通信してから一定時間後にpingを送る
   - メリット
     - タイマーのコードがないため，pingではない通信の記述に着目しやすい
     - 前回通信時からの経過時間で賢くpingできる
   - デメリット
+    - 他の2つに比べて制約条件が増えている
     - GenServerの知識がないと何が起こっているのかわかりにくい
     - 通信がある全ての処理のコールバックにタイムアウトを記述しなければいけない
     - タイムアウトをタイマーの役割として利用してしまうと，タイムアウトを他の役割で利用するときにコードが複雑になる
 
 どれも長短あり悩ましい．
 
-私は主に使う人が私だったり，あるいは文脈が共有できそうな簡潔なプログラムなら3にしようかなと思っている．
+私は個人プログラムでは制約があるがまず3を検討するだろう．
 
 ただタイマーをタイマーと明示することは，コードを一瞥したときに「タイマーがあるんだ」と意識させる意義のあることのようにも思えるので，広く使われたいプログラムでは1や2を使うかもしれない．
 
