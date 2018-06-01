@@ -1,0 +1,575 @@
+#+OPTIONS: toc:nil num:nil
+#+OPTIONS: reveal_history:nil
+#+REVEAL_TRANS: none
+#+REVEAL_THEME: simple
+#+Title: 任意のBEAM系言語でプラグインを書ける安定したフレームワークの作りかた
+#+Export_file_name: slide.html
+#+Author: niku
+#+Email: niku@niku.name
+* 任意のBEAM系言語でプラグインを書ける安定したフレームワークの作りかた
+
+** 最初に
+
+- 資料は [[./slide.html][https://niku.name/2018/06/16/slide.html]] にあります
+-
+- 記載している Hobot コードのバージョンは 0.3.0 です
+  - 今後のバージョンアップで滅茶苦茶変える可能性があります
+
+
+** 自己紹介
+
+[[./icon.png]]
+
+*** farmnote
+
+[[./farmnote.png]]
+
+*** サッポロビーム
+
+- [[http://sapporo-beam.github.io/][サッポロビーム]]によくいます
+  - 毎週木曜日の19:00-22:00くらいまでオンラインやオフラインでErlangVMやそうでないことについて話す集まり
+  - 4 年続いて 220 回くらいやってます
+- [[http://sapporo-beam.github.io/][http://sapporo-beam.github.io/]]
+
+#+REVEAL: split
+
+[[./sapporobeam_poor.png]]
+
+#+REVEAL: split
+
+[[./sapporobeam_nice.png]]
+
+
+** 何発表するの
+
+- Elixir 製チャット Bot フレームワーク [[https://github.com/niku/hobot][Hobot]] を作った経験
+  - プラグインシステムとErlangのOTPって相性がいいかもしれない
+  - ElixirにはPubSubができるライブラリが標準で入っていてさらに相性がいいかもしれない
+- [[https://github.com/niku/hobot][https://github.com/niku/hobot]]
+
+
+** なんで作ろうと思ったの
+
+- [[https://niku.name/2017/09/11/ErlangVM%E3%81%A7%E5%8B%95%E3%81%8FBot%E3%83%95%E3%83%AC%E3%83%BC%E3%83%A0%E3%83%AF%E3%83%BC%E3%82%AFHobot%E3%82%92%E4%BD%9C%E3%81%A3%E3%81%9F.html][ErlangVMで動くBotフレームワークHobotを作った]]
+  - ErlangVM からならどの言語でも簡単に使えるようなライブラリを作ってみたい
+  - きちんとドキュメントがあり自分でも利用するようなフレームワークを作ってみたい
+    - (まだドキュメントは書けてない)
+- [[https://qiita.com/niku/items/524d9ed77e664571fd5e][https://qiita.com/niku/items/524d9ed77e664571fd5e]]
+
+
+** この発表を聞いてどうなってほしいの
+
+- 私はまあまあ楽しかった
+- 他の人も任意の BEAM 系言語でプラグインを書ける安定したフレームワークを作れる気になってほしい
+  - あわよくば作ってみてほしい
+  - 作ったら感想戦しましょう
+    - あの部分が難しかったとか
+    - ここの判断で迷ったんだけど，そっちにしたかー
+
+
+** Hobotを使ったアプリケーション例
+
+[[https://github.com/niku/hobot#usage][https://github.com/niku/hobot#usage]]
+
+#+begin_src elixir
+hobot% iex -S mix
+iex(1)> name = "EchoBot"
+iex(2)> adapter = %{module: Hobot.Plugin.Adapter.Shell, args: [Process.group_leader()]}
+iex(3)> handlers = [%{module: Hobot.Plugin.Handler.Echo, args: [["on_message"]]}]
+iex(4)> {:ok, echo_bot} = Hobot.create(name, adapter, handlers)
+iex(5)> %{adapter: adapter} = Hobot.context(echo_bot)
+iex(6)> Hobot.Plugin.Adapter.Shell.gets("> ", Hobot.pid(adapter))
+> hello
+"hello"
+> hi
+"hi"
+> quit
+nil
+#+end_src
+
+
+*** Adapter
+
+#+begin_src elixir
+defmodule Hobot.Plugin.Adapter.Shell do
+  use GenServer
+  def gets(device \\ :stdio, prompt, send_to) do
+    with x when is_binary(x) <- IO.gets(device, prompt),
+         line when line !== "quit" <- String.trim_trailing(x) do
+      send(send_to, line)
+      gets(device, prompt, send_to)
+    else
+      _ ->
+        nil
+    end
+  end
+  def init({context, device}), do: {:ok, {context, device}}
+  def handle_cast({:reply, _ref, data}, {_context, device} = state) do
+    IO.puts(device, inspect(data))
+    {:noreply, state}
+  end
+  def handle_info(data, {context, _device} = state) do
+    apply(context.publish, ["on_message", make_ref(), data])
+    {:noreply, state}
+  end
+end
+#+end_src
+
+
+*** Handler
+
+#+begin_src elixir
+defmodule Hobot.Plugin.Handler.Echo do
+  use GenServer
+
+  def init({context, topics} = args) do
+    for topic <- topics, do: apply(context.subscribe, [topic])
+    {:ok, args}
+  end
+
+  def handle_cast({:broadcast, _topic, ref, data}, {context, _topics} = state) do
+    apply(context.reply, [ref, data])
+    {:noreply, state}
+  end
+
+  def terminate(reason, {context, topics}) do
+    for topic <- topics, do: apply(context.unsubscribe, [topic])
+    reason
+  end
+end
+#+end_src
+
+
+** フレームワーク作ってみてわかった
+
+- 課題を解決する方法は複数思いつく
+- どれを選ぶか悩み選択する
+  - (覚えていたら)行毎にどうしてそのコードにしたか説明できる
+  - あとで他の人のコードを見て「その手がありましたか」みたいな発見をする
+  - 楽しい！
+- 普通のプログラムでも同じだった
+  - **フレームワーク特有の悩みを味わえた**
+
+
+** 悩み
+
+- プラグインを読み込む
+- プラグインからフレームワークへの情報伝達
+- フレームワークからプラグインへの情報伝達
+- プラグインで起きたエラーのフレームワークでのハンドリング
+
+
+** プラグインを読み込む
+
+- _プラグインを読み込む_
+- プラグインからフレームワークへの情報伝達
+- フレームワークからプラグインへの情報伝達
+- プラグインで起きたエラーのフレームワークでのハンドリング
+
+
+*** プラグインを読み込む
+
+[[./module_load.png]]
+
+
+*** フレームワークを起動すると特定のファイルパスを読み込みにいく
+
+#+begin_src elixir
+# my_framework.ex
+defmodule MyFramework do
+  @plugins_path "~/plugins"
+  def load_plugins do
+    for file <- File.ls!(Path.expand(@plugins_path)) do
+      Code.load_file(Path.join(@plugins_path, file))
+    end
+  end
+end
+# ~/plugins/foo.exs
+defmodule Foo do
+  def greet, do: IO.puts("hello")
+end
+# ~/plugins/bar.exs
+defmodule Bar do
+  def greet, do: IO.puts("hi")
+end
+# iex
+iex(1)> c("my_framework.ex")
+iex(2)> MyFramework.load_plugins
+iex(3)> Foo.greet # => hello
+iex(4)> Bar.greet # => hi
+#+end_src
+
+
+*** mixを利用する
+
+- Hobotはこの形式にした
+
+#+begin_src bash
+mix new my_framework
+mix new foo
+mix new bar
+mix new framework_user
+#+end_src
+
+#+REVEAL: split
+
+#+begin_src elixir
+# foo/lib/foo.ex
+defmodule Foo do
+  def greet, do: IO.puts("hello")
+end
+
+# framework_user/mix.exs
+  defp deps do
+    [
+      {:my_framework, path: "../my_framework"},
+      {:foo, path: "../foo"},
+      {:bar, path: "../bar"}
+    ]
+  end
+
+# iex
+cd framework_user
+iex -S mix
+Foo.greet # =>hello
+#+end_src
+
+
+*** フレームワークの登場人物
+
+- プラグイン機構をもつフレームワークには登場人物が三人いる
+  1. フレームワーク作る人
+  2. プラグイン作る人
+  3. **フレームワークとプラグイン使う人**
+- 基本3番の人だけがどのプラグインを使うかをフレームワークへ伝えられる
+
+
+** プラグインからフレームワークへの情報伝達
+
+- プラグインを読み込む
+- _プラグインからフレームワークへの情報伝達_
+- フレームワークからプラグインへの情報伝達
+- プラグインで起きたエラーのフレームワークでのハンドリング
+
+
+*** プラグインからフレームワークへの情報伝達
+
+[[./plugin_to_framework.png]]
+
+
+*** HobotプラグインはGenServerにした
+
+- ErlangVMの標準ライブラリOTPに含まれているbehaviour
+- 初期化や後始末する口が用意されている
+- プラグインでエラーが起きたとき扱いやすい
+
+
+*** GenServerの一生
+
+[[./genserver.png]]
+
+
+*** GenServer
+
+#+begin_src elixir
+defmodule MyGenServer do
+  use GenServer
+
+  def init(args) do
+    # 初期化でやりたいこと
+    {:ok, args}
+  end
+
+
+  def handle_cast(msg, state) do
+    # 呼ばれたときにやりたいこと
+    {:noreply, state}
+  end
+
+  def terminate(reason, state) do
+    # 終端処理でやりたいこと
+    reason
+  end
+end
+#+end_src
+
+
+*** Hobotのプラグイン(フレームワークからの受信)
+
+#+begin_src elixir
+defmodule Hobot.Plugin.Handler.Echo do
+  use GenServer
+
+  def init({context, topics} = args) do
+    for topic <- topics, do: apply(context.subscribe, [topic])
+    {:ok, args}
+  end
+
+  # フレームワークから欲しい情報が送られてくる
+  def handle_cast({:broadcast, _topic, ref, data}, {context, _topics} = state) do
+    apply(context.reply, [ref, data])
+    {:noreply, state}
+  end
+
+  def terminate(reason, {context, topics}) do
+    for topic <- topics, do: apply(context.unsubscribe, [topic])
+    reason
+  end
+end
+#+end_src
+
+
+*** Hobotプラグインからフレームワークへ情報を伝える
+
+- GenServerが受けとる初期化の引数に =context= というものを追加した
+  - プラグインは =context= 経由でフレームワークとやりとりする
+- 規約をいくつか追加した
+  - プラグインは初期化のときに =context= 経由でフレームワークにプラグインを登録する
+  - その情報を元にフレームワークから伝えたいことがあったときにプラグインにデータを送る
+
+
+** フレームワークからプラグインへの情報伝達
+
+- プラグインを読み込む
+- プラグインからフレームワークへの情報伝達
+- _フレームワークからプラグインへの情報伝達_
+- プラグインで起きたエラーのフレームワークでのハンドリング
+
+
+*** フレームワークからプラグインへの情報伝達
+
+[[./framework_to_plugin.png]]
+
+
+*** フレームワークからプラグインに情報を伝えるのはRegistryを使った
+
+- Elixirの標準ライブラリに含まれている
+- PubSubができる
+  - Elixir標準ライブラリRegistryを使ったPub/Sub
+    - [[https://qiita.com/niku/items/8c0a743942ca8c1207a9][https://qiita.com/niku/items/8c0a743942ca8c1207a9]]
+  - 複数のプロセスに同じ情報を送るということをやりやすい
+    - =フレームワークから一つの情報を複数のプラグインに送りやすい！
+
+
+*** PubSubの例
+
+- Elixir使いはRubyとElixirに興味があるとする
+- Erlang使いはErlangとElxiirに興味があるとする
+
+- Elixirのタグ付けがされたニュースはElixir使いとErlang使いに届く
+- Rubyのタグ付けがされたニュースはElixir使いに届く
+
+
+*** PubSubの絵
+
+[[./registry.png]]
+
+
+*** PubSub
+
+#+begin_src elixir
+defmodule MyMod do
+  def subscribe(name, interestings) do
+    for interesting <- interestings, do: Registry.register(MyRegistry, interesting, [])
+    do_loop(name)
+  end
+  defp do_loop(name) do
+    receive do
+      x -> IO.inspect({name, x})
+    end
+    do_loop(name)
+  end
+end
+{:ok, _} = Registry.start_link(:duplicate, MyRegistry)
+
+spawn(fn -> MyMod.subscribe("Elixir使い", ["Ruby", "Elixir"]) end)
+spawn(fn -> MyMod.subscribe("Erlang使い", ["Elixir", "Erlang"]) end)
+
+Registry.dispatch(MyRegistry, "Elixir", fn entries ->
+  for {pid, _} <- entries, do: send(pid, "Elixirにまつわるニュース")
+end)
+# {"Elixir使い", "Elixirにまつわるニュース"}
+# {"Erlang使い", "Elixirにまつわるニュース"}
+
+Registry.dispatch(MyRegistry, "Ruby", fn entries ->
+  for {pid, _} <- entries, do: send(pid, "Rubyにまつわるニュース")
+end)
+# {"Elixir使い", "Rubyにまつわるニュース"}
+#+end_src
+
+
+*** Registryの制約
+
+- 複数ノードには対応していない
+- Registryへのプロセスの登録はそのプロセス自身しかできない
+  - プラグインがフレームワークに登録するとき，プラグイン自身がRegistryに登録しなければならない
+
+#+begin_src elixir
+Registry.register(registry, pid, key, value) # x
+Registry.register(registry, key, value)      # o
+#+end_src
+
+
+*** (再掲) Hobotプラグイン
+
+- 規約を作った
+  - 初期化時に =context.subscribe= を呼ぶ
+    - 興味がありフレームワークから通知してもらいたい情報と一緒に呼ぶ
+  - フレームワークはその関数の中でRegistryに登録している
+
+#+begin_src elixir
+defmodule Hobot.Plugin.Handler.Echo do
+  use GenServer
+
+  def init({context, topics} = args) do
+    for topic <- topics, do: apply(context.subscribe, [topic])
+    {:ok, args}
+  end
+
+  # (略)
+end
+#+end_src
+
+
+*** フレームワークからプラグインへの情報の伝達
+
+#+begin_src elixir
+  def dispatch(application_process, topic, message) do
+    Registry.dispatch(application_process.pub_sub, topic, fn entries ->
+      for {pid, before_receive} <- entries do
+        cast_to_process(application_process, pid, message, before_receive)
+        # cast_to_process の中で GenServer.cast(pid, value) している
+      end
+    end)
+  end
+#+end_src
+
+
+** プラグインで起きたエラーのフレームワークでのハンドリング
+
+- プラグインを読み込む
+- プラグインからフレームワークへの情報伝達
+- フレームワークからプラグインへの情報伝達
+- _プラグインで起きたエラーのフレームワークでのハンドリング_
+
+
+*** プラグインで起きたエラーのフレームワークでのハンドリング
+
+[[./when_error_occured.png]]
+
+
+*** プラグインでエラーが起きたとき，フレームワークはどう対処するか
+
+- 1,2,3の順に難しくなるだろう
+  1. フレームワークで特に対処せず一緒に落ちる(!)
+  2. エラーは検知し，エラーをおこしたプラグインは利用できなくする
+  3. エラーを検知し，エラーをおこしたプラグインを再起動する
+
+
+*** Supervisor
+
+- HobotのプラグインはGenServerのbehaviourを実装している
+- GenServerを実装しているモジュールから生成したプロセスにはSupervisorをつけることができる
+- Supervisorはプロセスを監視し続け，もし監視対象のプロセスがエラーになったら即座に再起動する
+- プラグインが意図せぬエラーでサーバーが落ちてしまったとしても素早く復活させられ比較的安定した動作を見込める
+
+
+*** Supervisorがやること
+
+[[./supervisor.png]]
+
+
+*** Supervisor例
+
+#+begin_src elixir
+defmodule Div do
+  use GenServer
+  def start_link(x) , do: GenServer.start_link(__MODULE__, x, name: __MODULE__)
+  def init(x), do: {:ok, x}
+  def handle_call(request, _from, x), do: {:reply, x / request, x}
+end
+{:ok, sup} = Supervisor.start_link([{Div, 12}], strategy: :one_for_one)
+GenServer.call(Div, 6) # => 2.0
+GenServer.call(Div, 0) # => error
+GenServer.call(Div, 3) # => 4.0
+#+end_src
+
+- エラーになった次の呼び出しに反応している．これはSupervisorがDivモジュールを再起動しているため
+- 詳しくは [[https://www.amazon.co.jp/dp/B00MLUGZIS/][すごいErlangゆかいに学ぼう！]] という本，あるいは Web の [[https://www.ymotongpoo.com/works/lyse-ja/ja/20_wsts.html#id3][スーパバイザの概念]] を読もう
+
+
+*** Hobotのプラグインのエラーハンドリング
+
+- HobotのプラグインはGenServerのbehaviourを実装している
+- HobotのフレームワークはSupervisorを使ってプラグインを監視している
+- プラグインが落ちても他のプラグインやフレームワーク部分に影響させない
+- プラグインが落ちても回復させられる
+
+
+** まとめ
+
+- GenServerの引数にcontextを渡すだけで全てがうまくいった
+  - 思いつくのには時間がかかった
+- 標準は便利
+  - プラグインの読み込みはmix
+  - プラグインGenServer
+  - 情報を複数配信するのにRegistry
+  - プラグインのエラーの分離と監視にSupervisour
+
+
+** はなせなかったことたち
+
+- Hobotという名前の由来
+- 趣味ツールを標準に寄せる窮屈さはなかったの
+- 使ってる？
+- Elixirならマクロを使えば記述量を減らせるのでは
+- なぜcontextを関数呼び出し =apply(context.register, [topic])= にしたの． =Hobot.register(context, topic)= という形でもよかったのでは
+- 今後の予定
+
+
+*** Hobotという名前の由来
+
+- ElixirはAlchemistが作っている霊薬だと聞きました
+- AlchemistはHomunclusという生物を作って使役するらしい
+  - この Ho をとった
+- ほぼBotという意味も含めた
+
+
+*** 趣味ツールを標準に寄せる窮屈さはなかったの
+
+- 標準に寄せるという制約にのっけるという楽しさを味わいました
+
+
+*** 使ってる？
+
+- [[https://github.com/niku/eloido][https://github.com/niku/eloido]]
+- 以下のHobotスタックでできている
+  - TwitterStreamingを監視するAdapter
+  - 以下の条件にあったらHandlerに送る
+    - 特定のアカウントがtweetした
+    - 特定の言葉がtweetされた
+  - idobataioに投稿するHandler
+
+
+*** Elixirならマクロを使えば記述量を減らせるのでは
+
+- マクロの第一法則「マクロを使うな」にならいました
+- 少し記述量は減りますが，わかりにくさが増えてしまうのでやめました
+
+
+*** なぜcontextを関数呼び出しapply(context.register, [topic])にしたの
+
+- Hobot.register(context, topic) という形も考えました
+- プラグインにフレームワークへの依存を持たせないというのもチャレンジの一環
+  - Hobotと同じAPIを持つフレームワークならHobot以外のフレームワークでも使えるプラグインになっているはず
+
+
+*** 今後の予定
+
+- [[https://qiita.com/melpon/items/bae4105c68f8da50e3c7][Streamlined childspec]]に対応
+  - mapで初期化するほどの柔軟性はいらなかった気がする
+- ドキュメント書き
+- テスト書き
+- Chaosエンジニアリング入れたい
+- デバッグしやすいようにしたい
+- Elixir以外でのプラグイン実証したい
