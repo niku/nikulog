@@ -1,0 +1,123 @@
+* Guildの発表資料を読んで思ったこと
+
+Rubyと並列処理が好きで両方の良さそうな点を備えたElixirに触り始めたので，Rubyに並列処理を入れようとしているGuildに注目している．
+RubyKaigi2018での発表資料が[[http://www.atdot.net/~ko1/activities/2018_rubykaigi2018.pdf][PDFで公開されていた]]ので読んだ．感想をここに書く．届けこの思い！
+
+** Classオブジェクトを拡張したときの挙動
+
+33P で Class/Module objects が shareable になっている．そうしないとプログラミングが大変になるからいいと思う．
+ただ Ruby のオープンクラス機能を使ったときはクラスオブジェクトをコピーするのかなという点が気になった．たぶんそうかな．
+
+#+begin_src ruby
+class Greeting
+  def initialize(name)
+    @name = name
+  end
+
+  def greet
+    "hello, #{name}!"
+  end
+end
+
+g1 = Guild.new do
+  loop do
+    name = Guild.receive
+    Guild.parent Greeting.new(name).greet
+  end
+end
+
+g1 << "niku"
+puts Guild.receive # => "hello, niku!" になりそう
+
+class Greeting
+  def greet
+    "hi, #{name}!"
+  end
+end
+
+g1 << "niku"
+puts Guild.receive # => クラスオブジェクトが拡張されたらコピーされるだろうから "hello, niku!" のままになるのかなあ？
+
+g2 = Guild.new do
+  loop do
+    name = Guild.receive
+    Guild.parent Greeting.new(name).greet
+  end
+end
+
+g2 << "niku"
+puts Guild.receive # => "hi, niku!" になりそう
+
+g3 = Guild.new do
+  class Greeting
+    def greet
+      "goodby, #{name}!"
+    end
+  end
+
+  loop do
+    name = Guild.receive
+    Guild.parent Greeting.new(name).greet
+  end
+end
+
+g3 << "niku"
+puts Guild.receive # => "goodby, niku!" になりそう
+puts Greeting.new("niku").greet # => "hi, niku!" になりそう
+#+end_src
+
+** 返り値
+
+ところで =g1 << "niku"= の返り値はなんになるのかな．
+あまり使わないだろうから与えられた引数 =niku= なんかでいいんだろうか．
+
+** timeout
+
+Guild.receive には timeout が欲しいなあ．Erlang や Elixir の receive に after あるやつ．
+
+#+begin_src ruby
+Guild.new do
+  x = Guild.receive
+  Guild.parent x
+end
+
+begin
+  Guild.receive(timeout: 5000)
+rescue GuildTimeout # 勝手に拡張した
+  puts "timeout" # 5 秒後にここにきてほしい
+end
+#+end_src
+
+** プロセスのスケジューリングの公平さ
+
+P49 Guildの実行スケジューラーはNativeなんですかね．
+ErlangVMのスケジューラーはNativeじゃないのはプロセスのスケジューリングを公平にするためだった気がするというのをどこかで読んだ気がする（要出展）
+NativeスレッドでもGuildの実行を公平にうまく制御できるのかな．
+
+** Guild内で起きたエラー
+
+GuildでハンドリングしないエラーはGuild単位で止まりますかね．
+
+#+begin_src ruby
+g1 = Guild.new do
+  x = Guild.receive
+  if x == "boom!"
+    raise "boom!"
+  else
+    Guild.parent "done"
+  end
+end
+
+g1 << "boom!"
+
+# 子Guildでエラーになっても親Guildは影響を受けず動作を継続してほしいなあ．
+# 子Guildのスタックトレースとか取れた方がいいのかな．私は不要だと思う．
+puts "the parent works!"
+
+# どうやって子Guildの状態を知ろう？
+g1.alive? # => false とか？
+#+end_src
+
+** 感想
+
+ささださん応援しております！
