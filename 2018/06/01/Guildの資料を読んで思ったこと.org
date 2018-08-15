@@ -10,6 +10,8 @@ RubyKaigi2018での発表資料が[[http://www.atdot.net/~ko1/activities/2018_ru
 
 #+begin_src ruby
 class Greeting
+  attr_reader :name
+
   def initialize(name)
     @name = name
   end
@@ -22,7 +24,7 @@ end
 g1 = Guild.new do
   loop do
     name = Guild.receive
-    Guild.parent Greeting.new(name).greet
+    Guild.parent << Greeting.new(name).greet
   end
 end
 
@@ -41,7 +43,7 @@ puts Guild.receive # => クラスオブジェクトが拡張されたらコピ�
 g2 = Guild.new do
   loop do
     name = Guild.receive
-    Guild.parent Greeting.new(name).greet
+    Guild.parent << Greeting.new(name).greet
   end
 end
 
@@ -57,7 +59,7 @@ g3 = Guild.new do
 
   loop do
     name = Guild.receive
-    Guild.parent Greeting.new(name).greet
+    Guild.parent << Greeting.new(name).greet
   end
 end
 
@@ -78,7 +80,7 @@ Guild.receive には timeout が欲しいなあ．Erlang や Elixir の receive 
 #+begin_src ruby
 Guild.new do
   x = Guild.receive
-  Guild.parent x
+  Guild.parent << x
 end
 
 begin
@@ -104,16 +106,20 @@ g1 = Guild.new do
   if x == "boom!"
     raise "boom!"
   else
-    Guild.parent "done"
+    Guild.parent << "done"
   end
 end
 
-g1 << "boom!"
-
-# 子Guildでエラーになっても親Guildは影響を受けず動作を継続してほしいなあ．
-# 子Guildのスタックトレースとか取れた方がいいのかな．私は不要だと思う．
-puts "the parent works!"
-
+begin
+  g1 << "boom!"
+  sleep 5
+  # 子Guildでエラーになっても親Guildは影響を受けず動作を継続してほしいなあ．
+  # 子Guildのスタックトレースとか取れた方がいいのかな．私は不要だと思う．
+  puts "the parent works!"
+rescue
+  puts "the parent doesn't work..."
+  p $!
+end
 # どうやって子Guildの状態を知ろう？
 g1.alive? # => false とか？
 #+end_src
