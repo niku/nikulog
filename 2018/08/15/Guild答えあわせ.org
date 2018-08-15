@@ -1,0 +1,133 @@
+* Guild答え合わせ
+
+[[https://github.com/niku/ruby-guild][DockerコンテナでGuildが使えるRubyを起動させる]]ことに成功したので，以前[[https://niku.name/2018/06/01/Guild%E3%81%AE%E8%B3%87%E6%96%99%E3%82%92%E8%AA%AD%E3%82%93%E3%81%A7%E6%80%9D%E3%81%A3%E3%81%9F%E3%81%93%E3%81%A8.html][Guildの発表資料を読んで思ったこと]]で書いた想像上のGuildとの挙動の答えあわせをする．
+
+** Classオブジェクトを拡張したときの挙動
+
+#+begin_src ruby
+class Greeting
+  attr_reader :name
+
+  def initialize(name)
+    @name = name
+  end
+
+  def greet
+    "hello, #{name}!"
+  end
+end
+
+g1 = Guild.new do
+  loop do
+    name = Guild.receive
+    Guild.parent << Greeting.new(name).greet
+  end
+end
+
+g1 << "niku"
+puts Guild.receive
+# 予想: "hello, niku!" になりそう
+# => hello, niku!
+
+class Greeting
+  def greet
+    "hi, #{name}!"
+  end
+end
+
+g1 << "niku"
+puts Guild.receive
+# 予想: クラスオブジェクトが拡張されたらコピーされるだろうから "hello, niku!" のままになるのかなあ？
+# => hi, niku!
+# クラスオブジェクトはコピーされていないようだ．クラス拡張の挙動は私の予想と違った．
+
+g2 = Guild.new do
+  loop do
+    name = Guild.receive
+    Guild.parent << Greeting.new(name).greet
+  end
+end
+
+g2 << "niku"
+puts Guild.receive
+# 予想: "hi, niku!" になりそう
+# => hi, niku!
+
+g3 = Guild.new do
+  class Greeting
+    def greet
+      "goodby, #{name}!"
+    end
+  end
+
+  loop do
+    name = Guild.receive
+    Guild.parent << Greeting.new(name).greet
+  end
+end
+
+g3 << "niku"
+puts Guild.receive
+# 予想: "goodby, niku!" になりそう
+# => goodby, niku!
+
+puts Greeting.new("niku").greet
+# 予想: "hi, niku!" になりそう
+# => goodby, niku!
+#+end_src
+
+Guildでクラス拡張したものは，今までのRubyと同じようにクラス拡張されるようだ．
+それは今までのRubyと同じ挙動といういい面もあるが，複数のGuildで同じクラスを利用しているとき，クラス拡張のタイミングによってプログラムの動作が異なってしまうマルチスレッディングの難しさが残っているように感じた．
+
+** 返り値
+
+=g1 << "niku"= の返り値は与えられた引数 =niku= だと予想していたけれど =nil= だった．
+妥当なように思う．
+
+** timeout
+
+希望なので試していない．
+
+** プロセスのスケジューリングの公平さ
+
+試してない．
+
+** Guild内で起きたエラー
+
+
+#+begin_src ruby
+g1 = Guild.new do
+  x = Guild.receive
+  if x == "boom!"
+    raise "boom!"
+  else
+    Guild.parent << "done"
+  end
+end
+
+begin
+  g1 << "boom!"
+  sleep 5
+  # 子Guildでエラーになっても親Guildは影響を受けず動作を継続してほしいなあ．
+  # 子Guildのスタックトレースとか取れた方がいいのかな．私は不要だと思う．
+  puts "the parent works!"
+rescue
+  puts "the parent doesn't work..."
+  p $!
+end
+
+# 予想: "the parent works!" が返ってくるといいなあ
+# => the parent works!
+#+end_src
+
+GuildでハンドリングしないエラーはGuild単位で止まるようだ．
+こういうプロセスの分離があるとうれしい．
+
+さらにGuildの親がコールバック形式で登録しておくとエラーがおきたときにすぐに知ることのできる仕組み(ErlangVMでいうところのモニター)があると最高だ．
+それがあるかどうかは，資料からはみつけられなかった．
+
+** まとめ
+
+- クラスの拡張のところは私は Guild 内に閉じていてくれた方がトラブルが少ないと感じた
+- プロセスの分離のところは私が望んでいる挙動だった．あとはモニターがあって，エラーになったことをすぐに知れるとうれしいなあ
+- =docker run -it --rm --name my-guild niku/ruby-guild= で Docker コマンドが使える人なら誰でも Guild を試せるようにしたので遊んでみるのにどうぞ
