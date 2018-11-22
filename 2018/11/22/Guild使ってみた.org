@@ -1,0 +1,103 @@
+#+OPTIONS: toc:nil num:nil
+#+OPTIONS: reveal_history:nil
+#+REVEAL_TRANS: none
+#+REVEAL_THEME: simple
+#+Title: Guild使ってみた
+#+Export_file_name: slide.html
+#+Author: niku
+#+Email: niku@niku.name
+* Guild使ってみた
+
+** 資料
+
+- 資料は [[./slide.html][https://niku.name/2018/11/22/slide.html]] に置きます
+
+** 自己紹介
+
+[[./i_make_a_mistake.png]]
+
+*** farmnote
+
+[[./farmnote.png]]
+
+*** farmnoteと目黒
+
+[[./farmnote_tokyo.png]]
+
+*** サッポロビーム
+
+- [[http://sapporo-beam.github.io/][サッポロビーム]]によくいます
+- 毎週木曜日の19:00-22:00くらいまでオンラインやオフラインでErlangVMやそうでないことについて話す集まり
+
+*** 私とRuby
+
+- RubyKaigi2013のレポートを書きました
+- http://gihyo.jp/news/report/01/rubykaigi2013
+
+[[./rubykaigi2013.png]]
+
+*** 私とRuby(2)
+
+- るびまに「なるほど Erlang プロセス」という記事を書きました
+- https://magazine.rubyist.net/articles/0056/0056-naruhodo_erlang_process.html
+
+[[./rubima.png]]
+
+** Guild
+
+*** 資料
+
+- http://www.atdot.net/~ko1/activities/2018_rubykaigi2018.pdf
+- [[http://www.atdot.net/~ko1/activities/2018_rubyconf2018.pdf][http://www.atdot.net/~ko1/activities/2018_rubyconf2018.pdf]]
+
+*** Motivation
+
+[[./motivation.png]]
+
+
+*** 試してみたい！
+
+- https://github.com/ko1/ruby/tree/guild
+- 私の手元ではビルドできなかった……
+
+*** Dockerコンテナ作りました
+
+- https://hub.docker.com/r/niku/ruby-guild/
+
+[[./rubyguild.png]]
+
+*** 使いかた
+
+#+begin_src ruby
+$ docker run -it --rm --name my-guild niku/ruby-guild
+irb(main):001:0> g1 = Guild.new do
+irb(main):002:1*   receive = Guild.receive
+irb(main):003:1>   Guild.parent << receive
+irb(main):004:1> end
+=> #<Guild:0x0000559cc1e87430>
+irb(main):005:0> g1 << "hello"
+=> nil
+irb(main):006:0> p Guild.receive
+"hello"
+=> "hello"
+#+end_src
+
+*** Guildたぶんこんな風に動く
+
+#+begin_src ruby
+g1 = Guild.new do
+  receive = Guild.receive # 3. ギルドに送られたメッセージを受ける
+  double = receive * 2
+  Guild.parent << double  # 4. 親で Guild.receive を呼んだときに返る
+end # 1. ギルドができる
+
+g1 << "hello" # 2. ギルドに送る。返り値は nil
+
+p Guild.receive # 5. double の値が返るはず
+#+end_src
+
+*** おまけ
+
+- 私が試したやつ
+- https://niku.name/2018/06/01/Guild%E3%81%AE%E8%B3%87%E6%96%99%E3%82%92%E8%AA%AD%E3%82%93%E3%81%A7%E6%80%9D%E3%81%A3%E3%81%9F%E3%81%93%E3%81%A8.html
+- https://niku.name/2018/08/15/Guild%E7%AD%94%E3%81%88%E3%81%82%E3%82%8F%E3%81%9B.html
